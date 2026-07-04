@@ -1,0 +1,43 @@
+# ---- 虚拟环境（位于工作区根目录）----
+.venv/
+venv/
+env/
+
+# ---- 密钥：绝不入库 ----
+.env
+
+# ---- Python 缓存 ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ---- 打包产物 ----
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---- LangGraph 会话记忆持久化文件（SqliteSaver 运行时生成）----
+checkpoints.db
+checkpoints.db-wal
+checkpoints.db-shm
+
+# ---- 安装/探测过程日志（临时产物）----
+install*.log
+install*.err
+mlite_install*.log
+mlite_install*.err
+lite.log
+lite.err
+local_milvus.db/
+*.db.lock
+
+# ---- 工具 / 编辑器本地状态 ----
+# 说明：.idea/ 下保留了 misc.xml、modules.xml、*.iml、inspectionProfiles/
+# 这类可共享的项目配置（仅含本机绝对路径的 workspace.xml 已删除），
+# 但按 PyCharm 默认约定整体不入库。
+.idea/
+.vscode/
+*.swp
+.codebuddy/

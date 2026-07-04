@@ -1,0 +1,75 @@
+# ============================================================================
+# RAG 企业知识库项目 —— 依赖清单（精简直接依赖版）
+# 目标生态：LangChain 1.x / LangGraph 1.x
+# Python：3.12.7
+#
+# 说明：
+# * 本文件只列「项目代码直接 import 的包」+「必须钉住的关键间接约束」。
+# * 完整可复现环境见 requirements-lock.txt（pip freeze 全量，148 行）。
+# * 升级前的原始基线见 requirements-legacy-freeze.txt（143 行，未改动）。
+# * 安装：.venv\Scripts\python.exe -m pip install -r requirements.txt
+# ============================================================================
+
+# ---- LangChain 1.x 主生态 -------------------------------------------------
+langchain==1.4.3
+langchain-core==1.6.6
+langchain-openai==1.6.7
+langchain-community==0.4.2
+langchain-milvus==0.4.0
+
+# ---- LangGraph 1.x --------------------------------------------------------
+langgraph==1.2.12
+langgraph-checkpoint==4.2.0
+langgraph-prebuilt==1.1.0
+# 会话记忆持久化：官方指出 MemorySaver/InMemorySaver 只存内存、重启即丢，
+# 生产应改用 PostgresSaver，本地/小型项目用 SqliteSaver（见 utils/checkpointer.py）
+langgraph-checkpoint-sqlite==3.1.1
+
+# ---- 旧版 Agent API 兼容包（间接依赖，请勿删除）---------------------------
+# agent/rag_agent.py 原先使用的 create_tool_calling_agent / AgentExecutor，
+# 在 LangChain 1.x 中已从 langchain.agents 移除，官方保留在 langchain-classic。
+# 项目源码已改为 1.x 标准 create_agent 写法，不再引用本包；但它是
+# langchain-community 0.4.2 的硬依赖，删掉会导致 pip check 报破损依赖。
+langchain-classic==1.0.8
+
+# ---- 文档解析与切片 --------------------------------------------------------
+# 注意：community 包已停止维护（导入时发 DeprecationWarning），但项目
+# UnstructuredMarkdownLoader 仍只在此包中提供，
+# 故暂时保留；langchain-unstructured 为其拆分后的新家，暂未切换。
+langchain-unstructured==1.0.1
+unstructured==0.27.10
+Markdown==3.11 # unstructured.partition.md 的硬依赖（原 freeze 为 Markdown==3.7）
+jieba==0.42.1 # Milvus 服务端（含 Lite）启用 jieba 分析器的硬依赖；原 freeze 未包含，
+              # 但 milvus_db.py 的 schema 用了 analyzer_params={"tokenizer": "jieba"}，
+              # 缺失会导致建表报 JiebaAnalyzer requires the 'jieba' package
+langchain-experimental==0.4.2 # SemanticChunker（按语义切片）
+langchain-text-splitters==1.1.3
+
+# ---- 本地 Embedding（BAAI/bge-small-zh-v1.5，输出 512 维）-----------------
+langchain-huggingface==1.2.2
+torch==2.7.1 # 固定 2.7.x：与 Python 3.12.7 及 transformers 4.x 兼容
+transformers==4.57.6 # 固定 4.x 末班；5.x 与 langchain-huggingface 1.x 兼容性未验证
+sentence-transformers==5.7.0 # 固定 5.x 末班
+
+# ---- 向量库 ---------------------------------------------------------------
+pymilvus==3.0.2 # 3.x 全部枚举路径已实测与项目用法一致
+
+# ---- Web 搜索 -------------------------------------------------------------
+# 原 requirements.txt 遗漏了 tavily-python，但 all_llm.py 的 TavilySearchResults 必需它。
+# langchain-tavily 为 1.x 下的官方 partner 包，本次未改动代码故暂未使用，
+# 保留安装以便将来迁移时直接切换。
+tavily-python==0.8.4
+langchain-tavily==0.2.18
+
+# ---- 基础设施 -------------------------------------------------------------
+pydantic==2.13.5
+openai==3.24.0
+tiktoken==0.14.0
+protobuf==7.36.2
+numpy==2.5.3
+pandas==3.0.6
+loguru==0.7.3
+python-dotenv==1.2.4
+
+# ---- 明确不安装 -----------------------------------------------------------
+# dotenv==0.9.9 —— 已废弃的独立包，与 python-dotenv 功能重复，原 freeze 中误含，本次不再引入。
