@@ -18,6 +18,7 @@ from tools.retriever_tools import retriever_tool
 from utils.checkpointer import create_checkpointer
 from utils.log_utils import log
 from utils.print_utils import _print_event
+from utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 
@@ -32,7 +33,7 @@ def grade_documents(state) -> Literal["generate", "rewrite"]:
     """
     log.info("---检查document的相关性---")
     #  带结构化输出的LLM
-    llm_with_structured = llm.with_structured_output(Grade)
+    llm_with_structured = llm.with_structured_output(Grade, method=LLM_STRUCTURED_METHOD)
 
     # 提示模板
     prompt = PromptTemplate(

@@ -322,6 +322,99 @@ code-review 的 Spec 轴发现、且经复核确认的一处真实行为差异�
 - 后果：多轮中模型看到的上下文比旧实现更长（多出工具调用与工具输出），能保留上轮调用了哪个工具、返回了什么，但 token 消耗更高。
 - 这是 LangChain 1.0 的设计方向（用检查点取代手工历史裁剪），不是缺陷。若需严格复刻旧裁剪行为，可在 `middleware` 中加历史裁剪中间件。
 
+### 5.8 接入 DeepSeek 后实测暴露的四个问题（2026-10-07）
+
+配置：`.env` 指向 DeepSeek 官方（`LLM_BASE_URL=https://api.deepseek.com`，
+`LLM_MODEL=deepseek-flash`），并在真实 Milvus 2.6.25 上跑通全部三个入口。
+过程中发现四个问题，均已修复：
+
+**① LLM 的 base_url / model / temperature 原本硬编码在源码里**
+原 `llm_models/all_llm.py` 写死 `model='gpt-4o-mini'`、`base_url="https://xiaoai.plus/v1"`，
+换服务商必须改代码。现已按第3.3 节的同一思路外置为
+`LLM_BASE_URL` / `LLM_MODEL` / `LLM_TEMPERATURE`，默认值保持迁移前写法。
+
+**② `langchain-openai` 1.x 把 `with_structured_output` 的默认方法改了**
+1.x 默认值从 `function_calling` 变成了 **`json_schema`**，而 DeepSeek 官方 API 不支持
+（报 `This response_format type is unavailable now`）。
+项目共有 5 处 `with_structured_output` 调用（`graph1.grade_documents`、
+`graph2` 的 grader / answer / hallucinations / router），现已全部显式指定
+`method=LLM_STRUCTURED_METHOD`（默认 `function_calling`）。
+> 换到支持 `json_schema` 的服务商时，改这一个环境变量即可。
+
+**③ DeepSeek 的 thinking 模式与 `tool_choice` 冲突**
+开启 thinking 时报`Thinking mode does not support this tool_choice`，
+而 `function_calling` 依赖 `tool_choice`。因此默认关闭 thinking
+（`LLM_DISABLE_THINKING=1`，需要时可置0 打开）。
+
+**④ `web_search` 节点还漏了一种返回形态**
+`TavilySearchResults.invoke` 在工具执行出错时，langchain 会把**异常信息包成字符串**
+返回（实测拿到 `"HTTPError('401 Client Error: Unauthorized for url: https://api.tavily.com/search')"`）。
+原先只处理了 `(list, raw)` 元组与 `list`，遇到字符串会抛
+`TypeError: string indices must be integers`。现已兼容 `tuple` / `list` / `str` 三种。
+
+### 5.9 原项目自带的一处设定不一致（非本次改动引入）
+
+`tools/retriever_tools.py:51` 的工具描述写的是：
+> 搜索并返回关于 '半导体和芯片' 的信息, 内容涵盖：半导体和芯片的封装、测试、光刻胶等
+
+但 `datas/md/` 里的实际语料是 **Milvus / 向量数据库**文档。影响面：
+- **`graph2` 不受影响** —— 它直接使用 `retriever`，不经过工具描述
+- **`agent/rag_agent.py` 会受影响** —— `create_agent` 依据工具描述决定是否调用工具，
+  实测模型回答「我唯一能用的工具是一个专注于半导体和芯片的检索器，
+  和向量数据库索引无关」，因此**拒绝检索 Milvus 相关问题**
+
+**已于 2026-10-07 修正**（只改描述文案，不改工具名、不改检索行为）：
+
+> 搜索并返回关于 Milvus 向量数据库的信息，内容涵盖：架构与部署、索引类型与指标、
+> 性能调优、运维监控、常见问题排查等
+
+修正前后对比（真实环境实测）：
+
+| | 修改前 | 修改后 |
+|---|---|---|
+| 提问 "What index types does Milvus support?" | `human -> ai`（**直接拒答，未调工具**） | `human -> ai -> tool -> ai` |
+| 提问 "How do I troubleshoot a Milvus deployment?" | `human -> ai` | `human -> ai -> tool -> ai -> human -> ai -> tool -> tool -> ai` |
+
+即：修正后 `rag_agent` 会真正发起检索，且多轮对话中能连续调用工具。
+
+### 5.10 真实环境下的完整验证结果（2026-10-07）
+
+环境：Docker `milvusdb/milvus:v2.6.25`（本地）+ `deepseek-flash`（DeepSeek 官方）
++本地 `BAAI/bge-small-zh`（512 维）+ Tavily 官方 key，语料 102 块（7 个 md）。
+
+三个入口全部跑通：
+
+| 入口 | 结果 |
+|---|---|
+| `graph2`（CRAG 完整链路） | 路由 / 检索 / 判分 / 生成 / 幻觉检查 / 答案判分 全通 |
+| `graph1` | 6 节点 7 边；SqliteSaver 生效；多轮记忆注入正常（2 -> 4 条消息） |
+| `agent/rag_agent.py` | 1.x 标准 `create_agent`（节点 model/tools）；多轮记忆正常 |
+| `web_search` 分支 | Tavily 官方 key 下返回真实网页内容（约 3.1k 字符） |
+
+实测问答（答案与Milvus 官方文档一致）：
+```
+Q: What index types does Milvus support?
+A: HNSW（基于图，适合对搜索效率要求高的场景）、FLAT（百万级小数据集上追求
+   完全精确搜索）、IVF_FLAT、IVF_SQ8、IVF_PQ、SCANN、DiskIndex ...
+
+Q: Does Milvus support non-x86 architectures?
+A: Milvus 不支持非 x86 架构…CPU 必须支持 SSE4.2、AVX、AVX2 或 AVX512 等
+   x86 专用 SIMD 指令集。当前版本也不支持 Apple M1 CPU。
+
+Q: How does Milvus handle index building?
+A: 插入向量后自动建索引，但仅在新增向量填满一个 segment 时才建；阈值由
+   rootcoord.minSegmentSizeToEnableIndex（默认 1024 行）控制，在此之前走暴力检索。
+```
+
+**观察到 CRAG 的真实振荡路径**（设计使然，非缺陷）：
+```
+web_search -> generate -> transform_query -> retrieve -> grade_documents
+-> transform_query -> retrieve -> grade_documents -> web_search -> generate
+-> transform_query -> retrieve -> grade_documents -> web_search -> generate  ← 终止
+```
+问题在「向量库检索」与「网络搜索」之间来回切换，最终由
+`MAX_GENERATION_RETRY` 熔断（见 5.4）保证终止——**若无该熔断，此处会无限循环**。
+
 ## 六、验证闸门结果
 
 执行 `.venv\Scripts\python.exe scripts\verify_migration.py --with-embeddings --report 迁移验证报告.md`

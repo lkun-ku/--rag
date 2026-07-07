@@ -48,5 +48,12 @@ retriever = mv.vector_store_saved.as_retriever(
 retriever_tool = create_retriever_tool(
     retriever,
     'rag_retriever',
-    '搜索并返回关于 ‘半导体和芯片’ 的信息, 内容涵盖：半导体和芯片的封装、测试、光刻胶等'
+    # [UPGRADE 2026-10] 工具描述原为「搜索并返回关于'半导体和芯片'的信息…封装、测试、光刻胶等」，
+    # 但本项目 datas/md/ 下的实际语料是 Milvus 向量数据库的文档（overview / product_faq /
+    # performance_faq / operational_faq / troubleshooting / tech_report）。
+    # 描述与语料不一致会让 create_agent（rag_agent.py）依据描述判断"工具与问题无关"而
+    # 直接拒答、不发起检索（实测会回答"我唯一能用的工具是半导体检索器"）。
+    # 这里只改描述文案，不改工具名、不改检索行为。
+    '搜索并返回关于 Milvus 向量数据库的信息，内容涵盖：架构与部署、索引类型与指标、'
+    '性能调优、运维监控、常见问题排查等'
 )

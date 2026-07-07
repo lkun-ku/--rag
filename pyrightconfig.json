@@ -1,0 +1,14 @@
+{
+  "extraPaths": ["./RAG_PROJECT"],
+  "reportImplicitRelativeImport": "none",
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "basic",
+  "exclude": ["**/__pycache__", "**/node_modules", ".venv", "local_milvus.db", "checkpoints.db", "scratch"],
+
+  "reportAttributeAccessIssue": "none",
+  "reportArgumentType": "none",
+  "reportCallIssue": "none",
+  "reportOperatorIssue": "none",
+  "reportGeneralTypeIssues": "none"
+}

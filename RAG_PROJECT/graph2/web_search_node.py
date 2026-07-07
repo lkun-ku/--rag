@@ -23,8 +23,23 @@ def web_search(state):
     # invoke() 返回的是 (clean_results, raw_results) 元组，而下面按 list 迭代取
     # d["content"] 会对 list 取下标而抛 TypeError（0.3.21 与 0.4.2 行为一致，
     # 故这是项目既有缺陷）。这里只做正确的解包，取值逻辑保持不变。
-    results = docs[0] if isinstance(docs, tuple) else docs
-    web_results = "\n".join([d["content"] for d in results])  # 合并搜索结果
+    # 工具可能返回三种形态，必须逐一处理（后两种是实测踩到的）：
+    #   1) (list, raw) 元组 —— response_format='content_and_artifacts' 的正常返回
+    #   2) list         —— 直接就是结果列表
+    #   3) str          —— 工具执行出错时，langchain 会把异常信息包成字符串返回
+    #                      （例如 Tavily key 无效时会拿到 "HTTPError('401 ...')"）
+    if isinstance(docs, tuple):
+        results = docs[0]
+    elif isinstance(docs, list):
+        results = docs
+    else:
+        log.warning(f"web_search 未返回结果列表，收到 {type(docs).__name__}，按原文使用")
+        results = docs
+
+    if isinstance(results, str):
+        web_results = results
+    else:
+        web_results = "\n".join([d["content"] for d in results])  # 合并搜索结果
     web_results = Document(page_content=web_results)  # 转换为文档格式
 
     return {"documents": web_results, "question": question}  # 返回更新状态

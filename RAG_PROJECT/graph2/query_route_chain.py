@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from llm_models.all_llm import llm
+from utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 # 查询的动态路由： 根据用户的提问，决策采用哪种检索策略（网络检索，RAG）
@@ -19,7 +20,7 @@ class RouteQuery(BaseModel):
 
 
 # 带函数调用的LLM
-structured_llm_router = llm.with_structured_output(RouteQuery)
+structured_llm_router = llm.with_structured_output(RouteQuery, method=LLM_STRUCTURED_METHOD)
 
 # 提示词模板
 system = """你是一个擅长将用户问题路由到向量知识库或网络搜索的专家。

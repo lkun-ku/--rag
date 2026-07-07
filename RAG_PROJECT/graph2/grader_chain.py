@@ -2,6 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from llm_models.all_llm import llm
+from utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 # 数据模型 - 文档相关性评分
@@ -14,7 +15,7 @@ class GradeDocuments(BaseModel):
 
 
 # 带函数调用的LLM初始化
-structured_llm_grader = llm.with_structured_output(GradeDocuments)  # 绑定结构化输出到评分模型
+structured_llm_grader = llm.with_structured_output(GradeDocuments, method=LLM_STRUCTURED_METHOD)  # 绑定结构化输出到评分模型
 
 # 提示词模板
 system = """你是一个评估检索文档与用户问题相关性的评分器。\n 

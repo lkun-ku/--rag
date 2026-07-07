@@ -2,6 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import Field, BaseModel
 
 from llm_models.all_llm import llm
+from utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 # 数据模型 - 回答质量评分
@@ -14,7 +15,7 @@ class GradeAnswer(BaseModel):
 
 
 # 初始化带函数调用的LLM
-structured_llm_grader = llm.with_structured_output(GradeAnswer)  # 绑定结构化输出到评分模型
+structured_llm_grader = llm.with_structured_output(GradeAnswer, method=LLM_STRUCTURED_METHOD)  # 绑定结构化输出到评分模型
 
 # 提示词模板
 system = """您是一个评估回答是否解决用户问题的评分器。\n
