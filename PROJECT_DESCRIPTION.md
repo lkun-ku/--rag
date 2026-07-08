@@ -52,8 +52,8 @@
 
 | 层 | 选型 |
 |---|---|
-| 编排 | LangChain 1.4.3 / LangGraph 1.2.12 |
-| 向量库 | Milvus 2.6.25 + langchain-milvus 0.4.0 + pymilvus 3.0.2 |
+| 编排 | LangChain 1.4.3 / LangGraph 1.2.14 |
+| 向量库 | Milvus 3.0.1 + langchain-milvus 0.4.0 + pymilvus 3.0.2 |
 | 嵌入 | BAAI/bge-small-zh-v1.5（512 维，本地 CPU） |
 | 生成 | DeepSeek `deepseek-flash`（OpenAI 兼容协议） |
 | 网络搜索 | Tavily |
@@ -577,7 +577,7 @@ services:
     volumes: [minio_data:/minio_data]
     command: minio server /minio_data
   standalone:
-    image: milvusdb/milvus:v2.6.0      # 2.6+ 才支持 Function 形式 reranker
+    image: milvusdb/milvus:v3.0.1      # 3.0+；2.6 以上才支持 Function 形式 reranker
     command: ["milvus", "run", "standalone"]
     environment: {ETCD_ENDPOINTS: etcd:2379, MINIO_ADDRESS: minio:9000}
     volumes: [milvus_data:/var/lib/milvus]

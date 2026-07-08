@@ -57,7 +57,8 @@ agent = create_agent(
 config = {'configurable': {'thread_id': SESSION_ID}}
 
 if __name__ == '__main__':
-    # 单轮提问：与迁移前完全相同的问题
+    # 单轮提问：与迁移前完全相同的问题"reportArgumentType": "none"    ← 删掉这行，reportArgumentType 的检查就回来了
+
     resp = agent.invoke(
         {'messages': [('user', '什么是EUV光刻机？')]},
         config=config,

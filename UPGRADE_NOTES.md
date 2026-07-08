@@ -707,3 +707,77 @@ row_count=17 | k=4 | 检索 4 条 | 全部 category==content（expr 过滤生效
 top: How is Milvus designed? As a cloud-native vector database, Milvus sepa...
 ```
 52 块（3 个 md 文件）时同样正常，标题面包屑生效。
+
+---
+
+## 附录：2026-10-08 全量依赖更新记录
+
+在保持功能完全不变的前提下，把环境更新到当时的最新版本。分三批实施，
+每批均用「21 项闸门 + e2e 冒烟 + 三入口实测」验证通过后才继续。
+
+### 批次 1：低风险（patch / minor）
+
+| 包 | 升级前 | 升级后 |
+|---|---|---|
+| `langchain-core` | 1.6.6 | **1.6.7** |
+| `langgraph` | 1.2.12 | **1.2.14** |
+| `langchain-huggingface` | 1.2.2 | **1.2.3** |
+| `unstructured` | 0.27.10 | **0.27.16** |
+| `openai` | 3.24.0 | **3.26.1** |
+| `tavily-python` | 0.8.4 | **0.8.5** |
+
+### 批次 2：ML 三件套（跨大版本，风险最高）
+
+| 包 | 升级前 | 升级后 | 说明 |
+|---|---|---|---|
+| `transformers` | 4.57.6 | **5.19.0** | 4.x → 5.x 大版本 |
+| `sentence-transformers` | 5.7.0 | **6.1.0** | 5.x → 6.x 大版本 |
+| `torch` | 2.7.1 | **2.14.1** | 无新增依赖 |
+| `tokenizers`（传递） | 0.22.2 | **0.23.2** | |
+| `huggingface-hub`（传递） | 0.36.2 | **1.33.0** | |
+
+**重点验证**：transformers 5.x 是否还能正常加载 BGE 并输出 512 维归一化向量。
+实测 `dim=512`、`L2=1.000000`、批量嵌入正常 —— **迁移成功**。
+
+### 批次 3：Milvus 服务端（大版本）
+
+| 项 | 升级前 | 升级后 |
+|---|---|---|
+| 服务端镜像 | `milvusdb/milvus:v2.6.25` | **`milvusdb/milvus:v3.0.1`** |
+| 客户端 `pymilvus` | 3.0.2 | 3.0.2（已是最新） |
+
+**操作要点**：
+- 配置位于 `D:\rag-app\milvus\docker-compose.yml`（不在项目目录内）
+- 数据是 bind mount 到 `volumes/{etcd,minio,milvus}`，跨大版本前已备份到
+  `volumes_backup_2.6.25/`（142.6 MB），并另存 `docker-compose.yml.bak-v2.6.25`
+- **兼容性实测**：2.6.25 写入的数据（102 + 52 块）能被 3.0.1 **直接读取**，
+  旧集合检索正常、`expr` 过滤仍生效；新建集合（含 BM25 内置函数 + 稀疏向量 + HNSW 512 维）也正常
+- 结论：**无需重新导入数据**
+
+### 升级中发现的一个操作教训
+
+验证脚本里想新建一个测试集合时踩到了本文档 4.10 节记录的坑
+（`COLLECTION_NAME` 在 `import` 时就绑定），结果误把 `t_collection01` 重建成了
+17 块的空集。发现后已用全部 7 个 md 重新入库恢复为 102 块。
+**再次印证：改集合名必须在 import 业务模块之前设置。**
+
+### 升级后最终版本清单
+
+```
+langchain              1.4.3     langchain-core        1.6.7
+langchain-openai       1.6.7     langchain-community   0.4.2
+langchain-milvus       0.4.0     langchain-classic     1.0.8
+langchain-experimental 0.4.2     langchain-huggingface 1.2.3
+langchain-text-splitters 1.1.3   langchain-unstructured 1.0.1
+langchain-tavily       0.2.18    langgraph             1.2.14
+langgraph-checkpoint   4.2.0     langgraph-checkpoint-sqlite 3.1.1
+langgraph-prebuilt     1.1.0     pymilvus              3.0.2
+Milvus 服务端            3.0.1     transformers          5.19.0
+sentence-transformers  6.1.0     torch                 2.14.1
+tokenizers             0.23.2     huggingface-hub       1.33.0
+unstructured           0.27.16    openai                3.26.1
+tavily-python          0.8.5      numpy 2.5.3 / pandas 3.0.6 / pydantic 2.13.5
+```
+
+验证结果：21 项闸门全 PASS、e2e 全部通过、三个入口（graph2 / graph1 / rag_agent）
+与 web_search 分支均正常，多轮记忆正常，`pip check` 无破损。

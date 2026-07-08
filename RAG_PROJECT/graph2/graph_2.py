@@ -36,6 +36,29 @@ def grade_generation_v_documents_and_question(state):
     documents = state["documents"]  # 获取参考文档
     generation = state["generation"]  # 获取生成结果
 
+    # ---- [ROADMAP 2.1 ④] 先做确定性的引用校验 ----
+    # 为什么放在 LLM 判定之前：这是**确定性**检查（字符串 + 数值比较），
+    # 零成本、零抖动，且「引用了不存在的编号」是最危险的幻觉形态 ——
+    # 它让用户以为答案有依据，比「没有引用」更糟。
+    from utils.citation import validate_citations  # 局部导入：避免与判分链的循环依赖
+
+    doc_list = documents if isinstance(documents, list) else [documents]
+    check = validate_citations(generation, len(doc_list) or 1)
+
+    if check["is_refusal"]:
+        # 设计内拒答：资料不足时的**正确**响应，不应触发熔断重试
+        # （若在这里重试，只会反复得到同样的拒答，白白消耗 LLM 调用）。
+        log.info("---判定：模型按规则拒答（资料不足），结束流程---")
+        return "useful"
+
+    if check["invalid"]:
+        generation_count = state.get("generation_count", 0)  # 熔断
+        log.warning(f"---判定：引用编号越界 {check['invalid']}（幻觉引用），已生成 {generation_count} 次---")
+        if generation_count >= MAX_GENERATION_RETRY:
+            # 熔断耗尽：改走受 transform_count 保护的分支，避免无限循环
+            return "not useful"
+        return "not supported"
+
     # 检查生成是否基于文档
     score = hallucination_grader_chain.invoke({"documents": documents, "generation": generation})
     grade = score.binary_score

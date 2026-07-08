@@ -23,7 +23,120 @@ TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
 
 # ---- 向量库：可用 .env 覆盖，默认值与迁移前一致 ----
 MILVUS_URI = os.getenv('MILVUS_URI', 'http://<old-ip>:19530')
-COLLECTION_NAME = os.getenv('COLLECTION_NAME', 't_collection01')
+
+# Milvus Lite（嵌入式）库路径，与 MILVUS_URI 二选一。
+#
+# 为什么不直接用 MILVUS_URI 传本地路径：
+#   MILVUS_URI 是 **pymilvus 自己的保留环境变量**，它在 import 阶段就被解析，
+#   且只接受 unix/http/tcp/grpc/local 前缀的形式。传 `./x.db` 会让 pymilvus
+#   在 import 时直接抛 ConnectionConfigException（实测）。
+#
+# 为什么需要单独的环境变量（而不是进程内覆盖）：
+#   write_milvus 走多进程，子进程会重新 import 本模块 —— 进程内 monkey-patch
+#   不会被继承。所以 Lite 路径必须能通过环境变量传递。
+#
+# 用法（PowerShell）：
+#   $env:MILVUS_LITE_PATH="./_test_lite/milvus.db"
+MILVUS_LITE_PATH = (os.getenv('MILVUS_LITE_PATH') or '').strip()
+if MILVUS_LITE_PATH:
+    MILVUS_URI = MILVUS_LITE_PATH
+    # Milvus Lite **不会自动创建父目录**，路径上一层不存在时会直接报
+    #   ConnectionConfigException: Open local milvus failed, dir: xxx not exists
+    # 这里预创建，避免用户每次都要手动 mkdir。
+    _lite_parent = os.path.dirname(os.path.abspath(MILVUS_LITE_PATH))
+    if _lite_parent:
+        os.makedirs(_lite_parent, exist_ok=True)
+
+# ---- 路径：消除硬编码 ----
+# PKG_ROOT 即 Python 包根（RAG_PROJECT/RAG_PROJECT），其下有 datas/ 等目录
+PKG_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# ROOT_DIR 是工作区根（.venv、requirements.txt 所在层级）
+ROOT_DIR = os.path.dirname(PKG_ROOT)
+
+# 语料目录：默认取包内 datas，可用 DATAS_DIR 覆盖
+DATAS_DIR = os.getenv('DATAS_DIR') or os.path.join(PKG_ROOT, 'datas')
+MD_DIR = os.path.join(DATAS_DIR, 'md')
+
+# ============================================================================
+# 嵌入模型（配置化：升维 / 换模型 / A/B 对照都只改 env，不动代码）
+#
+# 规范：模型文件随项目放在 MODELS_DIR 下（不进 git，见 .gitignore）。
+#       scripts/fetch_models.py 可重建。
+#
+# 默认指向项目内的 bge-large-zh-v1.5（1024 维）。
+# 做 512 维 A/B 对照时切回小模型即可：
+#     EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+#     EMBEDDING_DIM=512
+#     KB_COLLECTION=kb_milvus_bge-small_512
+# 依据见 ROADMAP 1.1.6：小模型必须保留，否则失去对照能力。
+# ============================================================================
+MODELS_DIR = os.getenv('MODELS_DIR') or os.path.join(PKG_ROOT, 'models')
+
+_DEFAULT_MODEL_DIR = os.path.join(MODELS_DIR, 'bge-large-zh-v1.5')
+# 项目内目录存在就用本地路径（离线可加载）；否则退回 HF repo id（需要联网或缓存）
+_DEFAULT_EMBEDDING = _DEFAULT_MODEL_DIR if os.path.isdir(_DEFAULT_MODEL_DIR) else 'BAAI/bge-large-zh-v1.5'
+
+EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL') or _DEFAULT_EMBEDDING
+EMBEDDING_DIM = int(os.getenv('EMBEDDING_DIM') or 1024)
+
+# ============================================================================
+# 集合命名（规范：kb_{domain}_bge-large_{dim}）
+#
+# COLLECTION_NAME 是「默认集合」，向后兼容旧脚本与旧配置；
+# 正式的多源摄入按下方 DOC_SOURCES 里各自的 collection 分集合写入，
+# 以避免不同语义域的内容相互干扰（依据见 ROADMAP 1.2）。
+# ============================================================================
+COLLECTION_NAME = os.getenv('COLLECTION_NAME') or 'kb_milvus_bge_large_1024'
+
+# ============================================================================
+# 多文档源清单（一源目录 ↔ 一集合）
+#
+# 核心是「语义域隔离」，不是「格式隔离」：同一语义域的文档放同一目录
+#（可含多种格式），不同语义域用不同目录 → 不同集合。
+#
+# parser 取值：
+#   markdown —— 原生 .md，直接走 MarkdownParser
+#   pdf      —— pymupdf4llm 转 Markdown 后走 MarkdownParser
+#   office   —— markitdown 转 Markdown 后走 MarkdownParser（docx / xlsx / pptx）
+#   text     —— .txt，**默认关闭**：按决策需先人工整理为 md（见 ROADMAP 1.3.3）
+#
+# dir 不存在时该源会被自动跳过（不报错），因此新目录可先建配置后补文件。
+# ============================================================================
+DOC_SOURCES = [
+    {
+        'name': 'milvus_docs',
+        'dir': os.getenv('SRC_DIR_MD') or MD_DIR,
+        'collection': os.getenv('KB_COLLECTION_MD') or 'kb_milvus_bge_large_1024',
+        'formats': ('.md',),
+        'parser': 'markdown',
+        'enabled': True,
+    },
+    {
+        'name': 'papers',
+        'dir': os.getenv('SRC_DIR_PDF') or os.path.join(DATAS_DIR, 'pdf'),
+        'collection': os.getenv('KB_COLLECTION_PDF') or 'kb_papers_bge_large_1024',
+        'formats': ('.pdf',),
+        'parser': 'pdf',
+        'enabled': True,
+    },
+    {
+        'name': 'manuals',
+        'dir': os.getenv('SRC_DIR_OFFICE') or os.path.join(DATAS_DIR, 'office'),
+        'collection': os.getenv('KB_COLLECTION_OFFICE') or 'kb_manuals_bge_large_1024',
+        'formats': ('.docx', '.xlsx', '.pptx'),
+        'parser': 'office',
+        'enabled': True,
+    },
+    {
+        'name': 'notes',
+        'dir': os.getenv('SRC_DIR_TXT') or os.path.join(DATAS_DIR, 'txt'),
+        'collection': os.getenv('KB_COLLECTION_TXT') or 'kb_notes_bge_large_1024',
+        'formats': ('.txt',),
+        'parser': 'text',
+        # 按决策关闭：txt 需先人工整理为 Markdown 再入库（ROADMAP 1.3.3）
+        'enabled': False,
+    },
+]
 
 # ---- LLM 服务商配置（换服务商/换模型不用改代码）----
 # 原项目把 base_url 与 model 硬编码在 llm_models/all_llm.py 里，换服务商必须改代码。
@@ -42,15 +155,15 @@ LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
 # 而 function_calling 依赖 tool_choice，因此默认关闭。
 LLM_DISABLE_THINKING = os.getenv('LLM_DISABLE_THINKING', '1') not in ('0', 'false', 'False')
 
-# ---- 路径：消除硬编码 ----
-# PKG_ROOT 即 Python 包根（RAG_PROJECT/RAG_PROJECT），其下有 datas/ 等目录
-PKG_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# ROOT_DIR 是工作区根（.venv、requirements.txt 所在层级）
-ROOT_DIR = os.path.dirname(PKG_ROOT)
+# 结构化输出方式。langchain-openai 1.x 的 with_structured_output 默认值已从
+# 'function_calling' 改成 'json_schema'，而 DeepSeek 官方 API 不支持 json_schema
+# （报 "This response_format type is unavailable now"），
+# 因此这里显式指定为 function_calling。换到支持 json_schema 的服务商可改这里。
+LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
 
-# 语料目录：默认取包内 datas/md，可用 DATAS_DIR 覆盖
-DATAS_DIR = os.getenv('DATAS_DIR') or os.path.join(PKG_ROOT, 'datas')
-MD_DIR = os.path.join(DATAS_DIR, 'md')
+# 是否关闭 DeepSeek 的 thinking 模式。thinking 开启时不支持强制 tool_choice，
+# 而 function_calling 依赖 tool_choice，因此默认关闭。
+LLM_DISABLE_THINKING = os.getenv('LLM_DISABLE_THINKING', '1') not in ('0', 'false', 'False')
 
 # 混合检索的 reranker 写法（二选一）：
 #   function —— 官方新写法 reranker=Function(RERANK)，语义最准，但要求服务端 Milvus 2.6+

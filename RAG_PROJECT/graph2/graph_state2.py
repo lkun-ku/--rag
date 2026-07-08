@@ -20,3 +20,6 @@ class GraphState(TypedDict):
     generation_count: int  # 生成回答的次数
     generation: str  # 存储LLM生成的回答内容
     documents: List[Document]  # 存储检索到的文档内容列表
+    # [ROADMAP 2.1] 引用溯源：编号 -> 原文块的映射，供调用方渲染「答案依据来自哪里」。
+    # 由 generate 节点产出；不参与流程控制（越界校验在判分函数里做）。
+    citations: List[dict]

@@ -1,0 +1,45 @@
+{"id": "q001", "source": "milvus_docs", "q": "Milvus 能否在无外网的环境下部署？", "answer": "可以，Milvus 支持离线部署。", "source_blocks": ["0b0b3ee716af"]}
+{"id": "q002", "source": "milvus_docs", "q": "多个 Milvus 实例可以共用一个 MinIO 实例吗？", "answer": "可以共用 MinIO。", "source_blocks": ["2eb090a78c97"]}
+{"id": "q003", "source": "milvus_docs", "q": "多个 Milvus 实例可以共用一个 etcd 实例吗？", "answer": "可以。", "source_blocks": ["914e705f1803"]}
+{"id": "q004", "source": "milvus_docs", "q": "Milvus 可以在 Windows 上安装吗？", "answer": "可以，Milvus 支持在 Windows 上安装（Docker 方式）。", "source_blocks": ["829a68274f4b"]}
+{"id": "q005", "source": "milvus_docs", "q": "怎么判断 Milvus 是否已经成功启动？", "answer": "可通过查看服务与日志判断是否成功启动。", "source_blocks": ["92c850e08ab4"]}
+{"id": "q006", "source": "milvus_docs", "q": "为什么我修改了配置文件却不生效？", "answer": "配置修改后需要重启服务才会生效。", "source_blocks": ["a77cfe680dc9"]}
+{"id": "q007", "source": "milvus_docs", "q": "哪些因素会影响检索的召回率？", "answer": "召回率受索引类型、参数与数据分布等多因素影响。", "source_blocks": ["bf6eba262ec4"]}
+{"id": "q008", "source": "milvus_docs", "q": "Milvus 运行日志存放在哪里？", "answer": "日志有固定的存放位置，可据此排查问题。", "source_blocks": ["e07b085f060a"]}
+{"id": "q009", "source": "milvus_docs", "q": "Milvus 的主键字段支持哪些数据类型？", "answer": "支持 INT64 与 VARCHAR 两类主键类型。", "source_blocks": ["a70eeba08d45"]}
+{"id": "q010", "source": "milvus_docs", "q": "Milvus 支持的最大向量维度是多少？", "answer": "Milvus 可管理的向量维度有上限。", "source_blocks": ["e267537875dc"]}
+{"id": "q011", "source": "milvus_docs", "q": "Milvus 里 search 和 query 有什么区别？", "answer": "search 做向量相似性检索，query 按表达式做标量过滤。", "source_blocks": ["51fa881f382f"]}
+{"id": "q012", "source": "milvus_docs", "q": "插入数据之后还能再创建索引吗？", "answer": "可以，索引可在插入数据后创建。", "source_blocks": ["188d181cc688"]}
+{"id": "q013", "source": "milvus_docs", "q": "Milvus 支持并发搜索吗？", "answer": "支持，同一集合上的查询可以并发执行。", "source_blocks": ["54402d7995eb"]}
+{"id": "q014", "source": "milvus_docs", "q": "Milvus 的数据存储在哪里？", "answer": "Milvus 的数据分为元数据与向量数据，存放位置不同。", "source_blocks": ["11374010e020"]}
+{"id": "q015", "source": "milvus_docs", "q": "为什么欧氏距离和內积检索返回的结果不一样？", "answer": "L2 与 IP 的度量语义不同，且受是否归一化影响。", "source_blocks": ["7d823fe4074a"]}
+{"id": "q016", "source": "milvus_docs", "q": "为什么搜索 topk 时返回的结果少于 k 个？", "answer": "可能因过滤条件或数据量不足导致返回少于 k 条。", "source_blocks": ["7fdafb2f9975"]}
+{"id": "q017", "source": "milvus_docs", "q": "什么是归一化？为什么向量检索需要归一化？", "answer": "归一化把向量缩放到单位长度，使内积等价于余弦相似度。", "source_blocks": ["dc8cb1aaf97d"]}
+{"id": "q018", "source": "milvus_docs", "q": "Milvus 支持 Apple M1 芯片吗？", "answer": "当前版本对 M1 的支持情况有说明。", "source_blocks": ["7ab96bd3324c"]}
+{"id": "q019", "source": "milvus_docs", "q": "集合删除后 MinIO 里的数据为什么还在？", "answer": "删除集合不会立即清理对象存储中的数据。", "source_blocks": ["907094dead81"]}
+{"id": "q020", "source": "milvus_docs", "q": "FLAT 和 IVF_FLAT 索引有什么区别？", "answer": "FLAT 暴力检索保证精度；IVF_FLAT 通过聚类加速但有召回损失。", "source_blocks": ["86239c7298c1"]}
+{"id": "q021", "source": "milvus_docs", "q": "同时进行数据插入和搜索会影响查询性能吗？", "answer": "会有影响，插入与查询会竞争资源。", "source_blocks": ["46907130284d"]}
+{"id": "q022", "source": "milvus_docs", "q": "IVF 索引的 nlist 和 nprobe 应该怎么设置？", "answer": "nlist 与 nprobe 需按数据规模与精度要求权衡设置。", "source_blocks": ["4b194a810c50"]}
+{"id": "q023", "source": "milvus_docs", "q": "为什么在较小的数据集上查询有时反而更慢？", "answer": "小数据集可能因索引结构未充分发挥作用而更慢。", "source_blocks": ["8b60482e6213"]}
+{"id": "q024", "source": "milvus_docs", "q": "哪些操作会导致 CPU 占用升高？", "answer": "构建索引等操作会显著提高 CPU 占用。", "source_blocks": ["dc0dfdfd65c6"]}
+{"id": "q025", "source": "milvus_docs", "q": "Milvus 支持哪些索引类型和相似度度量方式？", "answer": "支持多种索引（如 HNSW、IVF 系列）与度量（L2、IP、COSINE）。", "source_blocks": ["4d0dade0f425"]}
+{"id": "q026", "source": "milvus_docs", "q": "Milvus 的核心概念包括哪些？", "answer": "包括非结构化数据、嵌入向量、向量相似度搜索等。", "source_blocks": ["1acfd00f647c"]}
+{"id": "q027", "source": "milvus_docs", "q": "等离子体处理的基本原理是什么？", "answer": "等离子体是物质的第四态，由离子、电子和中性粒子组成。", "source_blocks": ["6284a33a3a18"]}
+{"id": "q028", "source": "milvus_docs", "q": "等离子体工艺的核心参数应该如何优化？", "answer": "功率密度通常控制在 0.1-10 W/cm² 等范围内。", "source_blocks": ["d711b2919e5f"]}
+{"id": "q029", "source": "milvus_docs", "q": "XPS 在半导体表面分析中有什么作用？", "answer": "XPS 用于表面化学分析，可表征元素组成与化学态。", "source_blocks": ["03c03cc95ed8"]}
+{"id": "q030", "source": "milvus_docs", "q": "EUV 光刻胶与传统光刻胶有什么本质区别？", "answer": "EUV 光刻胶在光子能量与反应机制上与传统光刻胶存在本质差异。", "source_blocks": ["98ae48872e30"]}
+{"id": "q031", "source": "milvus_docs", "q": "EUV 光刻胶在 7nm 以下制程面临哪些技术挑战？", "answer": "面临材料组分优化、光子-材料相互作用控制等挑战。", "source_blocks": ["39fed678c6b8"]}
+{"id": "q032", "source": "milvus_docs", "q": "等离子体原子层沉积（PE-ALD）有什么优势？", "answer": "PE-ALD 可在低温下实现高精度薄膜沉积。", "source_blocks": ["749c3ee1a3d1"]}
+{"id": "q033", "source": "papers", "q": "LayoutParser 是什么？", "answer": "LayoutParser 是一个用于深度学习文档图像分析的统一工具包。", "source_blocks": ["40dd8ef70f59"]}
+{"id": "q034", "source": "papers", "q": "LayoutParser 的核心目标是什么？", "answer": "让文档图像分析的流水线构建变得简单易用。", "source_blocks": ["c0be1d913d6f"]}
+{"id": "q035", "source": "papers", "q": "LayoutParser 有哪些典型应用场景？", "answer": "用于构建文档数字化与表格抽取等流水线。", "source_blocks": ["c0be1d913d6f", "93ba682a30fe"]}
+{"id": "q036", "source": "papers", "q": "文档版面分析领域有哪些相关工作？", "answer": "深度学习模型与数据集是该领域的主要相关工作。", "source_blocks": ["d689dc0fdf82"]}
+{"id": "q037", "source": "papers", "q": "什么是轻量级文档处理流水线？", "answer": "轻量级流水线面向相对简单的文档结构。", "source_blocks": ["c30be64687a3"]}
+{"id": "q038", "source": "papers", "q": "LayoutParser 的结论是什么？", "answer": "LayoutParser 提供了完整的文档分析工具包。", "source_blocks": ["c0be1d913d6f"]}
+{"id": "q039", "source": "manuals", "q": "并发数为 100 时查询延迟的 P50 和 P99 分别是多少？", "answer": "P50 为 380ms，P99 为 950ms。", "source_blocks": ["64742430942f"], "note": "表格数值题，答案必须精确"}
+{"id": "q040", "source": "manuals", "q": "SIFT1M 数据集的召回率是多少？", "answer": "0.95。", "source_blocks": ["e0dc426536c0"], "note": "表格数值题"}
+{"id": "q041", "source": "manuals", "q": "Milvus 产品手册中提到的部署要求是什么？", "answer": "需要 Python 3.10 以上版本与至少 8GB 内存。", "source_blocks": ["afa9f185e71f"]}
+{"id": "q042", "source": "manuals", "q": "Milvus 架构的主要组件有哪些？", "answer": "Coordinator 负责调度，QueryNode 执行检索。", "source_blocks": ["8ebb60710ddf"]}
+{"id": "q043", "source": "manuals", "q": "Milvus 的混合检索是如何实现的？", "answer": "结合稠密向量与稀疏关键词两路结果，用 RRF 融合。", "source_blocks": ["5d6ad24e6936"]}
+{"id": "q044", "source": "cross", "q": "Milvus 的架构设计与部署方式分别是什么？", "answer": "架构（存储计算分离）见 pptx；部署方式（Docker/单机）见 FAQ 与手册。", "source_blocks": ["7fcdd765c9df", "829a68274f4b", "afa9f185e71f"], "note": "跨源：验证能否同时召回 manuals 与 milvus_docs"}
+{"id": "q045", "source": "cross", "q": "向量检索的召回率受什么影响？", "answer": "受索引参数与数据分布影响（FAQ）；手册给出了具体召回率数值（xlsx）。", "source_blocks": ["bf6eba262ec4", "e0dc426536c0"], "note": "跨源：验证 milvus_docs 与 manuals 同时被召回"}

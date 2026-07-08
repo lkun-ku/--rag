@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -125,8 +126,17 @@ def report_project_collection(client, cols):
         if params.get("enable_analyzer"):
             extra = "  enable_analyzer=true"
             ap = params.get("analyzer_params") or {}
-            if ap:
+            # Milvus 3.0.1 的 describe_collection 把 analyzer_params 返回为
+            # **JSON 字符串**（2.6 返回 dict），两者都要兼容。
+            if isinstance(ap, str):
+                try:
+                    ap = json.loads(ap)
+                except Exception:  # noqa: BLE001
+                    ap = {}
+            if isinstance(ap, dict) and ap:
                 extra += " tokenizer=" + str(ap.get("tokenizer"))
+            elif ap:
+                extra += " analyzer_params=" + str(ap)[:60]
         if f.get("type") in ("FLOAT_VECTOR", "SPARSE_FLOAT_VECTOR"):
             extra += "  dim=" + str(params.get("dim", "-"))
         if params.get("function"):

@@ -1,0 +1,725 @@
+{
+  "verdict": "PASS",
+  "reasons": [],
+  "scores": {
+    "context_recall": 0.8856209150326797,
+    "hit_rate": 0.9019607843137255,
+    "context_precision": 0.06291192947767342,
+    "faithfulness": 0.9019607843137255,
+    "answer_relevancy": 0.8235294117647058
+  },
+  "cases": 51,
+  "elapsed_sec": 149.5,
+  "with_generation": true,
+  "llm_available": true,
+  "collections": [
+    "kb_milvus_bge_large_1024",
+    "kb_papers_bge_large_1024",
+    "kb_manuals_bge_large_1024"
+  ],
+  "per_source": {
+    "milvus_docs": {
+      "n": 32,
+      "recall": 0.875,
+      "precision": 0.05800726540616247
+    },
+    "papers": {
+      "n": 6,
+      "recall": 0.75,
+      "precision": 0.054446778711484595
+    },
+    "manuals": {
+      "n": 11,
+      "recall": 1.0,
+      "precision": 0.06888528138528138
+    },
+    "cross": {
+      "n": 2,
+      "recall": 0.8333333333333333,
+      "precision": 0.13392857142857142
+    }
+  },
+  "per_case": [
+    {
+      "id": "q001",
+      "source": "milvus_docs",
+      "q": "Milvus 能否在无外网的环境下部署？",
+      "golden_blocks": [
+        "0b0b3ee716af"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q002",
+      "source": "milvus_docs",
+      "q": "多个 Milvus 实例可以共用一个 MinIO 实例吗？",
+      "golden_blocks": [
+        "2eb090a78c97"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q003",
+      "source": "milvus_docs",
+      "q": "多个 Milvus 实例可以共用一个 etcd 实例吗？",
+      "golden_blocks": [
+        "914e705f1803"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q004",
+      "source": "milvus_docs",
+      "q": "Milvus 可以在 Windows 上安装吗？",
+      "golden_blocks": [
+        "829a68274f4b"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q005",
+      "source": "milvus_docs",
+      "q": "怎么判断 Milvus 是否已经成功启动？",
+      "golden_blocks": [
+        "92c850e08ab4"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q006",
+      "source": "milvus_docs",
+      "q": "为什么我修改了配置文件却不生效？",
+      "golden_blocks": [
+        "a77cfe680dc9"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q007",
+      "source": "milvus_docs",
+      "q": "哪些因素会影响检索的召回率？",
+      "golden_blocks": [
+        "bf6eba262ec4"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q008",
+      "source": "milvus_docs",
+      "q": "Milvus 运行日志存放在哪里？",
+      "golden_blocks": [
+        "e07b085f060a"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q009",
+      "source": "milvus_docs",
+      "q": "Milvus 的主键字段支持哪些数据类型？",
+      "golden_blocks": [
+        "a70eeba08d45"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q010",
+      "source": "milvus_docs",
+      "q": "Milvus 支持的最大向量维度是多少？",
+      "golden_blocks": [
+        "e267537875dc"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q011",
+      "source": "milvus_docs",
+      "q": "Milvus 里 search 和 query 有什么区别？",
+      "golden_blocks": [
+        "51fa881f382f"
+      ],
+      "recall": 1.0,
+      "precision": 0.058823529411764705,
+      "hit": 1.0,
+      "retrieved_n": 17,
+      "missed": []
+    },
+    {
+      "id": "q012",
+      "source": "milvus_docs",
+      "q": "插入数据之后还能再创建索引吗？",
+      "golden_blocks": [
+        "188d181cc688"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q013",
+      "source": "milvus_docs",
+      "q": "Milvus 支持并发搜索吗？",
+      "golden_blocks": [
+        "54402d7995eb"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q014",
+      "source": "milvus_docs",
+      "q": "Milvus 的数据存储在哪里？",
+      "golden_blocks": [
+        "11374010e020"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q015",
+      "source": "milvus_docs",
+      "q": "为什么欧氏距离和內积检索返回的结果不一样？",
+      "golden_blocks": [
+        "7d823fe4074a"
+      ],
+      "recall": 1.0,
+      "precision": 0.058823529411764705,
+      "hit": 1.0,
+      "retrieved_n": 17,
+      "missed": []
+    },
+    {
+      "id": "q016",
+      "source": "milvus_docs",
+      "q": "为什么搜索 topk 时返回的结果少于 k 个？",
+      "golden_blocks": [
+        "7fdafb2f9975"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q017",
+      "source": "milvus_docs",
+      "q": "什么是归一化？为什么向量检索需要归一化？",
+      "golden_blocks": [
+        "dc8cb1aaf97d"
+      ],
+      "recall": 0.0,
+      "precision": 0.0,
+      "hit": 0.0,
+      "retrieved_n": 16,
+      "missed": [
+        "dc8cb1aaf97d"
+      ]
+    },
+    {
+      "id": "q018",
+      "source": "milvus_docs",
+      "q": "Milvus 支持 Apple M1 芯片吗？",
+      "golden_blocks": [
+        "7ab96bd3324c"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q019",
+      "source": "milvus_docs",
+      "q": "集合删除后 MinIO 里的数据为什么还在？",
+      "golden_blocks": [
+        "907094dead81"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q020",
+      "source": "milvus_docs",
+      "q": "FLAT 和 IVF_FLAT 索引有什么区别？",
+      "golden_blocks": [
+        "86239c7298c1"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q021",
+      "source": "milvus_docs",
+      "q": "同时进行数据插入和搜索会影响查询性能吗？",
+      "golden_blocks": [
+        "46907130284d"
+      ],
+      "recall": 1.0,
+      "precision": 0.058823529411764705,
+      "hit": 1.0,
+      "retrieved_n": 17,
+      "missed": []
+    },
+    {
+      "id": "q022",
+      "source": "milvus_docs",
+      "q": "IVF 索引的 nlist 和 nprobe 应该怎么设置？",
+      "golden_blocks": [
+        "4b194a810c50"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q023",
+      "source": "milvus_docs",
+      "q": "为什么在较小的数据集上查询有时反而更慢？",
+      "golden_blocks": [
+        "8b60482e6213"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q024",
+      "source": "milvus_docs",
+      "q": "哪些操作会导致 CPU 占用升高？",
+      "golden_blocks": [
+        "dc0dfdfd65c6"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q025",
+      "source": "milvus_docs",
+      "q": "Milvus 支持哪些索引类型和相似度度量方式？",
+      "golden_blocks": [
+        "4d0dade0f425"
+      ],
+      "recall": 0.0,
+      "precision": 0.0,
+      "hit": 0.0,
+      "retrieved_n": 16,
+      "missed": [
+        "4d0dade0f425"
+      ]
+    },
+    {
+      "id": "q026",
+      "source": "milvus_docs",
+      "q": "Milvus 的核心概念包括哪些？",
+      "golden_blocks": [
+        "1acfd00f647c"
+      ],
+      "recall": 0.0,
+      "precision": 0.0,
+      "hit": 0.0,
+      "retrieved_n": 15,
+      "missed": [
+        "1acfd00f647c"
+      ]
+    },
+    {
+      "id": "q027",
+      "source": "milvus_docs",
+      "q": "等离子体处理的基本原理是什么？",
+      "golden_blocks": [
+        "c080cd09df39"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q028",
+      "source": "milvus_docs",
+      "q": "等离子体工艺的核心参数应该如何优化？",
+      "golden_blocks": [
+        "a2741e45480d"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q029",
+      "source": "milvus_docs",
+      "q": "XPS 在半导体表面分析中有什么作用？",
+      "golden_blocks": [
+        "03c03cc95ed8"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q030",
+      "source": "milvus_docs",
+      "q": "EUV 光刻胶与传统光刻胶有什么本质区别？",
+      "golden_blocks": [
+        "894260437fad"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q031",
+      "source": "milvus_docs",
+      "q": "EUV 光刻胶在 7nm 以下制程面临哪些技术挑战？",
+      "golden_blocks": [
+        "39fed678c6b8"
+      ],
+      "recall": 0.0,
+      "precision": 0.0,
+      "hit": 0.0,
+      "retrieved_n": 12,
+      "missed": [
+        "39fed678c6b8"
+      ]
+    },
+    {
+      "id": "q032",
+      "source": "milvus_docs",
+      "q": "等离子体原子层沉积（PE-ALD）有什么优势？",
+      "golden_blocks": [
+        "749c3ee1a3d1"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q033",
+      "source": "papers",
+      "q": "LayoutParser 是什么？",
+      "golden_blocks": [
+        "8f351a1f5d40"
+      ],
+      "recall": 0.0,
+      "precision": 0.0,
+      "hit": 0.0,
+      "retrieved_n": 16,
+      "missed": [
+        "8f351a1f5d40"
+      ]
+    },
+    {
+      "id": "q034",
+      "source": "papers",
+      "q": "LayoutParser 的核心目标是什么？",
+      "golden_blocks": [
+        "c0be1d913d6f"
+      ],
+      "recall": 1.0,
+      "precision": 0.058823529411764705,
+      "hit": 1.0,
+      "retrieved_n": 17,
+      "missed": []
+    },
+    {
+      "id": "q035",
+      "source": "papers",
+      "q": "LayoutParser 有哪些典型应用场景？",
+      "golden_blocks": [
+        "c0be1d913d6f",
+        "93ba682a30fe"
+      ],
+      "recall": 0.5,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": [
+        "93ba682a30fe"
+      ]
+    },
+    {
+      "id": "q036",
+      "source": "papers",
+      "q": "文档版面分析领域有哪些相关工作？",
+      "golden_blocks": [
+        "d689dc0fdf82"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q037",
+      "source": "papers",
+      "q": "什么是轻量级文档处理流水线？",
+      "golden_blocks": [
+        "c30be64687a3"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q038",
+      "source": "papers",
+      "q": "LayoutParser 的结论是什么？",
+      "golden_blocks": [
+        "c0be1d913d6f"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q039",
+      "source": "manuals",
+      "q": "并发数为 100 时查询延迟的 P50 和 P99 分别是多少？",
+      "golden_blocks": [
+        "64742430942f"
+      ],
+      "recall": 1.0,
+      "precision": 0.0625,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q040",
+      "source": "manuals",
+      "q": "SIFT1M 数据集的召回率是多少？",
+      "golden_blocks": [
+        "e0dc426536c0"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q041",
+      "source": "manuals",
+      "q": "Milvus 产品手册中提到的部署要求是什么？",
+      "golden_blocks": [
+        "afa9f185e71f"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q042",
+      "source": "manuals",
+      "q": "Milvus 架构的主要组件有哪些？",
+      "golden_blocks": [
+        "3d1ed06fbfd9"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q043",
+      "source": "manuals",
+      "q": "Milvus 的混合检索是如何实现的？",
+      "golden_blocks": [
+        "3d1ed06fbfd9"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q044",
+      "source": "cross",
+      "q": "Milvus 的架构设计与部署方式分别是什么？",
+      "golden_blocks": [
+        "3d1ed06fbfd9",
+        "829a68274f4b",
+        "afa9f185e71f"
+      ],
+      "recall": 0.6666666666666666,
+      "precision": 0.14285714285714285,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": [
+        "829a68274f4b"
+      ]
+    },
+    {
+      "id": "q045",
+      "source": "cross",
+      "q": "向量检索的召回率受什么影响？",
+      "golden_blocks": [
+        "bf6eba262ec4",
+        "e0dc426536c0"
+      ],
+      "recall": 1.0,
+      "precision": 0.125,
+      "hit": 1.0,
+      "retrieved_n": 16,
+      "missed": []
+    },
+    {
+      "id": "q046",
+      "source": "manuals",
+      "q": "并发数为 450 时，接口延迟的 P99 是多少？",
+      "golden_blocks": [
+        "83c6179e61cf"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q047",
+      "source": "manuals",
+      "q": "数据集召回率中，召回率最高的数据集是哪个？",
+      "golden_blocks": [
+        "dfdc04a4482e"
+      ],
+      "recall": 1.0,
+      "precision": 0.07142857142857142,
+      "hit": 1.0,
+      "retrieved_n": 14,
+      "missed": []
+    },
+    {
+      "id": "q048",
+      "source": "manuals",
+      "q": "并发数为 500 时，吞吐量（QPS）是多少？",
+      "golden_blocks": [
+        "83c6179e61cf"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q049",
+      "source": "manuals",
+      "q": "并发数为 100 时，P95 延迟是多少？",
+      "golden_blocks": [
+        "777cdc3fbab1"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q050",
+      "source": "manuals",
+      "q": "DEEP1B 数据集使用的是哪种索引类型？",
+      "golden_blocks": [
+        "dfdc04a4482e"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    },
+    {
+      "id": "q051",
+      "source": "manuals",
+      "q": "并发数为 500 时，接口延迟的错误率是多少？",
+      "golden_blocks": [
+        "83c6179e61cf"
+      ],
+      "recall": 1.0,
+      "precision": 0.06666666666666667,
+      "hit": 1.0,
+      "retrieved_n": 15,
+      "missed": []
+    }
+  ]
+}
