@@ -45,6 +45,54 @@ FINAL_K = 18
 # 阶段二 RRF 的平滑常数
 RRF_K = 60
 
+# [3.0.3 修复] 混合检索的「每路预取数」。
+#
+# ## 问题（实测定位）
+#
+# langchain_milvus 的 `_collection_hybrid_search` 里：
+#
+#     request = AnnSearchRequest(data=[...], anns_field=field,
+#                                param=param_dict, limit=fetch_k, expr=expr)
+#     ...
+#     self.client.hybrid_search(..., ranker=rrf, limit=k, ...)
+#
+# 其中 `fetch_k` 是**每路（dense / sparse）各自预取多少条**，
+# 而它的默认值是 **4**，且 **`k` 完全不影响它**。
+#
+# 后果：两路各只预取 4 条 -> RRF 融合池最多 8 条 -> 无论 `k` 调多大，
+# 单集合最终**最多只能返回 8 块**（去重后更少）。这正是实测「K 调大无效」的原因。
+#
+# 它同时解释了 1.5 参数扫描里的一组数据：
+#     k=6  final_k=18  -> 平均返回 14.8 块
+#     k=12 final_k=36  -> 平均返回 16.1 块   （3 集合 × 8 = 24 为上限，去重后即此数）
+#
+# ## 为什么 `fetch_k` 调大是安全的
+#
+# `limit=k` 依然生效，所以**返回块数不会变多** —— 变大的只是「参与排序的候选池」，
+# 排序结果因此更准。这对 q043 那种「正确块排名靠后」的问题是对症的。
+#
+# ## 取值 12：由 57 题参数扫描实测确定（不是拍脑袋）
+#
+#   fetch_k   context_recall   未满分题数   每集合状态
+#   ---------------------------------------------------------------
+#   默认(4)      0.8801          8 题       候选池太小，q043 捞不到
+#   8            0.9181          6 题
+#   12           0.9327          5 题       <- 采用
+#   16           0.9197          8 题
+#   24           0.9060          8 题
+#   32           0.8947          9 题
+#   50           0.8626          9 题       融合被"两路共识"主导，q008/q013/q015 掉出
+#   120          0.8012         13 题
+#
+# 规律：**太小**（候选池不足，正确块进不了融合）与**太大**（RRF 的
+# `1/(rrf_k + rank + 1)` 让「两路都中等」的块压过「单路极强」的块）都不好，
+# 12 是平衡点。它恰好等于 2 × PER_COLLECTION_K —— 每路预取 2 倍于最终配额，
+# 保证 RRF 融合后仍有足够候选填满 k，同时不引入过多噪声参与排序。
+#
+# 注：bge-reranker-v2-m3 已验证能显著改善排序（能把第 30 名提到第 1 名），
+# 但本机无 GPU，CPU 推理约 1s/块（单题 18 块需 16s），线上不可接受，故暂不接入。
+FETCH_K_PER_ROUTE = 12
+
 # ---------------------------------------------------------------------------
 # 上面两个参数由**参数扫描实测**确定（45 条 Golden Dataset，见 ROADMAP 1.5）：
 #
@@ -88,6 +136,12 @@ def _build_search_kwargs(expr: str = 'category == "content"') -> dict:
 
     return {
         "k": PER_COLLECTION_K,
+        # [3.0.3 修复] 每路预取数。不传则用 langchain_milvus 的默认值 4，
+        # 会让单集合的最终返回被硬顶在 8 条以内（详见 FETCH_K_PER_ROUTE 的说明）。
+        # 它经 as_retriever(search_kwargs=...) -> similarity_search(**kwargs)
+        # -> similarity_search_with_score(**kwargs) -> _collection_hybrid_search(**kwargs)
+        # 透传，最终被 AnnSearchRequest 的 limit 参数消费（已读源码确认这条链路）。
+        "fetch_k": FETCH_K_PER_ROUTE,
         # 注意：langchain-milvus 与 langchain-core 均不消费此参数（一直是惰性的），保留原值
         "score_threshold": 0.1,
         **ranker_kwargs,

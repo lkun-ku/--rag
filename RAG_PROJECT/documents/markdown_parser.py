@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import tempfile
 from typing import List
@@ -153,6 +154,28 @@ class MarkdownParser:
 
         return docs
 
+    # [ROADMAP 2.7] 版式噪声类别：这些元素是每页重复出现的内容（或纯装饰），
+    # 不应作为独立内容块入库。实测 187 个 hi_res JSON 里 Header 39 个、PageNumber 15 个，
+    # 直接入库会污染召回（见 2.3 的页眉页脚结论）。
+    NOISE_CATEGORIES = {'Header', 'Footer', 'PageNumber'}
+
+    # [ROADMAP 2.7] frontmatter（YAML 元数据头）识别。
+    #
+    # 为什么必须按内容识别、而不能靠 category：实测 unstructured 把 frontmatter
+    # 识别为 **NarrativeText** 且无父标题 —— 与正文段落的 category **完全相同**，
+    # 无法从类别上区分。
+    #
+    # 为什么必须排除：它描述的是「文档自身」（id / summary / related_key），
+    # 而不是文档内容，且与正文高度冗余（summary 就是正文的浓缩）。
+    # 实测放进来会让 milvus_docs 从 87 块涨到 93 块、context_recall 从 0.8856
+    # 掉到 0.8464 —— 冗余块挤占了检索候选窗口。
+    # 项目早先的设计也明确不让它入库（见 eval/export_chunks.py 的注释）。
+    _FRONTMATTER_RE = re.compile(r'^\s*id\s*:\s*\S+\.(?:md|mdx)\b', re.IGNORECASE)
+
+    # [ROADMAP 2.6] 带「结构前缀」的块：它们是明确的独立语义单元
+    # （表格按行切分的分片、PPTX 的每页块），**不参与**超短块合并。
+    STRUCT_PREFIXES = ('\u8868\u683c\uff1a', '\u5e7b\u706f\u7247 ')   # "表格：" / "幻灯片 "
+
     # [ROADMAP 2.5] 超短块合并阈值（字符）。
     #
     # 为什么要做这件事：PPTX / docx 的解析会产生大量「一个要点一个元素」的碎片块。
@@ -180,6 +203,8 @@ class MarkdownParser:
         if not datas:
             return datas
 
+        prefixes = MarkdownParser.STRUCT_PREFIXES
+
         # 按来源文件分组（保持原顺序），未标注 filename 的块单独成组不参与合并
         out: List[Document] = []
         i = 0
@@ -188,9 +213,11 @@ class MarkdownParser:
             doc = datas[i]
             fname = doc.metadata.get("filename", "")
             text = doc.page_content
-            is_table = text.startswith("\u8868\u683c\uff1a")
+            # [ROADMAP 2.6] 带结构前缀的块（"表格：" / "幻灯片 "）是独立的语义单元，
+            # 短也不该被合并 —— 否则 PPTX 的每页块会被吞成一个（实测 3 页 -> 1 块）。
+            is_structural = text.startswith(prefixes)
 
-            if is_table or not fname or len(text) >= min_chars:
+            if is_structural or not fname or len(text) >= min_chars:
                 out.append(doc)
                 i += 1
                 continue
@@ -208,7 +235,9 @@ class MarkdownParser:
                 return (d is not None
                         and d.metadata.get("filename") == fname
                         and d.metadata.get("category") == "content"
-                        and not d.page_content.startswith("\u8868\u683c\uff1a"))
+                        # 结构块既不被合并，也**不作为合并目标**（否则页码/表名会被
+                        # 混入一段无关文本，破坏其结构语义）
+                        and not d.page_content.startswith(prefixes))
 
             prev_doc = out[-1] if out and _joinable(out[-1]) else None
             if prev_doc is None:
@@ -267,13 +296,34 @@ class MarkdownParser:
                     document, table_name=table_name, max_rows=self.table_max_rows
                 ))
 
-            if category == 'NarrativeText' and parent_id is None:  # 是否为：内容document
-                        # 顶层正文块没有父标题可借用，而 Milvus schema 中 title 是非空 VARCHAR，
-                        # 若不补齐会在 add_documents 时报
-                        # DataNotMatchException: Insert missed an field `title`。
-                        # 这里只补 metadata，不改动任何正文内容；取值用文件名，缺失时退化为空串。
-                        document.metadata.setdefault('title', document.metadata.get('filename', ''))
-                        merged_data.append(document)
+            # [ROADMAP 2.7] 顶层正文块（无父标题）独立成块。
+            #
+            # 原实现的条件是 `category == 'NarrativeText'`，但 unstructured 对**纯段落**
+            # 常识别为 `UncategorizedText` 而非 NarrativeText —— 这类元素如果同时没有
+            # `parent_id`，下面三条分支**全都不命中**，于是被**静默丢弃**。
+            # 实测：输入两段无标题的正文，整个解析返回 0 个块。
+            #
+            # 现放宽为「任何非 Title、非版式噪声的元素，只要没有父标题就独立成块」。
+            # 必须排除 Header/Footer/PageNumber：它们是每页重复的版式内容，
+            # 放进来会污染检索（见 2.3 关于页眉页脚的实测结论）。
+            #
+            # 另：Milvus schema 中 title 是非空 VARCHAR，不补齐会在 add_documents 时报
+            # DataNotMatchException: Insert missed an field `title`。
+            # 这里只补 metadata，不改动任何正文内容；取值用文件名，缺失时退化为空串。
+            if (category != 'Title' and parent_id is None
+                    and category not in self.NOISE_CATEGORIES
+                    # frontmatter 不是正文内容，且与正文冗余（见 _FRONTMATTER_RE 的说明）
+                    and not self._FRONTMATTER_RE.match(document.page_content)):
+                document.metadata.setdefault('title', document.metadata.get('filename', ''))
+                # 必须**直接赋值**而非 setdefault：`category` 键本来就存在
+                # （值是 unstructured 的元素类型，如 UncategorizedText / NarrativeText），
+                # setdefault 对已存在的键不生效，会导致「块产出了但 category 不是 content」
+                # -> 检索层按 `category == 'content'` 过滤，等于白产出（实测踩过这个坑）。
+                #
+                # 注意这与 Title 分支的处理不同：Title 一律保持 'Title' 而不入库
+                # （标题只作为面包屑来源），非 Title 的正文块才改写为 'content'。
+                document.metadata['category'] = 'content'
+                merged_data.append(document)
             if category == 'Title':
                 document.metadata['title'] = document.page_content
                 if parent_id in parent_dict:

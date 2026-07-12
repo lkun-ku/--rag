@@ -52,15 +52,23 @@ class OfficeParser:
     # markitdown 实例持有文件类型检测模型，构造有开销，故进程内复用。
     _md_converter = None
 
-    def __init__(self, keep_temp_md: bool = False, strip_html_comments: bool = True):
+    def __init__(self, keep_temp_md: bool = False, strip_html_comments: bool = True,
+                 use_pptx_structurer: bool = True, ocr_pptx_images: bool = False):
         """
         Args:
             keep_temp_md: 是否保留中间产出的临时 Markdown（默认 False）。
             strip_html_comments: 是否清理 markitdown 插入的 HTML 注释
                 （如 pptx 的 `<!-- Slide number: 1 -->`）。默认清理。
+            use_pptx_structurer: [ROADMAP 2.6] pptx 是否走专用结构化解析器
+                （逐页提取 + 一页一块，见 documents/pptx_parser.py）。
+                **默认 True**：实测 markitdown 路径会把 3 页合并成 1 块，
+                且不解析演讲备注 / SmartArt / 图表数据。
+            ocr_pptx_images: pptx 中图片是否做 OCR（默认 False，复用 2.3 的 RapidOCR）。
         """
         self.keep_temp_md = keep_temp_md
         self.strip_html_comments = strip_html_comments
+        self.use_pptx_structurer = use_pptx_structurer
+        self.ocr_pptx_images = ocr_pptx_images
         self._helper = MarkdownParser()
 
     @classmethod
@@ -94,6 +102,26 @@ class OfficeParser:
             )
 
         basename = os.path.basename(file_path)
+
+        # [ROADMAP 2.6] pptx 优先走专用结构化解析器：逐页提取 + 一页一块。
+        # 实测对比（3 页样本）：markitdown 路径 -> 1 块；专用解析器 -> 3 块（各带页码）。
+        # 且专用路径能提取演讲备注 / SmartArt / 图表数据 / 组合形状内文字，这些是
+        # markitdown 完全不解析的部分。
+        if ext == '.pptx' and self.use_pptx_structurer:
+            try:
+                from documents.pptx_parser import PPTParser
+
+                return PPTParser(
+                    keep_temp_md=self.keep_temp_md,
+                    ocr_images=self.ocr_pptx_images,
+                ).parse_pptx_to_documents(file_path)
+            except Exception as e:  # noqa: BLE001
+                # 显式回落并记 warning，不静默降级（见 ROADMAP 1.3.6）
+                log.warning(
+                    f'PPTX 结构化解析失败，回落到 markitdown 路径: '
+                    f'{type(e).__name__}: {str(e)[:160]}'
+                )
+
         md_text = self.to_markdown(file_path)
 
         if self.strip_html_comments:

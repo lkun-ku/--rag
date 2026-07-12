@@ -1,16 +1,18 @@
 {
-  "verdict": "PASS",
-  "reasons": [],
+  "verdict": "INCONCLUSIVE",
+  "reasons": [
+    "生成层指标缺失（faithfulness, answer_relevancy）—— LLM 不可用导致，**不得据此判定质量回退**"
+  ],
   "scores": {
-    "context_recall": 0.8856209150326797,
-    "hit_rate": 0.9019607843137255,
-    "context_precision": 0.06291192947767342,
-    "faithfulness": 0.9019607843137255,
-    "answer_relevancy": 0.8235294117647058
+    "context_recall": 0.9327485380116959,
+    "hit_rate": 0.9473684210526315,
+    "context_precision": 0.054580896686159834,
+    "faithfulness": null,
+    "answer_relevancy": null
   },
-  "cases": 51,
-  "elapsed_sec": 149.5,
-  "with_generation": true,
+  "cases": 57,
+  "elapsed_sec": 37.1,
+  "with_generation": false,
   "llm_available": true,
   "collections": [
     "kb_milvus_bge_large_1024",
@@ -20,23 +22,23 @@
   "per_source": {
     "milvus_docs": {
       "n": 32,
-      "recall": 0.875,
-      "precision": 0.05800726540616247
+      "recall": 0.90625,
+      "precision": 0.05034722222222222
     },
     "papers": {
       "n": 6,
-      "recall": 0.75,
-      "precision": 0.054446778711484595
+      "recall": 0.9166666666666666,
+      "precision": 0.05555555555555555
     },
     "manuals": {
-      "n": 11,
+      "n": 17,
       "recall": 1.0,
-      "precision": 0.06888528138528138
+      "precision": 0.05555555555555555
     },
     "cross": {
       "n": 2,
       "recall": 0.8333333333333333,
-      "precision": 0.13392857142857142
+      "precision": 0.1111111111111111
     }
   },
   "per_case": [
@@ -48,9 +50,9 @@
         "0b0b3ee716af"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -61,9 +63,9 @@
         "2eb090a78c97"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -74,9 +76,9 @@
         "914e705f1803"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -87,9 +89,9 @@
         "829a68274f4b"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -100,9 +102,9 @@
         "92c850e08ab4"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -113,9 +115,9 @@
         "a77cfe680dc9"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -126,9 +128,9 @@
         "bf6eba262ec4"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -139,9 +141,9 @@
         "e07b085f060a"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -152,9 +154,9 @@
         "a70eeba08d45"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -165,9 +167,9 @@
         "e267537875dc"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -178,9 +180,9 @@
         "51fa881f382f"
       ],
       "recall": 1.0,
-      "precision": 0.058823529411764705,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -191,9 +193,9 @@
         "188d181cc688"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -204,9 +206,9 @@
         "54402d7995eb"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -217,9 +219,9 @@
         "11374010e020"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -230,9 +232,9 @@
         "7d823fe4074a"
       ],
       "recall": 1.0,
-      "precision": 0.058823529411764705,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -243,9 +245,9 @@
         "7fdafb2f9975"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -258,7 +260,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": [
         "dc8cb1aaf97d"
       ]
@@ -271,9 +273,9 @@
         "7ab96bd3324c"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -284,9 +286,9 @@
         "907094dead81"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -297,9 +299,9 @@
         "86239c7298c1"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -310,9 +312,9 @@
         "46907130284d"
       ],
       "recall": 1.0,
-      "precision": 0.058823529411764705,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -323,9 +325,9 @@
         "4b194a810c50"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -336,9 +338,9 @@
         "8b60482e6213"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -349,9 +351,9 @@
         "dc0dfdfd65c6"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -364,7 +366,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": [
         "4d0dade0f425"
       ]
@@ -379,7 +381,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": [
         "1acfd00f647c"
       ]
@@ -392,9 +394,9 @@
         "c080cd09df39"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -405,9 +407,9 @@
         "a2741e45480d"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -418,9 +420,9 @@
         "03c03cc95ed8"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -431,9 +433,9 @@
         "894260437fad"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -443,13 +445,11 @@
       "golden_blocks": [
         "39fed678c6b8"
       ],
-      "recall": 0.0,
-      "precision": 0.0,
-      "hit": 0.0,
-      "retrieved_n": 12,
-      "missed": [
-        "39fed678c6b8"
-      ]
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
     },
     {
       "id": "q032",
@@ -459,9 +459,9 @@
         "749c3ee1a3d1"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -471,13 +471,11 @@
       "golden_blocks": [
         "8f351a1f5d40"
       ],
-      "recall": 0.0,
-      "precision": 0.0,
-      "hit": 0.0,
-      "retrieved_n": 16,
-      "missed": [
-        "8f351a1f5d40"
-      ]
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
     },
     {
       "id": "q034",
@@ -487,9 +485,9 @@
         "c0be1d913d6f"
       ],
       "recall": 1.0,
-      "precision": 0.058823529411764705,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -501,9 +499,9 @@
         "93ba682a30fe"
       ],
       "recall": 0.5,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": [
         "93ba682a30fe"
       ]
@@ -516,9 +514,9 @@
         "d689dc0fdf82"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -529,9 +527,9 @@
         "c30be64687a3"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -542,9 +540,9 @@
         "c0be1d913d6f"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -555,9 +553,9 @@
         "64742430942f"
       ],
       "recall": 1.0,
-      "precision": 0.0625,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -568,9 +566,9 @@
         "e0dc426536c0"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -581,9 +579,9 @@
         "afa9f185e71f"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -591,12 +589,12 @@
       "source": "manuals",
       "q": "Milvus 架构的主要组件有哪些？",
       "golden_blocks": [
-        "3d1ed06fbfd9"
+        "25011da97d05"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -604,12 +602,12 @@
       "source": "manuals",
       "q": "Milvus 的混合检索是如何实现的？",
       "golden_blocks": [
-        "3d1ed06fbfd9"
+        "d7a90b81935a"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -617,14 +615,14 @@
       "source": "cross",
       "q": "Milvus 的架构设计与部署方式分别是什么？",
       "golden_blocks": [
-        "3d1ed06fbfd9",
+        "2cb7c8c8fd24",
         "829a68274f4b",
         "afa9f185e71f"
       ],
       "recall": 0.6666666666666666,
-      "precision": 0.14285714285714285,
+      "precision": 0.1111111111111111,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": [
         "829a68274f4b"
       ]
@@ -638,9 +636,9 @@
         "e0dc426536c0"
       ],
       "recall": 1.0,
-      "precision": 0.125,
+      "precision": 0.1111111111111111,
       "hit": 1.0,
-      "retrieved_n": 16,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -651,9 +649,9 @@
         "83c6179e61cf"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -664,9 +662,9 @@
         "dfdc04a4482e"
       ],
       "recall": 1.0,
-      "precision": 0.07142857142857142,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 14,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -677,9 +675,9 @@
         "83c6179e61cf"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -690,9 +688,9 @@
         "777cdc3fbab1"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -703,9 +701,9 @@
         "dfdc04a4482e"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
       "missed": []
     },
     {
@@ -716,9 +714,87 @@
         "83c6179e61cf"
       ],
       "recall": 1.0,
-      "precision": 0.06666666666666667,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 15,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q052",
+      "source": "manuals",
+      "q": "RAG 测试样例的图表页中，Q4 的营收和成本分别是多少？",
+      "golden_blocks": [
+        "dbd7edbc0738"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q053",
+      "source": "manuals",
+      "q": "RAG 方案流程的 SmartArt 图示包含哪几个节点？",
+      "golden_blocks": [
+        "4c4e786228d3"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q054",
+      "source": "manuals",
+      "q": "PPT 测试表格中，chunk_count 字段是否必填？默认值是多少？",
+      "golden_blocks": [
+        "cedc8ea611f7"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q055",
+      "source": "manuals",
+      "q": "图表测试页的演讲备注提到图表数据实际存储在哪里？",
+      "golden_blocks": [
+        "dbd7edbc0738"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q056",
+      "source": "manuals",
+      "q": "组合形状测试页中，组合形状内部包含哪三个子形状？",
+      "golden_blocks": [
+        "d6816c2c11dc"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
+      "missed": []
+    },
+    {
+      "id": "q057",
+      "source": "manuals",
+      "q": "图表页的饼图中，「表格」这一类别占比是多少？",
+      "golden_blocks": [
+        "dbd7edbc0738"
+      ],
+      "recall": 1.0,
+      "precision": 0.05555555555555555,
+      "hit": 1.0,
+      "retrieved_n": 18,
       "missed": []
     }
   ]

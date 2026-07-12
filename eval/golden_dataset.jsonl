@@ -39,9 +39,9 @@
 {"id": "q039", "source": "manuals", "q": "并发数为 100 时查询延迟的 P50 和 P99 分别是多少？", "answer": "P50 为 380ms，P99 为 950ms。", "source_blocks": ["64742430942f"], "note": "表格数值题，答案必须精确"}
 {"id": "q040", "source": "manuals", "q": "SIFT1M 数据集的召回率是多少？", "answer": "0.95。", "source_blocks": ["e0dc426536c0"], "note": "表格数值题"}
 {"id": "q041", "source": "manuals", "q": "Milvus 产品手册中提到的部署要求是什么？", "answer": "需要 Python 3.10 以上版本与至少 8GB 内存。", "source_blocks": ["afa9f185e71f"]}
-{"id": "q042", "source": "manuals", "q": "Milvus 架构的主要组件有哪些？", "answer": "Coordinator 负责调度，QueryNode 执行检索。", "source_blocks": ["3d1ed06fbfd9"]}
-{"id": "q043", "source": "manuals", "q": "Milvus 的混合检索是如何实现的？", "answer": "结合稠密向量与稀疏关键词两路结果，用 RRF 融合。", "source_blocks": ["3d1ed06fbfd9"]}
-{"id": "q044", "source": "cross", "q": "Milvus 的架构设计与部署方式分别是什么？", "answer": "架构（存储计算分离）见 pptx；部署方式（Docker/单机）见 FAQ 与手册。", "source_blocks": ["3d1ed06fbfd9", "829a68274f4b", "afa9f185e71f"], "note": "跨源：验证能否同时召回 manuals 与 milvus_docs"}
+{"id": "q042", "source": "manuals", "q": "Milvus 架构的主要组件有哪些？", "answer": "Coordinator 负责调度，QueryNode 执行检索。", "source_blocks": ["25011da97d05"]}
+{"id": "q043", "source": "manuals", "q": "Milvus 的混合检索是如何实现的？", "answer": "结合稠密向量与稀疏关键词两路结果，用 RRF 融合。", "source_blocks": ["d7a90b81935a"]}
+{"id": "q044", "source": "cross", "q": "Milvus 的架构设计与部署方式分别是什么？", "answer": "架构（存储计算分离）见 pptx；部署方式（Docker/单机）见 FAQ 与手册。", "source_blocks": ["2cb7c8c8fd24", "829a68274f4b", "afa9f185e71f"], "note": "跨源：验证能否同时召回 manuals 与 milvus_docs"}
 {"id": "q045", "source": "cross", "q": "向量检索的召回率受什么影响？", "answer": "受索引参数与数据分布影响（FAQ）；手册给出了具体召回率数值（xlsx）。", "source_blocks": ["bf6eba262ec4", "e0dc426536c0"], "note": "跨源：验证 milvus_docs 与 manuals 同时被召回"}
 {"id": "q046", "source": "manuals", "q": "并发数为 450 时，接口延迟的 P99 是多少？", "answer": "1350ms。", "source_blocks": ["83c6179e61cf"], "note": "大表第二分块（第 31-50 行）：该块不含原表首行，用于验证表头注入是否生效"}
 {"id": "q047", "source": "manuals", "q": "数据集召回率中，召回率最高的数据集是哪个？", "answer": "DEEP1B，召回率 0.96。", "source_blocks": ["dfdc04a4482e"], "note": "跨行比较题（需遍历整表）"}
@@ -49,3 +49,9 @@
 {"id": "q049", "source": "manuals", "q": "并发数为 100 时，P95 延迟是多少？", "answer": "262ms。", "source_blocks": ["777cdc3fbab1"], "note": "大表第一分块（第 1-30 行），作为第二分块的对照组"}
 {"id": "q050", "source": "manuals", "q": "DEEP1B 数据集使用的是哪种索引类型？", "answer": "HNSW。", "source_blocks": ["dfdc04a4482e"], "note": "单元格定位（非数值列），验证非数字内容未被误处理"}
 {"id": "q051", "source": "manuals", "q": "并发数为 500 时，接口延迟的错误率是多少？", "answer": "0.5%。", "source_blocks": ["83c6179e61cf"], "note": "量纲题：考察百分号是否保留（xlsx 经 markitdown 转换可能丢 %）"}
+{"id": "q052", "source": "manuals", "q": "RAG 测试样例的图表页中，Q4 的营收和成本分别是多少？", "answer": "营收 24.3，成本 13.7。", "source_blocks": ["dbd7edbc0738"], "note": "图表 XML 数值题：仅靠渲染截图无法还原，必须读取 chart XML 或嵌入工作簿"}
+{"id": "q053", "source": "manuals", "q": "RAG 方案流程的 SmartArt 图示包含哪几个节点？", "answer": "收集文档 -> 解析结构 -> 入库检索，共三个节点。", "source_blocks": ["4c4e786228d3"], "note": "SmartArt 题：python-pptx 不支持，文字在 ppt/diagrams/data1.xml"}
+{"id": "q054", "source": "manuals", "q": "PPT 测试表格中，chunk_count 字段是否必填？默认值是多少？", "answer": "非必填（否），默认值为 0。", "source_blocks": ["cedc8ea611f7"], "note": "PPT 原生表格题：考察表头是否随行数据保留（否则单行失去语义）"}
+{"id": "q055", "source": "manuals", "q": "图表测试页的演讲备注提到图表数据实际存储在哪里？", "answer": "存储在 ppt/charts/chart1.xml 以及嵌入的 Excel 工作簿中。", "source_blocks": ["dbd7edbc0738"], "note": "演讲备注题：markitdown 完全不解析 notesSlides"}
+{"id": "q056", "source": "manuals", "q": "组合形状测试页中，组合形状内部包含哪三个子形状？", "answer": "矩形（Rectangle）、椭圆（Oval）、三角形（Triangle）。", "source_blocks": ["d6816c2c11dc"], "note": "组合形状题：需递归展开 grpSp，否则组内文字整块丢失"}
+{"id": "q057", "source": "manuals", "q": "图表页的饼图中，「表格」这一类别占比是多少？", "answer": "25%。", "source_blocks": ["dbd7edbc0738"], "note": "量纲题：饼图占比（45/25/18/12），考察百分比未被误读"}

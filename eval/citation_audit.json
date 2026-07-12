@@ -1,0 +1,287 @@
+{
+  "stats": {
+    "total": 18,
+    "refused": 3,
+    "with_cite": 15,
+    "no_cite": 3,
+    "invalid": 0
+  },
+  "detail": [
+    {
+      "id": "q001",
+      "q": "Milvus 能否在无外网的环境下部署？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "能。可以在离线环境中安装 Milvus [1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "operational_faq.md",
+          "title": "Can I deploy Milvus when disconnected from the Internet?",
+          "text": "Can I deploy Milvus when disconnected from the Internet? Yes. You can install Milvus in an offline environment. See Install Milvus Offline for more information."
+        }
+      ]
+    },
+    {
+      "id": "q004",
+      "q": "Milvus 可以在 Windows 上安装吗？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "可以。可以通过从源代码编译或从二进制包安装的方式在 Windows 上安装 Milvus [1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "operational_faq.md",
+          "title": "Can I install Milvus on Windows?",
+          "text": "Can I install Milvus on Windows? Yes. You can install Milvus on Windows either by compiling from source code or from a binary package. See Run Milvus on Windows to learn how to install Milvus on Windows."
+        }
+      ]
+    },
+    {
+      "id": "q007",
+      "q": "哪些因素会影响检索的召回率？",
+      "cites": [
+        13
+      ],
+      "n_docs": 18,
+      "answer": "召回率主要受索引类型和搜索参数影响 [13]。对于 IVF 索引，nprobe 参数决定搜索范围，增大 nprobe 会提高召回率但降低查询性能 [13]。对于 HNSW 索引，ef 参数决定图搜索广度，增大 ef 会提高召回率但降低查询性能 [13]。",
+      "blocks": [
+        {
+          "n": 13,
+          "filename": "operational_faq.md",
+          "title": "What are the main factors affecting recall?",
+          "text": "What are the main factors affecting recall? Recall is affected mainly by index type and search parameters. For FLAT index, Milvus takes an exhaustive scan within a collection, with a 100% return. For IVF indexes, the nprobe parameter determines the scope of a search within the collection. Increasing nprobe increases the proportion of vectors searched and recall, but diminishes query performance. For HNSW index, the ef parameter determines the breadth of the graph search. Increasing ef increases the number of points searched on the graph and recall, but diminishes query performance. For more in"
+        }
+      ]
+    },
+    {
+      "id": "q010",
+      "q": "Milvus 支持的最大向量维度是多少？",
+      "cites": [
+        13
+      ],
+      "n_docs": 18,
+      "answer": "Milvus 默认支持的最大向量维度为 32,768 [13]。可通过增大 Proxy.maxDimension 的值来支持更大维度的向量 [13]。",
+      "blocks": [
+        {
+          "n": 13,
+          "filename": "product_faq.md",
+          "title": "What is the maximum vector dimension supported in Milvus?",
+          "text": "What is the maximum vector dimension supported in Milvus? Milvus can manage vectors with up to 32,768 dimensions by default. You can increase the value of Proxy.maxDimension to allow for a larger dimension vector."
+        }
+      ]
+    },
+    {
+      "id": "q016",
+      "q": "为什么搜索 topk 时返回的结果少于 k 个？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "在 Milvus 支持的索引中，IVF_FLAT 和 IVF_SQ8 实现 k-means 聚类方法 [1]。数据空间被划分为 nlist 个簇，插入的向量被分配到这些簇中 [1]。Milvus 随后选择 nprobe 个最近的簇，并比较目标向量与所选簇中所有向量的距离以返回最终结果 [1]。如果 nlist 和 topk 较大而 nprobe 较小，nprobe 个簇中的向量数量可能少于 k [1]。因此，搜索 topk 个最近向量时，返回的向量数量少于 k [1]。为避免此问题，可尝试将 nprobe 设置得更大，将 nlist 和 k 设置得更小 [1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "product_faq.md",
+          "title": "Why do I get fewer than k vectors when searching for topk ve",
+          "text": "Why do I get fewer than k vectors when searching for topk vectors? Among the indexes that Milvus supports, IVF_FLAT and IVF_SQ8 implement the k-means clustering method. A data space is divided into nlist clusters and the inserted vectors are distributed to these clusters. Milvus then selects the nprobe nearest clusters and compares the distances between the target vector and all vectors in the selected clusters to return the final results. If nlist and topk are large and nprobe is small, the number of vectors in the nprobe clusters may be less than k. Therefore, when you search for the topk ne"
+        }
+      ]
+    },
+    {
+      "id": "q020",
+      "q": "FLAT 和 IVF_FLAT 索引有什么区别？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "FLAT 直接比较目标向量与所有其他向量之间的距离 [1]。IVF_FLAT 将向量空间划分为 list 个簇，默认 list 值为 16,384，Milvus 先比较目标向量与所有簇质心的距离以返回最近的簇，再比较目标向量与所选簇内向量之间的距离以得到最近向量 [1]。当向量总数约等于 nlist 时，IVF_FLAT 与 FLAT 在计算需求和搜索性能上差异很小；但当向量数量超过 nlist 两倍或更多时，IVF_FLAT 开始表现出性能优势 [1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "product_faq.md",
+          "title": "How are the FLAT and IVF_FLAT indexes different?",
+          "text": "Product FAQ -> How are the FLAT and IVF_FLAT indexes different? The IVF_FLAT index divides vector space into list clusters. At the default list value of 16,384, Milvus compares the distances between the target vector and the centroids of all 16,384 clusters to return probe nearest clusters. Milvus then compares the distances between the target vector and the vectors in the selected clusters to get the nearest vectors. Unlike IVF_FLAT, FLAT directly compares the distances between the target vector and every other vector. When the total number of vectors approximately equals nlist, there is litt"
+        }
+      ]
+    },
+    {
+      "id": "q023",
+      "q": "为什么在较小的数据集上查询有时反而更慢？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "查询操作在段（segment）上执行 [1]。索引可减少查询段所需时间 [1]。若段尚未建立索引，Milvus 会对原始数据采用暴力搜索，从而大幅增加查询时间 [1]。因此，较小数据集（collection）上的查询通常更慢，因为它尚未建立索引 [1]。这是因为其段大小尚未达到 rootCoord.minSegmentSizeToEnableindex 设置的索引构建阈值 [1]。调用 create_index() 可强制 Milvus 对已达到阈值但尚未自动索引的段建立索引，从而显著提升查询性能 [1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "performance_faq.md",
+          "title": "Why do queries sometimes take longer on smaller datasets?",
+          "text": "Why do queries sometimes take longer on smaller datasets? Query operations are conducted on segments. indexes reduce the amount of time it takes to query a segment. If a segment has not been indexed, Milvus resorts to brute-force search on the raw data—drastically increasing query time. Therefore, it usually takes longer to query on a small dataset (collection) because it has not built index. This is because the sizes of its segments have not reached the index-building threshold set by rootCoord.minSegmentSizeToEnableindex. Call create_index() to force Milvus to index segments that have reache"
+        }
+      ]
+    },
+    {
+      "id": "q029",
+      "q": "XPS 在半导体表面分析中有什么作用？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "定量分析元素价态变化（检测限0.1 at%）[1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "tech_report_0tfhhamx.md",
+          "title": "表面化学分析",
+          "text": "等离子体处理改善半导体材料表面特性的技术与方法 -> 表征技术与效果评估 -> 表面化学分析 X射线光电子能谱(XPS, X-ray Photoelectron Spectroscopy)：定量分析元素价态变化（检测限0.1 at%） 傅里叶变换红外光谱(FTIR, Fourier Transform Infrared)：识别表面官能团（如Si-H在2080 cm⁻¹的特征峰） 飞行时间二次离子质谱(ToF-SIMS, Time-of-Flight SIMS)：ppb级杂质检测与深度剖析"
+        }
+      ]
+    },
+    {
+      "id": "q032",
+      "q": "等离子体原子层沉积（PE-ALD）有什么优势？",
+      "cites": [
+        1
+      ],
+      "n_docs": 18,
+      "answer": "可在<100℃下制备高质量介电层（如Al₂O₃）[1]；表面反应自限制性确保单原子层控制[1]；台阶覆盖率可达100%（高深宽比结构）[1]。",
+      "blocks": [
+        {
+          "n": 1,
+          "filename": "tech_report_0tfhhamx.md",
+          "title": "等离子体原子层沉积(PE-ALD, Plasma Enhanced Atomic Layer Deposition)",
+          "text": "等离子体处理改善半导体材料表面特性的技术与方法 -> 先进等离子体表面处理技术 -> 等离子体原子层沉积(PE-ALD, Plasma Enhanced Atomic Layer Deposition) 结合等离子体活性的ALD技术： - 可在<100℃下制备高质量介电层（如Al₂O₃） - 表面反应自限制性(Self-limiting)确保单原子层控制 - 台阶覆盖率(Step Coverage)可达100%（高深宽比结构）"
+        }
+      ]
+    },
+    {
+      "id": "q035",
+      "q": "LayoutParser 有哪些典型应用场景？",
+      "cites": [
+        5,
+        11
+      ],
+      "n_docs": 18,
+      "answer": "LayoutParser 的典型应用场景包括大规模文档处理和轻量级文档数字化流水线 [5][11]。大规模文档处理侧重于精度、效率和鲁棒性，目标文档可能具有复杂结构，可能需要训练多个布局检测模型以达到最优精度 [5][11]。轻量级流水线面向相对简单的文档，强调开发便捷性、速度和灵活性，理想情况下只需使用现有资源，避免模型训练 [5][11]。此外，LayoutParser 还可用于表格提取等文档数字化任务 [11]。",
+      "blocks": [
+        {
+          "n": 5,
+          "filename": "layout-parser-paper.pdf.md",
+          "title": "5 Use Cases",
+          "text": "5 Use Cases The core objective of LayoutParser is to make it easier to create both large-scale and light-weight document digitization pipelines. Large-scale document processing LayoutParser : A Unified Toolkit for DL-Based DIA 11 focuses on precision, efficiency, and robustness. The target documents may have complicated structures, and may require training multiple layout detection models to achieve the optimal accuracy. Light-weight pipelines are built for relatively simple documents, with an emphasis on development ease, speed and flexibility. Ideally one only needs to use existing resources"
+        },
+        {
+          "n": 11,
+          "filename": "layout-parser-paper.pdf.md",
+          "title": "5.2 A light-weight Visual Table Extractor",
+          "text": "5 Use Cases The core objective of LayoutParser is to make it easier to create both large-scale and light-weight document digitization pipelines. Large-scale document processing LayoutParser : A Unified Toolkit for DL-Based DIA 11 focuses on precision, efficiency, and robustness. The target documents may have complicated structures, and may require training multiple layout detection models to achieve the optimal accuracy. Light-weight pipelines are built for relatively simple documents, with an emphasis on development ease, speed and flexibility. Ideally one only needs to use existing resources"
+        }
+      ]
+    },
+    {
+      "id": "q039",
+      "q": "并发数为 100 时查询延迟的 P50 和 P99 分别是多少？",
+      "cites": [
+        3
+      ],
+      "n_docs": 18,
+      "answer": "并发数为100时，P50为380 ms，P99为950 ms [3]。",
+      "blocks": [
+        {
+          "n": 3,
+          "filename": "性能测试数据示例.xlsx.md",
+          "title": "查询延迟",
+          "text": "表格：查询延迟 列名：并发数 | P50(ms) | P99(ms)  | 并发数 | P50(ms) | P99(ms) | |---|---|---| | 1 | 12 | 30 | | 10 | 45 | 120 | | 100 | 380 | 950 |"
+        }
+      ]
+    },
+    {
+      "id": "q045",
+      "q": "向量检索的召回率受什么影响？",
+      "cites": [
+        13
+      ],
+      "n_docs": 18,
+      "answer": "召回率主要受索引类型和搜索参数影响 [13]。对于 IVF 索引，nprobe 参数决定搜索范围，增大 nprobe 可提高召回率但会降低查询性能 [13]。对于 HNSW 索引，ef 参数决定图搜索广度，增大 ef 可提高召回率但会降低查询性能 [13]。",
+      "blocks": [
+        {
+          "n": 13,
+          "filename": "operational_faq.md",
+          "title": "What are the main factors affecting recall?",
+          "text": "What are the main factors affecting recall? Recall is affected mainly by index type and search parameters. For FLAT index, Milvus takes an exhaustive scan within a collection, with a 100% return. For IVF indexes, the nprobe parameter determines the scope of a search within the collection. Increasing nprobe increases the proportion of vectors searched and recall, but diminishes query performance. For HNSW index, the ef parameter determines the breadth of the graph search. Increasing ef increases the number of points searched on the graph and recall, but diminishes query performance. For more in"
+        }
+      ]
+    },
+    {
+      "id": "q048",
+      "q": "并发数为 500 时，吞吐量（QPS）是多少？",
+      "cites": [
+        3,
+        9
+      ],
+      "n_docs": 18,
+      "answer": "177 [3][9]",
+      "blocks": [
+        {
+          "n": 3,
+          "filename": "大规模性能数据示例.xlsx.md",
+          "title": "接口延迟明细",
+          "text": "表格：接口延迟明细（第 31-50 行） 列名：并发数 | P50(ms) | P95(ms) | P99(ms) | 吞吐(QPS) | 错误率  | 并发数 | P50(ms) | P95(ms) | P99(ms) | 吞吐(QPS) | 错误率 | |---|---|---|---|---|---| | 310 | 384.4 | 812.2 | 930 | 268 | 0.31% | | 320 | 396.8 | 838.4 | 960 | 261 | 0.32% | | 330 | 409.2 | 864.6 | 990 | 255 | 0.33% | | 340 | 421.6 | 890.8 | 1020 | 248 | 0.34% | | 350 | 434 | 917 | 1050 | 242 | 0.35% | | 360 | 446.4 | 943.2 | 1080 | 236 | 0.36% | | 370 | 458.8 | 969.4 | 1110 | 231 | 0.37% | | 380 | 471.2 | 995.6 | 1140 | 226 | 0.38% | | 390 | 483.6 | 1021.8 | 1170 | 221 | 0.39% | | 400 | 496 | 1048 | 1200 | 216 | 0.4% | | 410"
+        },
+        {
+          "n": 9,
+          "filename": "大规模性能数据示例.xlsx.md",
+          "title": "接口延迟明细",
+          "text": "接口延迟明细 并发数 P50(ms) P95(ms) P99(ms) 吞吐(QPS) 错误率 10 12.4 26.2 30 1388 0.01% 20 24.8 52.4 60 1219 0.02% 30 37.2 78.6 90 1086 0.03% 40 49.6 104.8 120 980 0.04% 50 62.0 131.0 150 892 0.05% 60 74.4 157.2 180 819 0.06% 70 86.8 183.4 210 757 0.07% 80 99.2 209.6 240 704 0.08% 90 111.6 235.8 270 657 0.09% 100 124.0 262.0 300 617 0.1% 110 136.4 288.2 330 581 0.11% 120 148.8 314.4 360 549 0.12% 130 161.2 340.6 390 520 0.13% 140 173.6 366.8 420 495 0.14% 150 186.0 393.0 450 471 0.15% 160 198.4 419.2 480 450 0.16% 170 210.8 445.4 510 431 0.17% 180 223.2 471.6 540 413 0.18% 190 235.6 497.8 570 396 0.19% 200 "
+        }
+      ]
+    },
+    {
+      "id": "q051",
+      "q": "并发数为 500 时，接口延迟的错误率是多少？",
+      "cites": [
+        3,
+        12
+      ],
+      "n_docs": 18,
+      "answer": "0.5% [3][12]",
+      "blocks": [
+        {
+          "n": 3,
+          "filename": "大规模性能数据示例.xlsx.md",
+          "title": "接口延迟明细",
+          "text": "表格：接口延迟明细（第 31-50 行） 列名：并发数 | P50(ms) | P95(ms) | P99(ms) | 吞吐(QPS) | 错误率  | 并发数 | P50(ms) | P95(ms) | P99(ms) | 吞吐(QPS) | 错误率 | |---|---|---|---|---|---| | 310 | 384.4 | 812.2 | 930 | 268 | 0.31% | | 320 | 396.8 | 838.4 | 960 | 261 | 0.32% | | 330 | 409.2 | 864.6 | 990 | 255 | 0.33% | | 340 | 421.6 | 890.8 | 1020 | 248 | 0.34% | | 350 | 434 | 917 | 1050 | 242 | 0.35% | | 360 | 446.4 | 943.2 | 1080 | 236 | 0.36% | | 370 | 458.8 | 969.4 | 1110 | 231 | 0.37% | | 380 | 471.2 | 995.6 | 1140 | 226 | 0.38% | | 390 | 483.6 | 1021.8 | 1170 | 221 | 0.39% | | 400 | 496 | 1048 | 1200 | 216 | 0.4% | | 410"
+        },
+        {
+          "n": 12,
+          "filename": "大规模性能数据示例.xlsx.md",
+          "title": "接口延迟明细",
+          "text": "接口延迟明细 并发数 P50(ms) P95(ms) P99(ms) 吞吐(QPS) 错误率 10 12.4 26.2 30 1388 0.01% 20 24.8 52.4 60 1219 0.02% 30 37.2 78.6 90 1086 0.03% 40 49.6 104.8 120 980 0.04% 50 62.0 131.0 150 892 0.05% 60 74.4 157.2 180 819 0.06% 70 86.8 183.4 210 757 0.07% 80 99.2 209.6 240 704 0.08% 90 111.6 235.8 270 657 0.09% 100 124.0 262.0 300 617 0.1% 110 136.4 288.2 330 581 0.11% 120 148.8 314.4 360 549 0.12% 130 161.2 340.6 390 520 0.13% 140 173.6 366.8 420 495 0.14% 150 186.0 393.0 450 471 0.15% 160 198.4 419.2 480 450 0.16% 170 210.8 445.4 510 431 0.17% 180 223.2 471.6 540 413 0.18% 190 235.6 497.8 570 396 0.19% 200 "
+        }
+      ]
+    },
+    {
+      "id": "q054",
+      "q": "PPT 测试表格中，chunk_count 字段是否必填？默认值是多少？",
+      "cites": [
+        3
+      ],
+      "n_docs": 18,
+      "answer": "chunk_count 字段非必填，默认值为 0 [3]。",
+      "blocks": [
+        {
+          "n": 3,
+          "filename": "rag_test_fixture.pptx.md",
+          "title": "幻灯片 2：02 · 表格（Table）",
+          "text": "幻灯片 2：02 · 表格（Table） 表格： | 字段名 | 类型 | 是否必填 | 默认值 | 说明 | |---|---|---|---|---| | doc_id | string | 是 | - | 文档唯一标识 | | title | string | 是 | - | 文档标题 | | chunk_count | int | 否 | 0 | 切片数量 | | created_at | datetime | 是 | now() | 入库时间 | | source_type | enum | 是 | pdf | 来源类型 | 演讲备注：【表格测试页】 表格为 6 行 x 5 列，含表头：字段名 / 类型 / 是否必填 / 默认值 / 说明。 数据行共 5 行：doc_id、title、chunk_count、created_at、source_type。 解析时请注意：表格切片需要保留表头，否则单独一行数据将失去语义。"
+        }
+      ]
+    }
+  ]
+}
