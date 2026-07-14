@@ -1,3 +1,4 @@
+import time
 from pprint import pprint
 
 from langgraph.constants import START, END
@@ -13,6 +14,7 @@ from graph2.query_route_chain import question_router_chain
 from graph2.retriever_node import retrieve
 from graph2.transform_query_node import transform_query
 from graph2.web_search_node import web_search
+from utils import tracer
 from utils.log_utils import log
 
 
@@ -132,6 +134,36 @@ def route_question(state):
         return "vectorstore"
 
 
+def _traced_router(name: str, fn):
+    """包装条件边函数，记录**决策结果**（ROADMAP 3.1）。
+
+    为什么单独包条件边：节点包装器只能看到 state 变化，看不出「为什么走这条分支」。
+    而路由决策恰恰是排查时最想知道的信息（例如「为什么走了 web_search 而不是 RAG」）。
+    """
+
+    def wrapper(state):
+        t0 = time.time()
+        decision = fn(state)
+        t = tracer.current()
+        if t is not None:
+            info = {"decision": decision}
+            docs = state.get("documents")
+            if isinstance(docs, list):
+                info["documents_in"] = len(docs)
+            if name == "grade_generation":
+                # 引用校验结果对排查最有用：越界/拒答/正常
+                from utils.citation import validate_citations
+                doc_list = docs if isinstance(docs, list) else [docs]
+                chk = validate_citations(state.get("generation", ""), len(doc_list) or 1)
+                info.update({"cites": chk["cites"], "invalid_cites": chk["invalid"],
+                             "is_refusal": chk["is_refusal"]})
+            t.step(name, elapsed=time.time() - t0, **info)
+        return decision
+
+    wrapper.__name__ = name
+    return wrapper
+
+
 def create_graph():
     """构建并编译工作流图，返回已编译的图对象。
 
@@ -140,21 +172,26 @@ def create_graph():
     使构图逻辑可被独立调用与测试。
 
     节点、条件边与熔断阈值均与迁移前一致。
+
+    [ROADMAP 3.1] 所有节点与条件边都经过 `tracer` 包装 —— **只加观测，不改行为**：
+        * 节点用 `tracer.traced()` 包：记录耗时 + state 摘要（documents 数量等）
+        * 条件边用 `_traced_router()` 包：记录**路由决策结果**
+    这样无需改动任何节点实现文件（`generate_node2.py` / `retriever_node.py` …）。
     """
     # 初始化工作流图
     workflow = StateGraph(GraphState)
 
-    # 定义各状态节点
-    workflow.add_node("web_search", web_search)  # 网络搜索节点
-    workflow.add_node("retrieve", retrieve)  # 文档检索节点
-    workflow.add_node("grade_documents", grade_documents)  # 文档相关性评分节点
-    workflow.add_node("generate", generate)  # 回答生成节点
-    workflow.add_node("transform_query", transform_query)  # 查询优化节点
+    # 定义各状态节点（经 tracer 包装，记录耗时与状态摘要）
+    workflow.add_node("web_search", tracer.traced("web_search")(web_search))
+    workflow.add_node("retrieve", tracer.traced("retrieve")(retrieve))
+    workflow.add_node("grade_documents", tracer.traced("grade_documents")(grade_documents))
+    workflow.add_node("generate", tracer.traced("generate")(generate))
+    workflow.add_node("transform_query", tracer.traced("transform_query")(transform_query))
 
     # 起始路由判断
     workflow.add_conditional_edges(
         START,
-        route_question,
+        _traced_router("route_question", route_question),
         {
             "web_search": "web_search",
             "vectorstore": "retrieve"
@@ -168,13 +205,13 @@ def create_graph():
     # 文档评估后的条件分支
     workflow.add_conditional_edges(
         'grade_documents',
-        decide_to_generate
+        _traced_router("decide_to_generate", decide_to_generate)
     )
 
     # 生成结果评估后的条件分支
     workflow.add_conditional_edges(
         "generate",  # 生成节点
-        grade_generation_v_documents_and_question,  # 生成质量评估函数
+        _traced_router("grade_generation", grade_generation_v_documents_and_question),
         {
             "not supported": "generate",  # 生成不符合要求时重试
             "useful": END,  # 生成符合要求时结束
@@ -190,6 +227,38 @@ def create_graph():
 
 # 模块级导出已编译的图，保持原有 `from graph2.graph_2 import graph` 的用法不变
 graph = create_graph()
+
+
+def run_with_trace(question: str, enabled: bool = True, save: bool = True) -> dict:
+    """跑一次完整工作流，返回最终状态 + 执行轨迹（ROADMAP 3.1）。
+
+    与直接 `graph.stream()` 的区别只在**观测**：
+        * 通过 `config={"callbacks": ...}` 把 token 统计回调下传到所有 LLM 调用
+        * 包装过的节点/条件边会把耗时与决策写入本次 trace
+
+    Args:
+        question: 用户问题。
+        enabled: 是否记录（False 时等价于不观测，用于对比性能开销）。
+        save: 是否把 trace 追加写入 `logs/trace.jsonl`。
+
+    Returns:
+        {"generation": 最终答案, "trace": 轨迹 dict}
+    """
+    t = tracer.start(question, enabled=enabled)
+    config = {"callbacks": t.callbacks} if t.callbacks else None
+
+    final_state: dict = {}
+    for output in graph.stream({"question": question}, config=config):
+        for _node, value in output.items():
+            if isinstance(value, dict):
+                final_state.update(value)
+
+    gen = final_state.get("generation", "")
+    t.result = gen
+    if save:
+        t.save()
+    return {"generation": gen, "trace": t.to_dict(),
+            "documents": final_state.get("documents", [])}
 
 # draw_graph(graph, 'graph_rag2.png')
 

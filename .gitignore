@@ -72,6 +72,17 @@ local_milvus.db/
 *_test_lite*/
 milvus.db/
 
+# ---- 可观测性轨迹（ROADMAP 3.1 运行态产物）----
+# logs/trace.jsonl 每问一条、追加写，体积随时间增长；
+# 它是「运行记录」而非「资产」，需要用 scripts/show_trace.py 现场查看。
+logs/
+
+# ---- 临时验证工作区 ----
+# scratch/ 放一次性诊断脚本（定位过程用）。有价值的结论已写入 ROADMAP，
+# 可复用的工具已迁到 eval/（scan_fetch_k / exp_rerank / probe_*），
+# 因此整个目录不入库。
+scratch/
+
 # ---- 工具 / 编辑器本地状态 ----
 # 说明：.idea/ 下保留了 misc.xml、modules.xml、*.iml、inspectionProfiles/
 # 这类可共享的项目配置（仅含本机绝对路径的 workspace.xml 已删除），
@@ -80,3 +91,6 @@ milvus.db/
 .vscode/
 *.swp
 .codebuddy/
+
+# ---- 提交信息临时文件（git commit -F 用）----
+.git-commit-msg.txt

@@ -1,0 +1,80 @@
+{
+  "import_sec": 1.1,
+  "checks": [
+    {
+      "name": "GET /health",
+      "http": 200,
+      "ok": true,
+      "milvus_ok": true,
+      "retriever_ok": true,
+      "llm_ok": true,
+      "collections": [
+        "kb_milvus_bge_large_1024",
+        "kb_papers_bge_large_1024",
+        "kb_manuals_bge_large_1024"
+      ],
+      "elapsed_sec": 0.86
+    },
+    {
+      "name": "POST /ask 库内",
+      "http": 200,
+      "ok": true,
+      "refused": false,
+      "n_citations": 1,
+      "citations": [
+        {
+          "n": 1,
+          "filename": "operational_faq.md",
+          "title": "Can I deploy Milvus when disconnected from the Internet?",
+          "chars": 160
+        }
+      ],
+      "answer": "能。可以在离线环境中安装 Milvus [1]。",
+      "elapsed_reported": 5.11,
+      "elapsed_sec": 5.11
+    },
+    {
+      "name": "POST /ask 库外",
+      "http": 200,
+      "ok": true,
+      "refused": true,
+      "answer": "知识库中未找到依据。",
+      "elapsed_sec": 1.23
+    },
+    {
+      "name": "POST /ask with_trace",
+      "http": 200,
+      "ok": true,
+      "has_trace": true,
+      "n_steps": 48,
+      "tokens": 21987,
+      "route": "vectorstore",
+      "elapsed_sec": 42.08
+    },
+    {
+      "name": "POST /ask 空问题(422)",
+      "http": 422,
+      "ok": true,
+      "elapsed_sec": 0.0
+    },
+    {
+      "name": "POST /ingest 未知源(400)",
+      "http": 400,
+      "ok": true,
+      "elapsed_sec": 0.0
+    },
+    {
+      "name": "POST /ask/stream (SSE)",
+      "http": 200,
+      "ok": true,
+      "n_events": 32,
+      "first": [
+        "step",
+        "step",
+        "step"
+      ],
+      "has_answer": true,
+      "elapsed_sec": 41.73
+    }
+  ]
+}

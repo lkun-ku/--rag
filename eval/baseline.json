@@ -11,7 +11,7 @@
     "answer_relevancy": null
   },
   "cases": 57,
-  "elapsed_sec": 37.1,
+  "elapsed_sec": 43.0,
   "with_generation": false,
   "llm_available": true,
   "collections": [

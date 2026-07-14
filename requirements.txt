@@ -99,6 +99,12 @@ pymilvus==3.0.2 # 3.x 全部枚举路径已实测与项目用法一致
 tavily-python==0.8.5
 langchain-tavily==0.2.18
 
+# ---- API 服务（ROADMAP 3.2）------------------------------------------------
+# 只装这两个：SSE 流式用标准库 + StreamingResponse 即可，无需 sse-starlette；
+# 本项目 API 不接收文件上传，故不需要 python-multipart。
+fastapi==0.143.0
+uvicorn==0.54.0
+
 # ---- 基础设施 -------------------------------------------------------------
 pydantic==2.13.5
 openai==3.26.1

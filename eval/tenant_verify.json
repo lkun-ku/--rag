@@ -1,0 +1,111 @@
+{
+  "tenants": {
+    "acme": [
+      "milvus_docs"
+    ],
+    "beta": [
+      "papers"
+    ],
+    "gamma": [
+      "milvus_docs",
+      "manuals"
+    ],
+    "broken": [
+      "不存在的源"
+    ]
+  },
+  "checks": [
+    {
+      "name": "tenant_collections(acme)",
+      "ok": true,
+      "collections": [
+        "kb_milvus_bge_large_1024"
+      ]
+    },
+    {
+      "name": "tenant_collections(beta)",
+      "ok": true,
+      "collections": [
+        "kb_papers_bge_large_1024"
+      ]
+    },
+    {
+      "name": "tenant_collections(gamma)",
+      "ok": true,
+      "collections": [
+        "kb_manuals_bge_large_1024",
+        "kb_milvus_bge_large_1024"
+      ]
+    },
+    {
+      "name": "未登记租户 -> PermissionError",
+      "ok": true,
+      "msg": "未知租户 'nobody'；已登记: ['acme', 'beta', 'broken', 'gamma']"
+    },
+    {
+      "name": "非法源名 -> ValueError",
+      "ok": true,
+      "msg": "租户 'broken' 配置了不存在的源 ['不存在的源']；可用源: ['manuals', 'milvus_docs', 'notes'"
+    },
+    {
+      "name": "单租户模式（无租户上下文）",
+      "ok": true,
+      "n_blocks": 18,
+      "files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "rag_test_fixture.pptx.md"
+      ],
+      "note": "应能检索到论文集合的块"
+    },
+    {
+      "name": "租户 acme（仅 milvus_docs）",
+      "ok": true,
+      "n_blocks": 6,
+      "files": [
+        "overview.md",
+        "tech_report_0tfhhamx.md",
+        "tech_report_0ui655n3.md"
+      ],
+      "note": "**不得出现 papers 的块**；泄漏=无"
+    },
+    {
+      "name": "租户 beta（仅 papers）",
+      "ok": true,
+      "n_blocks": 6,
+      "files": [
+        "layout-parser-paper.pdf.md"
+      ],
+      "note": "应只返回 papers 的块"
+    },
+    {
+      "name": "退出后回到单租户模式",
+      "ok": true,
+      "files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md"
+      ]
+    },
+    {
+      "name": "嵌套作用域：内层 acme",
+      "ok": true,
+      "inner": [
+        "overview.md",
+        "tech_report_0tfhhamx.md"
+      ]
+    },
+    {
+      "name": "嵌套作用域：外层还原为 beta",
+      "ok": true,
+      "outer": [
+        "layout-parser-paper.pdf.md"
+      ]
+    },
+    {
+      "name": "同一租户返回同一对象",
+      "ok": true
+    }
+  ]
+}
