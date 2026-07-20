@@ -1,0 +1,91 @@
+[
+  {
+    "i": 1,
+    "kind": "A 跨集合互补",
+    "q": "Milvus 支持哪些索引类型？这些索引在性能测试里的召回率分别是多少？",
+    "need": [
+      "overview.md",
+      "大规模性能数据示例.xlsx.md"
+    ],
+    "missing": [],
+    "answer": "Milvus 支持多种索引类型，常见的有 HNSW 与 IVF 系列 [3][6]。HNSW 高召回率，内存占用较大 [3][6]；IVF 内存友好，需要训练 [3][6]。性能测试中，SIFT1M 使用 HNSW 的召回率@10 为 0.95 [12][15]；GIST1M 使用 IVF 的召回率@10 为 0.88 [12][15]；DEEP1B 使用 HNSW 的召回率@10 为 0.96 [12][15]；MSMARCO 使用 IVF 的召回率@10 为 0.79 [12][15]。"
+  },
+  {
+    "i": 2,
+    "kind": "A 跨集合互补",
+    "q": "Milvus 有哪些部署方式？离线部署时有什么限制？",
+    "need": [
+      "Milvus产品手册示例.docx.md",
+      "operational_faq.md"
+    ],
+    "missing": [],
+    "answer": "Milvus 可部署在离线环境中 [1]。单机部署推荐使用 Docker [3]。生产环境建议使用集群模式 [3]。也可从源代码部署，需 Ubuntu 18.04 或更高版本，或 CentOS 7 或更高版本 [13]。Docker 不是唯一方式 [13]。部署需要 Python 3.10 以上版本，以及至少 8GB 内存 [3]。资料未提及离线部署的具体限制。"
+  },
+  {
+    "i": 3,
+    "kind": "A 跨集合互补",
+    "q": "向量检索的召回率受哪些因素影响？产品手册给出的召回率数值是多少？",
+    "need": [
+      "performance_faq.md",
+      "大规模性能数据示例.xlsx.md"
+    ],
+    "missing": [
+      "performance_faq.md"
+    ],
+    "answer": "召回率主要受索引类型和搜索参数影响 [7]。对于 IVF 索引，nprobe 参数决定搜索范围，增大 nprobe 可提高召回率但降低查询性能 [7]；对于 HNSW 索引，ef 参数决定图搜索广度，增大 ef 可提高召回率但降低查询性能 [7]。产品手册给出的召回率数值为：SIFT1M 0.95、GIST1M 0.88 [3][9][15][18]。"
+  },
+  {
+    "i": 4,
+    "kind": "B 跨集合对比",
+    "q": "LayoutParser 和 Milvus 分别解决什么问题？",
+    "need": [
+      "layout-parser-paper.pdf.md",
+      "overview.md"
+    ],
+    "missing": [],
+    "answer": "LayoutParser 是一个开源库，用于简化深度学习在文档图像分析（DIA）研究与应用中的使用 [14]。Milvus 用于为应用添加相似性搜索 [16]。"
+  },
+  {
+    "i": 5,
+    "kind": "C 内跨文件",
+    "q": "性能测试数据里召回率最高的数据集是哪个？它用什么索引类型？",
+    "need": [
+      "大规模性能数据示例.xlsx.md"
+    ],
+    "missing": [],
+    "answer": "DEEP1B 的召回率最高，为 0.96 [3][6]，其索引类型为 HNSW [3][6]。"
+  },
+  {
+    "i": 6,
+    "kind": "C 内跨文件",
+    "q": "架构介绍 PPT 里的核心组件，在产品手册里对应的能力描述是什么？",
+    "need": [
+      "架构介绍示例.pptx.md",
+      "Milvus产品手册示例.docx.md"
+    ],
+    "missing": [],
+    "answer": "知识库中未找到依据。"
+  },
+  {
+    "i": 7,
+    "kind": "C 内跨文件",
+    "q": "RAG 测试样例 PPT 覆盖了哪些结构化元素？表格解析要注意什么？",
+    "need": [
+      "rag_test_fixture.pptx.md",
+      "Milvus产品手册示例.docx.md"
+    ],
+    "missing": [],
+    "answer": "RAG 测试样例 PPT 覆盖表格、图表、SmartArt、组合形状四大结构化元素 [3]。表格解析时需保留表头，否则单独一行数据将失去语义 [6]。"
+  },
+  {
+    "i": 8,
+    "kind": "D 跨集合追问",
+    "q": "Milvus 的混合检索怎么实现的？产品手册对它的效果有什么说明？",
+    "need": [
+      "overview.md",
+      "Milvus产品手册示例.docx.md"
+    ],
+    "missing": [],
+    "answer": "知识库中未找到依据。"
+  }
+]

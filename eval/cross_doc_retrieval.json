@@ -1,0 +1,167 @@
+{
+  "cases": [
+    {
+      "i": 1,
+      "kind": "A 跨集合互补",
+      "q": "Milvus 支持哪些索引类型？这些索引在性能测试里的召回率分别是多少？",
+      "need": [
+        "overview.md",
+        "大规模性能数据示例.xlsx.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "product_faq.md",
+        "tech_report_0tfhhamx.md",
+        "tech_report_0ui655n3.md",
+        "大规模性能数据示例.xlsx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 2,
+      "kind": "A 跨集合互补",
+      "q": "Milvus 有哪些部署方式？离线部署时有什么限制？",
+      "need": [
+        "Milvus产品手册示例.docx.md",
+        "operational_faq.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "operational_faq.md",
+        "overview.md",
+        "product_faq.md",
+        "rag_test_fixture.pptx.md",
+        "tech_report_0tfhhamx.md",
+        "架构介绍示例.pptx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 3,
+      "kind": "A 跨集合互补",
+      "q": "向量检索的召回率受哪些因素影响？产品手册给出的召回率数值是多少？",
+      "need": [
+        "performance_faq.md",
+        "大规模性能数据示例.xlsx.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "operational_faq.md",
+        "product_faq.md",
+        "tech_report_0tfhhamx.md",
+        "大规模性能数据示例.xlsx.md",
+        "性能测试数据示例.xlsx.md"
+      ],
+      "layer1": false,
+      "missing": [
+        "performance_faq.md"
+      ]
+    },
+    {
+      "i": 4,
+      "kind": "B 跨集合对比",
+      "q": "LayoutParser 和 Milvus 分别解决什么问题？",
+      "need": [
+        "layout-parser-paper.pdf.md",
+        "overview.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "product_faq.md",
+        "rag_test_fixture.pptx.md",
+        "tech_report_0ui655n3.md",
+        "架构介绍示例.pptx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 5,
+      "kind": "C 内跨文件",
+      "q": "性能测试数据里召回率最高的数据集是哪个？它用什么索引类型？",
+      "need": [
+        "大规模性能数据示例.xlsx.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "operational_faq.md",
+        "product_faq.md",
+        "tech_report_0tfhhamx.md",
+        "tech_report_0ui655n3.md",
+        "大规模性能数据示例.xlsx.md",
+        "性能测试数据示例.xlsx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 6,
+      "kind": "C 内跨文件",
+      "q": "架构介绍 PPT 里的核心组件，在产品手册里对应的能力描述是什么？",
+      "need": [
+        "Milvus产品手册示例.docx.md",
+        "架构介绍示例.pptx.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "rag_test_fixture.pptx.md",
+        "tech_report_0tfhhamx.md",
+        "tech_report_0ui655n3.md",
+        "架构介绍示例.pptx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 7,
+      "kind": "C 内跨文件",
+      "q": "RAG 测试样例 PPT 覆盖了哪些结构化元素？表格解析要注意什么？",
+      "need": [
+        "Milvus产品手册示例.docx.md",
+        "rag_test_fixture.pptx.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "performance_faq.md",
+        "rag_test_fixture.pptx.md",
+        "tech_report_0tfhhamx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    },
+    {
+      "i": 8,
+      "kind": "D 跨集合追问",
+      "q": "Milvus 的混合检索怎么实现的？产品手册对它的效果有什么说明？",
+      "need": [
+        "Milvus产品手册示例.docx.md",
+        "overview.md"
+      ],
+      "got_files": [
+        "Milvus产品手册示例.docx.md",
+        "layout-parser-paper.pdf.md",
+        "overview.md",
+        "product_faq.md",
+        "rag_test_fixture.pptx.md",
+        "tech_report_0tfhhamx.md",
+        "tech_report_0ui655n3.md",
+        "架构介绍示例.pptx.md"
+      ],
+      "layer1": true,
+      "missing": []
+    }
+  ]
+}

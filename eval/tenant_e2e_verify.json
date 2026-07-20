@@ -1,0 +1,74 @@
+{
+  "question": "LayoutParser 是什么？",
+  "checks": [
+    {
+      "name": "[1] 缺 X-Tenant-Id 应 400",
+      "ok": true,
+      "http": 400,
+      "detail": "{\"detail\":\"服务已启用多租户，请在 X-Tenant-Id 头中指定租户\"}"
+    },
+    {
+      "name": "[2] 未知租户应 403",
+      "ok": true,
+      "http": 403,
+      "detail": "{\"detail\":\"未知租户 'nobody'\"}"
+    },
+    {
+      "name": "[3a] HTTP 200",
+      "ok": false,
+      "http": 500,
+      "elapsed": 97.7
+    },
+    {
+      "name": "[3b] 答案是拒答",
+      "ok": false,
+      "refused": null,
+      "answer": "None"
+    },
+    {
+      "name": "[3c] 响应带 tenant 字段",
+      "ok": false,
+      "tenant": null
+    },
+    {
+      "name": "[3d] 拒答时无引用",
+      "ok": true,
+      "n_cites": 0
+    },
+    {
+      "name": "[4a] HTTP 200",
+      "ok": true,
+      "http": 200,
+      "elapsed": 24.9
+    },
+    {
+      "name": "[4b] **没有拒答**（拿到 papers 的内容）",
+      "ok": true,
+      "refused": false,
+      "answer": "LayoutParser 是一个开源库，用于简化深度学习在文档图像分析（DIA）研究与应用中的使用 [5]。其核心库提供一组简单直观的接口，用于应用和定制用于布局检测、字符识别及许"
+    },
+    {
+      "name": "[4c] 引用只来自 papers",
+      "ok": true,
+      "n_cites": 1,
+      "files": [
+        "layout-parser-paper.pdf.md"
+      ]
+    },
+    {
+      "name": "[5] 无租户头时不进入 tenant 分支",
+      "ok": true,
+      "note": "测试进程内未设置租户上下文；实际单租户部署下 /ask 不带 header 也走全局检索器"
+    },
+    {
+      "name": "[6a] 并发下各租户的 tenant 字段正确",
+      "ok": false
+    },
+    {
+      "name": "[6b] 并发下 acme 仍拒答、beta 仍回答（未串台）",
+      "ok": false,
+      "acme_refused": null,
+      "beta_refused": false
+    }
+  ]
+}

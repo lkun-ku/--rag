@@ -1,0 +1,45 @@
+{
+  "question": "Milvus 能否在无外网的环境下部署？",
+  "entries": [
+    {
+      "entry": "graph1",
+      "elapsed": 64.2,
+      "n_messages": 5,
+      "tool_calls": 2,
+      "ctx_chars": 17704,
+      "ctx_blocks_est": 18,
+      "answer": "可以。Milvus 支持在离线环境中安装 [7]。",
+      "cites": [
+        7
+      ],
+      "refused": false,
+      "cites_in_range": true
+    },
+    {
+      "entry": "rag_agent-prompt",
+      "system_prompt": "你是一个智能助手，尽可能的调用工具回答用户的问题",
+      "has_citation_requirement": false
+    },
+    {
+      "entry": "rag_agent",
+      "elapsed": 4.5,
+      "n_messages": 5,
+      "tool_calls": 2,
+      "answer": "# Milvus 离线部署：可以  **结论：可以。** Milvus 支持在无外网（离线 / 内网隔离）环境下部署。  ## 依据  知识库中的官方 FAQ 明确给出了答案：  > **Can I deploy Milvus when disconnected from the Internet?** > Yes. ",
+      "cites": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "refused": false
+    },
+    {
+      "entry": "tenant-context",
+      "note": "三个入口都没有调用 tenant_scope；只有 api/main.py 的 /ask 与 /ask/stream 设置租户",
+      "current_tenant": null,
+      "has_scope_helper": true
+    }
+  ]
+}
