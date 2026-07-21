@@ -1,0 +1,249 @@
+[32m20261010 23:11:30[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m222[0m | [1mINFO[0m: [1m===== 开始处理源 milvus_docs -> 集合 kb_milvus_bge_large_1024 =====[0m
+[32m20261010 23:12:01[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m142[0m | [1mINFO[0m: [1m[写入进程] 启动，目标集合 kb_milvus_bge_large_1024（dim=1024）[0m
+[32m20261010 23:12:01[0m | Process-1 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m102[0m | [1mINFO[0m: [1m[解析进程] 源 milvus_docs 开始扫描: <local-user>\Desktop\<project-dir>\RAG_PROJECT\RAG_PROJECT\datas\md[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 197[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 150[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 150[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 10 字符的块并入前一块 (合并后 196 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 26 字符的块并入前一块 (合并后 223 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 39 字符的块并入前一块 (合并后 263 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 23 字符的块并入前一块 (合并后 287 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 36 字符的块并入前一块 (合并后 324 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 14 字符的块并入前一块 (合并后 339 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 26 字符的块并入前一块 (合并后 366 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 25 字符的块并入前一块 (合并后 392 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 34 字符的块并入前一块 (合并后 133 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 40 字符的块并入前一块 (合并后 193 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 16 字符的块并入前一块 (合并后 658 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 25 字符的块并入前一块 (合并后 684 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 31 字符的块并入前一块 (合并后 716 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 41 字符的块并入前一块 (合并后 758 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 35 字符的块并入前一块 (合并后 794 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 25 字符的块并入前一块 (合并后 178 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 28 字符的块并入前一块 (合并后 207 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 26 字符的块并入前一块 (合并后 234 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 29 字符的块并入前一块 (合并后 185 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 23 字符的块并入前一块 (合并后 209 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 26 字符的块并入前一块 (合并后 236 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 31 字符的块并入前一块 (合并后 268 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 34 字符的块并入前一块 (合并后 303 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 44 字符的块并入前一块 (合并后 348 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 31 字符的块并入前一块 (合并后 380 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 37 字符的块并入前一块 (合并后 418 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 23 字符的块并入前一块 (合并后 442 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 33 字符的块并入前一块 (合并后 476 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 37 字符的块并入前一块 (合并后 65 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 8 字符的块并入前一块 (合并后 634 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 35 字符的块并入前一块 (合并后 670 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 716 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 762 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 7 字符的块并入前一块 (合并后 146 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 39 字符的块并入前一块 (合并后 186 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 49 字符的块并入前一块 (合并后 236 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 7 字符的块并入前一块 (合并后 146 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 192 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 42 字符的块并入前一块 (合并后 192 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 19 字符的块并入前一块 (合并后 158 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 204 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 7 字符的块并入前一块 (合并后 192 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 39 字符的块并入前一块 (合并后 232 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 49 字符的块并入前一块 (合并后 282 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 19 字符的块并入前一块 (合并后 185 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 39 字符的块并入前一块 (合并后 184 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 49 字符的块并入前一块 (合并后 234 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 39 字符的块并入前一块 (合并后 250 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 49 字符的块并入前一块 (合并后 300 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 7 字符的块并入前一块 (合并后 198 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 44 字符的块并入前一块 (合并后 243 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 7 字符的块并入前一块 (合并后 198 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 41 字符的块并入前一块 (合并后 240 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 234 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 234 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_cli_reference.md: 45 字符的块并入前一块 (合并后 180 字符)[0m
+[32m20261010 23:12:07[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 94[0m
+[32m20261010 23:12:08[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 112[0m
+[32m20261010 23:12:08[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 47[0m
+[32m20261010 23:12:08[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 47[0m
+[32m20261010 23:12:08[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_faq.md: 11 字符的块并入前一块 (合并后 486 字符)[0m
+[32m20261010 23:12:08[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 46[0m
+[32m20261010 23:12:09[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 107[0m
+[32m20261010 23:12:09[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 52[0m
+[32m20261010 23:12:09[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 52[0m
+[32m20261010 23:12:09[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 52[0m
+[32m20261010 23:12:10[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 77[0m
+[32m20261010 23:12:10[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 18[0m
+[32m20261010 23:12:10[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 18[0m
+[32m20261010 23:12:10[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_product_overview.md: 46 字符的块并入前一块 (合并后 269 字符)[0m
+[32m20261010 23:12:10[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 17[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 83[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 31[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 31[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_troubleshooting.md: 9 字符的块并入前一块 (合并后 61 字符)[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 30[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 28[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 10[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 10[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 10[0m
+[32m20261010 23:12:11[0m | Process-1 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m136[0m | [1mINFO[0m: [1m[解析进程] 源 milvus_docs 完成：6 个文件 / 249 个块 / 0 个失败[0m
+[32m20261010 23:13:10[0m | Process-2 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_milvus_bge_large_1024 数据已可检索[0m
+[32m20261010 23:13:10[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_milvus_bge_large_1024 累计已写入: 94 个块[0m
+[32m20261010 23:13:42[0m | Process-2 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_milvus_bge_large_1024 数据已可检索[0m
+[32m20261010 23:13:42[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_milvus_bge_large_1024 累计已写入: 140 个块[0m
+[32m20261010 23:14:12[0m | Process-2 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_milvus_bge_large_1024 数据已可检索[0m
+[32m20261010 23:14:12[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_milvus_bge_large_1024 累计已写入: 192 个块[0m
+[32m20261010 23:15:03[0m | Process-2 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_milvus_bge_large_1024 数据已可检索[0m
+[32m20261010 23:15:03[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_milvus_bge_large_1024 累计已写入: 239 个块[0m
+[32m20261010 23:15:20[0m | Process-2 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_milvus_bge_large_1024 数据已可检索[0m
+[32m20261010 23:15:20[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_milvus_bge_large_1024 累计已写入: 249 个块[0m
+[32m20261010 23:15:20[0m | Process-2 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m167[0m | [1mINFO[0m: [1m[写入进程] 结束，集合 kb_milvus_bge_large_1024 总计写入 249 个块[0m
+[32m20261010 23:15:22[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m276[0m | [1mINFO[0m: [1m===== 源 milvus_docs 完成：文件 6 / 块 249 / 写入 249 / 失败 0 =====[0m
+[32m20261010 23:15:22[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m222[0m | [1mINFO[0m: [1m===== 开始处理源 papers -> 集合 kb_papers_bge_large_1024 =====[0m
+[32m20261010 23:15:55[0m | Process-3 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m102[0m | [1mINFO[0m: [1m[解析进程] 源 papers 开始扫描: <local-user>\Desktop\<project-dir>\RAG_PROJECT\RAG_PROJECT\datas\pdf[0m
+[32m20261010 23:15:55[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m142[0m | [1mINFO[0m: [1m[写入进程] 启动，目标集合 kb_papers_bge_large_1024（dim=1024）[0m
+rapidocr_api using backend: rapidocr_onnxruntime
+
+=== Document parser messages ===
+Using RapidOCR for OCR processing.
+[32m20261010 23:17:13[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m247[0m | [1mINFO[0m: [1mPDF 转 Markdown: hnsw_anns_paper.pdf -> 54356 字符[0m
+[32m20261010 23:17:22[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 210[0m
+[32m20261010 23:17:22[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 45[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 71[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 40 字符的块并入前一块 (合并后 105 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 17 字符的块并入前一块 (合并后 89 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 10 字符的块并入前一块 (合并后 100 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 19 字符的块并入前一块 (合并后 120 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 24 字符的块并入前一块 (合并后 145 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 7 字符的块并入前一块 (合并后 153 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 39 字符的块并入前一块 (合并后 103 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 18 字符的块并入前一块 (合并后 122 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 36 字符的块并入前一块 (合并后 159 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 16 字符的块并入前一块 (合并后 176 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 22 字符的块并入前一块 (合并后 311 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] hnsw_anns_paper.pdf.md: 45 字符的块并入前一块 (合并后 1265 字符)[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 59[0m
+[32m20261010 23:19:52[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m256[0m | [1mINFO[0m: [1mPDF 解析完成: hnsw_anns_paper.pdf -> 59 个块[0m
+
+=== Document parser messages ===
+Using RapidOCR for OCR processing.
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m247[0m | [1mINFO[0m: [1mPDF 转 Markdown: milvus_hybrid_search_whitepaper.pdf -> 8205 字符[0m
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 69[0m
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 16[0m
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 16[0m
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 16[0m
+[32m20261010 23:19:55[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m256[0m | [1mINFO[0m: [1mPDF 解析完成: milvus_hybrid_search_whitepaper.pdf -> 16 个块[0m
+
+=== Document parser messages ===
+Using RapidOCR for OCR processing.
+OCR on page.number=8/9.
+OCR on page.number=9/10.
+[32m20261010 23:20:20[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m247[0m | [1mINFO[0m: [1mPDF 转 Markdown: milvus_vectordb_paper.pdf -> 93078 字符[0m
+[32m20261010 23:20:26[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 333[0m
+[32m20261010 23:20:26[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 44[0m
+[32m20261010 23:21:18[0m | Process-4 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_papers_bge_large_1024 数据已可检索[0m
+[32m20261010 23:21:18[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_papers_bge_large_1024 累计已写入: 59 个块[0m
+[32m20261010 23:23:44[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 72[0m
+[32m20261010 23:23:44[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_vectordb_paper.pdf.md: 46 字符的块并入前一块 (合并后 203 字符)[0m
+[32m20261010 23:23:44[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 71[0m
+[32m20261010 23:23:44[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m428[0m | [33m[1mWARNING[0m: [33m[1m超长块切分: 71 -> 72 （按 5800 字节上限）[0m
+[32m20261010 23:23:44[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m256[0m | [1mINFO[0m: [1mPDF 解析完成: milvus_vectordb_paper.pdf -> 72 个块[0m
+
+=== Document parser messages ===
+Using RapidOCR for OCR processing.
+OCR on page.number=2/3.
+OCR on page.number=9/10.
+[32m20261010 23:23:54[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m247[0m | [1mINFO[0m: [1mPDF 转 Markdown: rag_failure_modes_paper.pdf -> 32982 字符[0m
+[32m20261010 23:23:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 122[0m
+[32m20261010 23:23:55[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 24[0m
+[32m20261010 23:24:43[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 26[0m
+[32m20261010 23:24:43[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 26[0m
+[32m20261010 23:24:43[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m256[0m | [1mINFO[0m: [1mPDF 解析完成: rag_failure_modes_paper.pdf -> 26 个块[0m
+[32m20261010 23:24:43[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m225[0m | [33m[1mWARNING[0m: [33m[1mPDF 文本层仅 0 字符，判定为扫描件，走整页 OCR: scanned_performance_faq.pdf[0m
+[32m20261010 23:25:04[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mocr_to_markdown[0m:[36m201[0m | [1mINFO[0m: [1mOCR 完成: scanned_performance_faq.pdf -> 49 行 / 2 页[0m
+[32m20261010 23:25:04[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m247[0m | [1mINFO[0m: [1mPDF 转 Markdown: scanned_performance_faq.pdf -> 2450 字符[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 5[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 3[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 3[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 3[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mpdf_parser[0m.[36mparse_pdf_to_documents[0m:[36m256[0m | [1mINFO[0m: [1mPDF 解析完成: scanned_performance_faq.pdf -> 3 个块[0m
+[32m20261010 23:25:05[0m | Process-3 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m136[0m | [1mINFO[0m: [1m[解析进程] 源 papers 完成：5 个文件 / 176 个块 / 0 个失败[0m
+[32m20261010 23:26:07[0m | Process-4 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_papers_bge_large_1024 数据已可检索[0m
+[32m20261010 23:26:07[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_papers_bge_large_1024 累计已写入: 147 个块[0m
+[32m20261010 23:26:47[0m | Process-4 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_papers_bge_large_1024 数据已可检索[0m
+[32m20261010 23:26:47[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_papers_bge_large_1024 累计已写入: 173 个块[0m
+[32m20261010 23:26:59[0m | Process-4 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_papers_bge_large_1024 数据已可检索[0m
+[32m20261010 23:26:59[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_papers_bge_large_1024 累计已写入: 176 个块[0m
+[32m20261010 23:26:59[0m | Process-4 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m167[0m | [1mINFO[0m: [1m[写入进程] 结束，集合 kb_papers_bge_large_1024 总计写入 176 个块[0m
+[32m20261010 23:27:02[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m276[0m | [1mINFO[0m: [1m===== 源 papers 完成：文件 5 / 块 176 / 写入 176 / 失败 0 =====[0m
+[32m20261010 23:27:02[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m222[0m | [1mINFO[0m: [1m===== 开始处理源 manuals -> 集合 kb_manuals_bge_large_1024 =====[0m
+[32m20261010 23:27:37[0m | Process-5 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m102[0m | [1mINFO[0m: [1m[解析进程] 源 manuals 开始扫描: <local-user>\Desktop\<project-dir>\RAG_PROJECT\RAG_PROJECT\datas\office[0m
+[32m20261010 23:27:37[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m142[0m | [1mINFO[0m: [1m[写入进程] 启动，目标集合 kb_manuals_bge_large_1024（dim=1024）[0m
+[32m20261010 23:27:37[0m | Process-5 | MainThread | [36mpptx_parser[0m.[36mparse_pptx_to_documents[0m:[36m363[0m | [1mINFO[0m: [1mPPTX 解析: milvus_architecture.pptx[0m
+[32m20261010 23:27:45[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 20[0m
+[32m20261010 23:27:45[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 10[0m
+[32m20261010 23:27:45[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 10[0m
+[32m20261010 23:27:45[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 10[0m
+[32m20261010 23:27:45[0m | Process-5 | MainThread | [36mpptx_parser[0m.[36mparse_pptx_to_documents[0m:[36m386[0m | [1mINFO[0m: [1mPPTX 解析完成: milvus_architecture.pptx -> 10 个内容块（一页一块）[0m
+[32m20261010 23:27:46[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m138[0m | [1mINFO[0m: [1mOffice 转 Markdown: milvus_capability_matrix.xlsx -> 11298 字符[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 4[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 8[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 8[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 8[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m428[0m | [33m[1mWARNING[0m: [33m[1m超长块切分: 8 -> 11 （按 5800 字节上限）[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m145[0m | [1mINFO[0m: [1mOffice 解析完成: milvus_capability_matrix.xlsx -> 11 个块[0m
+[32m20261010 23:27:47[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m138[0m | [1mINFO[0m: [1mOffice 转 Markdown: milvus_deployment_requirements.docx -> 5266 字符[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 28[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 13[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 13[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_deployment_requirements.docx.md: 40 字符的块并入前一块 (合并后 73 字符)[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 12[0m
+[32m20261010 23:27:48[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m145[0m | [1mINFO[0m: [1mOffice 解析完成: milvus_deployment_requirements.docx -> 12 个块[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m138[0m | [1mINFO[0m: [1mOffice 转 Markdown: milvus_index_spec.docx -> 14314 字符[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 79[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 32[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 32[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_index_spec.docx.md: 41 字符的块并入前一块 (合并后 63 字符)[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36m_merge_short_chunks[0m:[36m301[0m | [1mINFO[0m: [1m[合并超短块] milvus_index_spec.docx.md: 8 字符的块并入前一块 (合并后 1187 字符)[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 30[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m145[0m | [1mINFO[0m: [1mOffice 解析完成: milvus_index_spec.docx -> 30 个块[0m
+[32m20261010 23:27:50[0m | Process-5 | MainThread | [36mpptx_parser[0m.[36mparse_pptx_to_documents[0m:[36m363[0m | [1mINFO[0m: [1mPPTX 解析: milvus_product_intro.pptx[0m
+[32m20261010 23:27:51[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 28[0m
+[32m20261010 23:27:51[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 14[0m
+[32m20261010 23:27:51[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 14[0m
+[32m20261010 23:27:51[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 14[0m
+[32m20261010 23:27:51[0m | Process-5 | MainThread | [36mpptx_parser[0m.[36mparse_pptx_to_documents[0m:[36m386[0m | [1mINFO[0m: [1mPPTX 解析完成: milvus_product_intro.pptx -> 14 个内容块（一页一块）[0m
+[32m20261010 23:27:52[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m138[0m | [1mINFO[0m: [1mOffice 转 Markdown: milvus_spec_summary.xlsx -> 17171 字符[0m
+[32m20261010 23:27:52[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 10[0m
+[32m20261010 23:27:52[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 13[0m
+[32m20261010 23:28:34[0m | Process-6 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_manuals_bge_large_1024 数据已可检索[0m
+[32m20261010 23:28:34[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_manuals_bge_large_1024 累计已写入: 21 个块[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 19[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 19[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m145[0m | [1mINFO[0m: [1mOffice 解析完成: milvus_spec_summary.xlsx -> 19 个块[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m138[0m | [1mINFO[0m: [1mOffice 转 Markdown: vector_db_benchmark.xlsx -> 9444 字符[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m410[0m | [1mINFO[0m: [1m文件解析后的docs长度: 4[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m414[0m | [1mINFO[0m: [1m文件合并后的长度: 6[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m417[0m | [1mINFO[0m: [1m语义切割后的长度: 6[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m422[0m | [1mINFO[0m: [1m合并超短块后的长度: 6[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mmarkdown_parser[0m.[36mparse_markdown_to_documents[0m:[36m428[0m | [33m[1mWARNING[0m: [33m[1m超长块切分: 6 -> 7 （按 5800 字节上限）[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36moffice_parser[0m.[36mparse_office_to_documents[0m:[36m145[0m | [1mINFO[0m: [1mOffice 解析完成: vector_db_benchmark.xlsx -> 7 个块[0m
+[32m20261010 23:28:54[0m | Process-5 | MainThread | [36mwrite_milvus[0m.[36msource_parser_process[0m:[36m136[0m | [1mINFO[0m: [1m[解析进程] 源 manuals 完成：7 个文件 / 103 个块 / 0 个失败[0m
+[32m20261010 23:29:36[0m | Process-6 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_manuals_bge_large_1024 数据已可检索[0m
+[32m20261010 23:29:36[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_manuals_bge_large_1024 累计已写入: 63 个块[0m
+[32m20261010 23:30:23[0m | Process-6 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_manuals_bge_large_1024 数据已可检索[0m
+[32m20261010 23:30:23[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_manuals_bge_large_1024 累计已写入: 96 个块[0m
+[32m20261010 23:30:36[0m | Process-6 | MainThread | [36mmilvus_db[0m.[36madd_documents[0m:[36m183[0m | [1mINFO[0m: [1mflush 完成，当前集合 kb_manuals_bge_large_1024 数据已可检索[0m
+[32m20261010 23:30:36[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m159[0m | [1mINFO[0m: [1m[写入进程] kb_manuals_bge_large_1024 累计已写入: 103 个块[0m
+[32m20261010 23:30:36[0m | Process-6 | MainThread | [36mwrite_milvus[0m.[36mmilvus_writer_process[0m:[36m167[0m | [1mINFO[0m: [1m[写入进程] 结束，集合 kb_manuals_bge_large_1024 总计写入 103 个块[0m
+[32m20261010 23:30:38[0m | MainProcess | MainThread | [36mwrite_milvus[0m.[36mingest_source[0m:[36m276[0m | [1mINFO[0m: [1m===== 源 manuals 完成：文件 7 / 块 103 / 写入 103 / 失败 0 =====[0m
+
+==============================================================================
+入库汇总
+==============================================================================
+源                集合                                       文件        块       写入
+------------------------------------------------------------------------------
+milvus_docs      kb_milvus_bge_large_1024                  6      249      249
+papers           kb_papers_bge_large_1024                  5      176      176
+manuals          kb_manuals_bge_large_1024                 7      103      103
+------------------------------------------------------------------------------
+总计失败项: 0
+==============================================================================

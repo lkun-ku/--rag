@@ -98,6 +98,57 @@ class MarkdownParser:
         'title': 1000,
     }
 
+    # 单个块的 **page_content 字节上限**（Milvus 的 text 是 VARCHAR(6000)，按字节计）。
+    #
+    # [FIX 2026-10-10] 此前**没有任何针对正文的字节约束**，换真实语料后立刻暴露：
+    #     papers  源 175 块只写入  88（87 块被拒）
+    #     manuals 源  97 块只写入  63（34 块被拒）
+    #     报错全部是 MilvusException code=1100 length of varchar field text exceeds max length
+    #     最长的一块达 20184 字节（上限的 3.4 倍）
+    #
+    # 为什么切片阶段没能拦住：
+    #   ① `text_chunker` 的阈值 5000 是**字符**（中文 5000 字 ≈ 15000 字节），
+    #      而且 `SemanticChunker` 在语义高度相似时**找不到断点**（表格/数字密集的块尤甚），
+    #      于是整块原样保留；
+    #   ② `table_handler` 的闸原先也是**字符**（P0-5，已改为字节）。
+    # 所以这里补一道**与切分器无关的最终兜底**：无论前面怎么切，出管道前一定 ≤ 上限。
+    MAX_CONTENT_BYTES = 5800        # 留 200 字节余量给 metadata 拼接与换行
+
+    @staticmethod
+    def _split_by_bytes(text: str, limit: int) -> List[str]:
+        """按 UTF-8 字节上限切分，且**不切坏多字节字符**。
+
+        为什么不在换行处优雅切分：进到这里的是"切片器都切不动"的异常块
+        （语义高度相似的长表格 / 长数字列表），此时保证**字节合规**优先于**可读性**。
+        """
+        raw = text.encode('utf-8')
+        if len(raw) <= limit:
+            return [text]
+        out, start = [], 0
+        while start < len(raw):
+            end = min(start + limit, len(raw))
+            # 回退到字符边界（UTF-8 续字节的高两位是 10）
+            while end < len(raw) and (raw[end] & 0xC0) == 0x80:
+                end -= 1
+            if end <= start:                    # 单个字符就超限的极端情况
+                end = min(start + limit, len(raw))
+            out.append(raw[start:end].decode('utf-8', errors='ignore'))
+            start = end
+        return out
+
+    @staticmethod
+    def _enforce_byte_limit(datas: List[Document]) -> List[Document]:
+        """把超字节上限的块切开（切出的片段继承原 metadata）。"""
+        out: List[Document] = []
+        for d in datas:
+            if len(d.page_content.encode('utf-8')) <= MarkdownParser.MAX_CONTENT_BYTES:
+                out.append(d)
+                continue
+            for piece in MarkdownParser._split_by_bytes(
+                    d.page_content, MarkdownParser.MAX_CONTENT_BYTES):
+                out.append(Document(page_content=piece, metadata=dict(d.metadata)))
+        return out
+
     @staticmethod
     def _truncate_utf8(value, max_bytes: int) -> str:
         """按 UTF-8 字节数截断，保证不切坏多字节字符。"""
@@ -369,6 +420,13 @@ class MarkdownParser:
         # 但合并要在字段兜底之前，保证并入后的块也走一遍 schema 字段校验。
         chunk_documents = self._merge_short_chunks(chunk_documents)
         log.info(f'合并超短块后的长度: {len(chunk_documents)}')
+
+        # [FIX 2026-10-10] 字节上限兜底（见 MAX_CONTENT_BYTES 的说明）。
+        n_before = len(chunk_documents)
+        chunk_documents = self._enforce_byte_limit(chunk_documents)
+        if len(chunk_documents) != n_before:
+            log.warning(f'超长块切分: {n_before} -> {len(chunk_documents)} '
+                        f'（按 {self.MAX_CONTENT_BYTES} 字节上限）')
 
         # 补齐 Milvus schema 必需但 unstructured 未必产出的字段（见 _ensure_required_fields）
         chunk_documents = self._ensure_required_fields(chunk_documents)

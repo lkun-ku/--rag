@@ -47,12 +47,25 @@ def build_parser(parser_type: str):
 
     所有返回的解析函数签名统一为 `fn(file_path) -> List[Document]`，
     且都保证产出与原生 Markdown 路径同构的块。
+
+    [FIX 2026-10-10 / P1-4] PDF 的 OCR 开关此前**在入库链路上不可达** ——
+        `PDFParser()` 无参构造 -> `ocr_fallback=False`，而 `PDFParser.to_markdown`
+        的 `use_ocr` 也没有任何入口能传进来。结果是 ROADMAP 2.3 实现的
+        「按文本层判定扫描件 -> 走带页码的整页 OCR」这条路径**从未在正式入库时生效过**
+        （扫描件实际靠 `pymupdf4llm` 自带的 OCR 兜过去，但产出**不带页码**，
+        不满足引用粒度对页码的要求）。
+
+        现在通过环境变量开放两个开关（**默认值保持与修复前完全一致**，不改变既有行为）：
+            PDF_OCR_FALLBACK=1   扫描件走本项目 RapidOCR（带 `## 第 N 页`），慢（约 2.5s/页）
+            PDF_USE_OCR=0        关闭 pymupdf4llm 的图片 OCR（与阶段一基线对齐时用）
     """
     if parser_type == 'markdown':
         p = MarkdownParser()
         return p, p.parse_markdown_to_documents
     if parser_type == 'pdf':
-        p = PDFParser()
+        ocr_fallback = os.getenv('PDF_OCR_FALLBACK', '0') not in ('', '0', 'false', 'False')
+        use_ocr = os.getenv('PDF_USE_OCR', '1') not in ('', '0', 'false', 'False')
+        p = PDFParser(ocr_fallback=ocr_fallback, use_ocr=use_ocr)
         return p, p.parse_pdf_to_documents
     if parser_type == 'office':
         p = OfficeParser()

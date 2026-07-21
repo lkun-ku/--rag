@@ -66,7 +66,8 @@ class PDFParser:
     """
 
     def __init__(self, keep_temp_md: bool = False, ocr_fallback: bool = False,
-                 ocr_dpi: int = 200, ocr_min_score: float = 0.5):
+                 ocr_dpi: int = 200, ocr_min_score: float = 0.5,
+                 use_ocr: bool = True):
         """
         Args:
             keep_temp_md: 是否保留中间产出的临时 Markdown（默认 False，解析后删除）。
@@ -81,6 +82,9 @@ class PDFParser:
         self.ocr_fallback = ocr_fallback
         self.ocr_dpi = ocr_dpi
         self.ocr_min_score = ocr_min_score
+        # [P1-4] pymupdf4llm 是否对页面图片区域做 OCR。默认 True（与修复前一致）；
+        # 需要与阶段一基线严格对齐时传 False（`write_milvus` 通过 PDF_USE_OCR 暴露）。
+        self.use_ocr = use_ocr
         # 复用 MarkdownParser 的合并 + 切片 + 字段兜底能力
         self._helper = MarkdownParser()
 
@@ -223,7 +227,7 @@ class PDFParser:
             )
             md_text = self.ocr_to_markdown(file_path, self.ocr_dpi, self.ocr_min_score)
         else:
-            md_text = self.to_markdown(file_path)
+            md_text = self.to_markdown(file_path, use_ocr=self.use_ocr)
 
         stripped = md_text.strip()
 

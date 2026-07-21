@@ -47,10 +47,16 @@ from langchain_core.documents import Document
 # 取 30 与业界经验一致；实测 60 行表切成 2 块（667 / 715 字符），远小于语义切割阈值 5000。
 DEFAULT_MAX_ROWS = 30
 
-# 单块字符数上限。Milvus schema 的 text 字段是 VARCHAR(6000)（按**字节**计），
-# 超长会导致整批写入失败。30 行 × 6 列的中文表实测约 1.4 KB，余量充足；
-# 但若单元格本身很长（如整段说明文字），仅靠行数限制不够，故再加一道字符闸。
-DEFAULT_MAX_CHARS = 4000
+# 单块**字节数**上限。Milvus schema 的 text 字段是 VARCHAR(6000)（按**字节**计），
+# 超长会导致整批写入失败（实测报 `MilvusException code=1100`）。
+#
+# [FIX 2026-10-10 / P0-5] 原先这里是 `DEFAULT_MAX_CHARS = 4000`（**字符**），
+# 与 Milvus 的字节约束不一致 —— 中文 3 字节/字，4000 字符 ≈ 12000 字节，
+# 是上限的 2 倍。换真实语料后立刻暴露：
+#     milvus_capability_matrix.xlsx 的一个表块做完行切后仍有 **20184 字节**（3.4 倍上限）
+#     -> papers 源 175 块只写入 88、manuals 源 97 块只写入 63（合计 121 块被拒）
+# 现在统一改为按字节判定，并留 200 字节余量（表名/列名前缀、换行符等）。
+DEFAULT_MAX_BYTES = 5800
 
 # 表名长度上限（字符）。表名会写入 Milvus 的 title 字段（VARCHAR 1000 字节）。
 # 实测教训：表名取自「父标题」，而 merge_title_content 会让父标题不断吸收子元素，
@@ -215,37 +221,48 @@ def grid_to_markdown(rows: Sequence[Sequence[str]],
     return '\n'.join(lines).strip()
 
 
+def _nbytes(s: str) -> int:
+    """按 UTF-8 字节数计长（Milvus 的 VARCHAR 约束是字节，不是字符）。"""
+    return len(s.encode('utf-8'))
+
+
 def build_table_chunks(html: str,
                        table_name: str = '',
                        max_rows: int = DEFAULT_MAX_ROWS,
-                       max_chars: int = DEFAULT_MAX_CHARS) -> List[str]:
+                       max_bytes: int = DEFAULT_MAX_BYTES) -> List[str]:
     """HTML 表格 -> 1~N 个自解释文本块（L1 + L2 + L3 的完整实现）。
 
     决策流程（ROADMAP 2.4.2）：
-        行数 <= max_rows 且字符数 <= max_chars -> 整表一块（小表不切）
-        任一超限                              -> 按行分组，每块重复完整表头并标注行范围
+        行数 <= max_rows 且**字节数** <= max_bytes -> 整表一块（小表不切）
+        任一超限                                  -> 按行分组，每块重复完整表头并标注行范围
 
-    为何同时需要 max_chars 这道闸：Milvus 的 text 字段是 VARCHAR(6000) 且按**字节**计，
-    行数不多但单元格很长（如整段说明文字）的表仍会超限并导致整批写入失败。
+    为何需要 max_bytes 这道闸（而不是只看行数）：
+        Milvus 的 text 是 VARCHAR(6000) 且**按字节**计。行数不多但单元格很长
+        （如整段说明文字）的表仍会超限，并导致**整批写入失败**。
+
+    [FIX 2026-10-10] 防御 `max_rows <= 0` 导致的死循环（P0-6）：
+        原实现里 `end = min(start + max_rows, len(body))`，当 max_rows<=0 时
+        `end <= start`，随后 `start = end` 不前进 -> 无限循环。
     """
+    max_rows = max(1, int(max_rows or 1))
     rows = parse_table_html(html)
     if not rows:
         return []
     header, body = rows[0], rows[1:]
 
     whole = grid_to_markdown(rows, table_name)
-    if len(body) <= max_rows and len(whole) <= max_chars:
+    if len(body) <= max_rows and _nbytes(whole) <= max_bytes:
         return [whole]
 
     chunks: List[str] = []
     start = 0
     while start < len(body):
         end = min(start + max_rows, len(body))
-        # 在行数上限内按字符上限收缩（至少保留 1 行，避免死循环）
+        # 在行数上限内按**字节**上限收缩（至少保留 1 行，避免死循环）
         while end > start + 1:
             cand = grid_to_markdown([header] + body[start:end], table_name,
                                     (start + 1, end))
-            if len(cand) <= max_chars:
+            if _nbytes(cand) <= max_bytes:
                 break
             end -= 1
         chunks.append(grid_to_markdown([header] + body[start:end], table_name,
