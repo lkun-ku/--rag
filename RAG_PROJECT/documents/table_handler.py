@@ -162,7 +162,18 @@ class _TableHTMLParser(HTMLParser):
                 self._row.append(value)
             if rowspan > 1:
                 for offset in range(span):
-                    self._pending[col + offset] = [rowspan - 1, value]
+                    # [FIX 2026-10-11 / P0-2] 这里必须存 **rowspan**，不是 rowspan-1。
+                    #
+                    # 计数在 `</tr>` 里递减（每过一行 -1），所以「还能延续几行」必须在
+                    # **本行结束时**仍 > 0：
+                    #     rowspan=2 --存 2--> 本行 `</tr>` 减到 1（保留）-> 下一行 flush 补位
+                    #                -> 再下一行 `</tr>` 减到 0 并清理     ✓
+                    # 原先存 rowspan-1：
+                    #     rowspan=2 --存 1--> **本行** `</tr>` 就减到 0 被 pop
+                    #                -> 下一行 `_flush_pending()` 拿不到延续值 -> 后续行整体左移一列  ✗
+                    # 后果是**静默数据错位**（LLM 读到错误的行列对应关系），
+                    # 正是 2.4 表格结构恢复要解决的问题本身。
+                    self._pending[col + offset] = [rowspan, value]
         elif tag == 'tr' and self._row is not None:
             if any(c for c in self._row):
                 while len(self.rows) and len(self.rows[-1]) < len(self._row):

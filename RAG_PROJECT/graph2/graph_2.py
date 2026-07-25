@@ -45,13 +45,20 @@ def grade_generation_v_documents_and_question(state):
     from utils.citation import validate_citations  # 局部导入：避免与判分链的循环依赖
 
     doc_list = documents if isinstance(documents, list) else [documents]
-    check = validate_citations(generation, len(doc_list) or 1)
+    # 传入 docs 后才能区分「幻觉引用」与「复述被检索块原文自带的编号」（P0-3）
+    check = validate_citations(generation, len(doc_list) or 1, docs=doc_list)
 
     if check["is_refusal"]:
         # 设计内拒答：资料不足时的**正确**响应，不应触发熔断重试
         # （若在这里重试，只会反复得到同样的拒答，白白消耗 LLM 调用）。
         log.info("---判定：模型按规则拒答（资料不足），结束流程---")
         return "useful"
+
+    if check["quoted"]:
+        # 复述了被检索块原文里的参考文献编号（如 papers 块里的 [28]）。
+        # 这不是幻觉 —— 编号确实来自资料，只是不属于本次的 1..n 编号体系。
+        # 不触发重试，但记一条日志便于排查（P0-3）。
+        log.info(f"---注：答案复述了原文编号 {check['quoted']}（非幻觉，不触发重试）---")
 
     if check["invalid"]:
         generation_count = state.get("generation_count", 0)  # 熔断
@@ -154,9 +161,10 @@ def _traced_router(name: str, fn):
                 # 引用校验结果对排查最有用：越界/拒答/正常
                 from utils.citation import validate_citations
                 doc_list = docs if isinstance(docs, list) else [docs]
-                chk = validate_citations(state.get("generation", ""), len(doc_list) or 1)
+                chk = validate_citations(state.get("generation", ""), len(doc_list) or 1,
+                                         docs=doc_list)
                 info.update({"cites": chk["cites"], "invalid_cites": chk["invalid"],
-                             "is_refusal": chk["is_refusal"]})
+                             "quoted_cites": chk["quoted"], "is_refusal": chk["is_refusal"]})
             t.step(name, elapsed=time.time() - t0, **info)
         return decision
 

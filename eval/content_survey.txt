@@ -1,0 +1,222 @@
+====================================================================================================
+新语料内容抽样（496 块）
+====================================================================================================
+
+块数分布：
+  milvus_cli_reference.md                         72 块
+  milvus_vectordb_paper.pdf.md                    69 块
+  hnsw_anns_paper.pdf.md                          55 块
+  milvus_glossary.md                              51 块
+  milvus_faq.md                                   46 块
+  milvus_troubleshooting.md                       30 块
+  milvus_index_spec.docx.md                       30 块
+  rag_failure_modes_paper.pdf.md                  26 块
+  milvus_spec_summary.xlsx.md                     19 块
+  milvus_product_overview.md                      17 块
+  milvus_hybrid_search_whitepaper.pdf.md          15 块
+  milvus_product_intro.pptx.md                    14 块
+  milvus_deployment_requirements.docx.md          12 块
+  milvus_capability_matrix.xlsx.md                11 块
+  milvus_vs_alternatives.md                       10 块
+  milvus_architecture.pptx.md                     10 块
+  vector_db_benchmark.xlsx.md                      7 块
+  scanned_performance_faq.pdf.md                   2 块
+
+====================================================================================================
+A. 数值型内容（可出「定位数字 / 比较 / 条件过滤」题）
+====================================================================================================
+
+── vector_db_benchmark（7 块）
+  [3e7f9a39fdb1] PS 流式写入下的检索 Cohere Large 10M-768D Pinecone-p2.x8-1node NaN 1131.00 NaN 90.24% 500 行/秒插入时 367.4 QPS；1000 行/秒插入时 369.7 QPS 流式写入下的检索 Cohere Large 10M-768D TurboPuffer NaN 649.90 NaN 83.52% 500 行/秒插入时 536 QPS；1000 行/秒插入时 442.6 QPS 流式写入下的检索 Cohere Large 10M-768D Op
+
+  [408208b67503] 表格：检索性能实测（第 61-85 行） 列名：场景 | 数据集 | 产品与规格 | 过滤比例 | QPS | P99延迟(ms) | 召回率 | 备注  | 场景 | 数据集 | 产品与规格 | 过滤比例 | QPS | P99延迟(ms) | 召回率 | 备注 | |---|---|---|---|---|---|---|---| | 流式写入下的检索 | Cohere Large 10M-768D | QdrantCloud-16c64g |  | 446.90 |  | 93.57% | 500 行/秒插入
+
+  [5b0963182156] 数据来源 字段 说明 来源 场景 VectorDBBench 的四类测试场景：静态检索 / 带过滤检索 / 流式写入 / 全文检索 https://zilliz.com/vdbbench-leaderboard?dataset=vectorSearch 数据集 Cohere Medium 1M×768D、Cohere Large 10M×768D、HotpotQA / MS MARCO（small/medium/large） 同上 产品与规格 榜单中参与评测的向量数据库及其机型配置 同上 过滤比例 filterRa
+
+  [94e09c6a8006] 检索性能实测 场景 数据集 产品与规格 过滤比例 QPS P99延迟(ms) 召回率 备注 静态向量检索 Cohere Medium 1M-768D ElasticCloud-8c60g-force_merge 0% 2353.89 17.1 91.43% NaN 静态向量检索 Cohere Medium 1M-768D Milvus-16c64g-sq4u-fp16-force_merge 0% 9575.69 2.3 91.89% NaN 静态向量检索 Cohere Medium 1M-768D Milvus-
+
+
+── milvus_spec_summary（19 块）
+  [1d70a38e9841] 监控面板指标 面板 Panel 面板说明（官方原文节选） Search Vector Count Rate The average number of vectors queried per second by each proxy within the past two minutes. Insert Vector Count Rate The average number of vectors inserted per second by each proxy within the past two minut
+
+  [2991ce629641] 表格：部署要求 列名：类别 | 组件 / 项目 | 要求（官方原文） | 推荐  | 类别 | 组件 / 项目 | 要求（官方原文） | 推荐 | |---|---|---|---| | 硬件 | CPU | Intel 2nd Gen Core CPU or higher; Apple Silicon | Standalone: 4 core+; Cluster: 8 core+ | | 硬件 | CPU 指令集 | SSE4.2 / AVX / AVX2 / AVX-512（至少其一） | 同左 | | 硬件 
+
+  [37ff1aa574a8] 索引类型总览 索引 向量类型 分类 适用场景（官方原文） FLAT 浮点稠密 NaN Relatively small dataset; Requires a 100% recall rate IVF_FLAT 浮点稠密 NaN High-speed query; Requires a recall rate as high as possible IVF_SQ8 浮点稠密 量化 Very high-speed query; Limited memory resources; Accepts minor compr
+
+  [49c6a30aed3d] Stored Rows Rate The average number of rows flushed per second within the past two minutes. Sync Time The average, maximum, and minimum number of epoch time synced by data coord in each physical channel. Stored Binlog Size The total size of stored binlog. Flow
+
+
+── milvus_capability_matrix（11 块）
+  [055dd5ae488e] 来源说明 字段 说明 说明列 全部为官方中文原文逐字引文，未改写；来源见“出处”列 出处 墨天轮转载·Milvus 官方《官宣 Milvus 2.6 正式开源》（modb.pro/db/1934464950274109440） 出处 Zilliz 官方中文博客《十倍成本优化，Milvus 2.5到2.6升级官方手把手教程》（zilliz.com.cn/blog/Milvus-2.5-to-2.6-tenfold-cost-optimization-guide） 能力项/类别/引入版本 依据上述官方发布说明整理 官方
+
+  [08198e9dbf3e] 表格：2.6能力矩阵（第 29-30 行） 列名：序号 | 能力项 | 类别 | 引入版本 | 说明（官方中文原文引文） | 相关英文关键词 | 关键参数/配置项 | 官方指标 | 验收方式 | 关联组件 | 风险与注意 | 出处  | 序号 | 能力项 | 类别 | 引入版本 | 说明（官方中文原文引文） | 相关英文关键词 | 关键参数/配置项 | 官方指标 | 验收方式 | 关联组件 | 风险与注意 | 出处 | |---|---|---|---|---|---|---|---|---|---|---|---
+
+  [0838d7ea3956] 表格：2.6能力矩阵（第 23-28 行） 列名：序号 | 能力项 | 类别 | 引入版本 | 说明（官方中文原文引文） | 相关英文关键词 | 关键参数/配置项 | 官方指标 | 验收方式 | 关联组件 | 风险与注意 | 出处  | 序号 | 能力项 | 类别 | 引入版本 | 说明（官方中文原文引文） | 相关英文关键词 | 关键参数/配置项 | 官方指标 | 验收方式 | 关联组件 | 风险与注意 | 出处 | |---|---|---|---|---|---|---|---|---|---|---|---
+
+  [0d2b1702a884] 比建索引前后延迟 标量索引 NaN 墨天轮转载·Milvus 官方《官宣 Milvus 2.6 正式开源》 10 Int8 向量存储 数据类型 2.6.0 除了上述介绍的关键优化之外，Milvus 2.6 还支持 Int8 数据类型的向量存储，以适配更高性价比且快速的模型推理服务。此外还有一系列与降本相关的技术架构升级，例如数据冷热分层架构和 Zero-Disk 的云原生日志系统等，这部分我们将放到第三部分架构优化篇进行介绍。 INT8_VECTOR, model inference INT8_VECTOR NaN
+
+
+====================================================================================================
+B. 表格型内容（可出「表头依赖 / 行范围」题；含合并单元格的那份）
+====================================================================================================
+
+── milvus_index_spec（30 块）
+  [00ca5ad4671d] 8 参考资料 milvus.io v2.6.x — In-memory Index: https://milvus.io/docs/index.md milvus.io v2.6.x — HNSW: https://milvus.io/docs/hnsw.md milvus.io v2.6.x — IVF_FLAT: https://milvus.io/docs/ivf-flat.md milvus.io v2.6.x — Metric Types: https://milv
+  [08717126e11b] 表格：6.2 依赖组件版本 列名：Software | Version | Note  | Software | Version | Note | |---|---|---| | etcd | 3.5.0 | Disk performance is critical to etcd. It is highly recommended that you use local NVMe SSDs. | | MinIO | RELEASE.2024-12-18T13-15-44Z |
+  [1f9141dc5373] 4 索引参数规格 -> 4.7 GPU 索引 Milvus supports various GPU index types to accelerate search performance and efficiency, especially in high-throughput, and high-recall scenarios. This topic provides an overview of the GPU index types supported by Mi
+  [20ed87c9653a] 5 相似度度量规格 Currently, Milvus supports these types of similarity Metrics: Euclidean distance (L2), Inner Product (IP), Cosine Similarity (COSINE), JACCARD, HAMMING, and BM25 (specifically designed for full text search on sparse vectors). -> 5
+  [259df3338d91] 表格：5.1 字段类型与度量类型映射 列名：Field Type | Dimension Range | Supported Metric Types | Default Metric Type  | Field Type | Dimension Range | Supported Metric Types | Default Metric Type | |---|---|---|---| | FLOAT_VECTOR | 2-32,768 | COSINE, L2, IP 
+
+── milvus_deployment_requirements（12 块）
+  [0818c360d932] 表格：5 硬件与依赖要求 升级与部署前需核对以下官方最低要求（逐字整理自 milvus.io 官方文档 “Requirements for Installing Milvus Standalone”）： 列名：Component | Requirement | Recommendation  | Component | Requirement | Recommendation | |---|---|---| | CPU | Intel 2nd Gen Core CPU or 
+  [116a34c506d9] 表格：2 需求条目 下表“需求说明”栏为官方原文引文（单格篇幅均在 200 字以上），用于约束升级后的平台能力验收口径。 列名：需求编号 | 模块 | 需求说明（官方原文引文） | 优先级  | 需求编号 | 模块 | 需求说明（官方原文引文） | 优先级 | |---|---|---|---| | REQ-001 | 内存与吞吐优化 | RaBitQ 量化：主索引 1bit 量化压缩至原内存 1/32，叠加 SQ8 精排后整体内存占比仅 28%，QPS 提升 4 倍，召回率
+  [27d72cf57f59] 2 需求条目 下表“需求说明”栏为官方原文引文（单格篇幅均在 200 字以上），用于约束升级后的平台能力验收口径。 需求编号 模块 需求说明（官方原文引文） 优先级 REQ-001 内存与吞吐优化 RaBitQ 量化：主索引 1bit 量化压缩至原内存 1/32，叠加 SQ8 精排后整体内存占比仅 28%，QPS 提升 4 倍，召回率保持 95% 左右，兼顾成本与精度。RaBitQ 1 bit 方案可以提供理论 1/32 的内存压缩，因此 Milvus 2.6 还额外实现了 
+  [4300c251cdb3] 4 验收指标汇总 下表汇总官方公布的 2.6 版本实测指标，作为升级验收的参考口径（数值均为官方原文）： 能力项 官方公布指标 出处 RaBitQ 量化 主索引压缩至 1/32；叠加 SQ8 精排后整体内存占比 28%；QPS 提升 4 倍；召回率约 95% Zilliz 官方中文博客 Sparse-BM25 检索速度为 ElasticSearch 的 3-4 倍（部分数据集 7 倍）；索引体积压缩至 1/3 Zilliz 官方中文博客 JSON Path Index 过滤搜
+  [44f6f75b3893] 5 硬件与依赖要求 升级与部署前需核对以下官方最低要求（逐字整理自 milvus.io 官方文档 “Requirements for Installing Milvus Standalone”）： Component Requirement Recommendation CPU Intel 2nd Gen Core CPU or higher; Apple Silicon Standalone: 4 core or more; Cluster: 8 core or more 
+
+====================================================================================================
+C. Q&A / 词条型（可出「引用溯源」题）
+====================================================================================================
+
+── milvus_faq（46 块）
+  [00458dfb1f5d] title=Does Milvus support non-x86 architectures?
+        Product FAQ -> Does Milvus support non-x86 architectures? Yes, Milvus supports both x86 and ARM architectures. ARM64 support is available through multiple deployment options includ
+  [0110139a9bce] title=Does collection size impact query performanc
+        Product FAQ -> Does collection size impact query performance when searching in a specific partition? No. If partitions for a search are specified, Milvus searches the specified par
+  [0862ab74a2dd] title=Is storage space released right after data d
+        Is storage space released right after data deletion in Milvus? No, storage space will not be immediately released when you delete data in Milvus. Although deleting data marks entit
+  [0ab41d5e7e99] title=After enabling the partition key feature, wh
+        After enabling the partition key feature, what is the default value of num_partitions in Milvus, and why? When the partition key feature is enabled, the default value of num_partit
+
+── milvus_glossary（51 块）
+  [001e0f87ad39] title=Log snapshot
+        Terminology -> Log snapshot A log snapshot is a binary log, a smaller unit in segment that records and handles the updates and changes made to data in Milvus. Data from a segment i
+  [0fe735c4e205] title=Query
+        Terminology -> Query Query is an API that conducts scalar filtering with a specified boolean expression as filter. For more information, refer to Get & Scalar Query.
+  [1007c1e68c83] title=Collection
+        Terminology -> Collection In Milvus, a collection is equivalent to a table in a relational database management system (RDBMS). Collections are major logical objects used to store a
+  [115b11d5c9d6] title=Attu
+        Terminology -> Attu Attu is an all-in-one administration tool for Milvus that significantly reduces the complexity and cost of managing the system.
+
+── milvus_product_overview（17 块）
+  [2f01988523eb] title=Tools and Ecosystem
+        Comprehensive Feature Set In addition to the key search features mentioned above, Milvus also provides a set of features implemented around ANN searches so that you can fully utili
+  [3239bbe619df] title=What Makes Milvus so Fast？
+        What Makes Milvus so Fast？ Milvus was designed from day one to be a highly efficient vector database system. In most cases, Milvus outperforms other vector databases by 2-5x (see t
+  [4c360250594d] title=Unstructured Data, Embeddings, and Milvus
+        What is Milvus? Milvus is a bird of prey in the genus Milvus of the hawk family Accipaitridae, celebrated for its speed in flight, keen vision, and remarkable adaptability. Zilliz 
+  [59ce7ee5b12c] title=milvus_product_overview.md
+        Untructured data, embeddings, and Milvus
+
+── milvus_troubleshooting（30 块）
+  [01e717f92a73] title=Start Birdwatcher
+        Use Birdwatcher This guide walks you through how to use Birdwatcher to check the state of your Milvus and configure it on the fly. -> Start Birdwatcher Birdwatcher is a command-lin
+  [04b8bef641d3] title=Check channel status
+        Check channel status Run the following command to view channel status
+  [15ffc2f64982] title=milvus_troubleshooting.md
+        Milvus(by-dev) > probe query probing collection 442682158191982314 Found vector field vector(103) with dim[384], indexID: 442682158191990455 failed to generated mock request probin
+  [2026de88370e] title=Probe all collections with mock queries
+        Probe all collections with mock queries You can also have Birdwatcher probe all collections with mock queries.
+
+====================================================================================================
+D. 论文与白皮书（可出「跨文档综合」题）
+====================================================================================================
+
+── hnsw_anns_paper（55 块）
+  [006569a3a7a1] Houle and M. Nett, "Rank-based similarity search: Reducing the dimensional dependence," Pattern Analysis and Machine Intelligence, IEEE Transactions on, vol. 37, pp. 136-150, 2015. [12] A. Andoni and 
+  [01c3eeebfaaf] [57] A. Babenko and V. Lempitsky, "The inverted multi-index," in Computer Vision and Pattern Recognition (CVPR), 2012 IEEE Conference on , 2012, pp. 3069-3076.
+  [025a099a75c8] Discussion By using the structure decomposition of navigable small world graphs together with the smart neighbor selection heuristics the proposed Hierarchical NSW approach overcomes several important
+
+── milvus_vectordb_paper（69 块）
+  [06023e36444f] 表格：1 INTRODUCTION At Zilliz, we have experienced a growing need from various customers to manage large-scale high-dimensional vector data (ranging from 10s to 1000s of dimensions) in many data science
+  [067d924421e6] 2014. The Calculation of Molecular Structural Similarity: Principles and Practice. Molecular Informatics 33, 6–7 (2014), 403–413. [67] Susan Wojcicki. 2020. YouTube at 15: My Personal Journey and the 
+  [07b9b020cf27] Milvus: A Purpose-Built Vector Data Management System Jianguo Wang*, Xiaomeng Yi, Rentong Guo, Hai Jin, Peng Xu, Shengjun Li, Xiangyu Wang, Xiangzhou Guo, Chengming Li, Xiaohai Xu, Kun Yu, Yuxing Yuan
+
+── rag_failure_modes_paper（26 块）
+  [070dd18f3a2a] 表格：4.3 Biomedical Question and Answer The previous case studies focused on documents with smaller content sizes. To explore the issues at a larger scale we created a RAG system using the BioASQ [10] d
+  [143d7cef020e] Seven Failure Points When Engineering a Retrieval Augmented Generation System Scott Barnett, Stefanus Kurniawan, Srikanth Thudumu, Zach Brannelly, Mohamed Abdelrazek {scott.barnett,stefanus.kurniawan,
+  [154984d676d6] Seven Failure Points When Engineering a Retrieval Augmented Generation System Scott Barnett, Stefanus Kurniawan, Srikanth Thudumu, Zach Brannelly, Mohamed Abdelrazek {scott.barnett,stefanus.kurniawan,
+
+── milvus_hybrid_search_whitepaper（15 块）
+  [044bd4ef6ddb] 表格：5.1 VectorDBBench leaderboard (Cohere Medium 1M × 768-d, top-k = 10) The numbers below are the official VectorDBBench results for the “$1,000 monthly cost” tier on the Cohere Medium dataset (1 mill
+  [0c491d0505c4] Hybrid Search & Retrieval Performance A technical whitepaper on multi-vector retrieval, RRF reranking, full-text search, and measured performance 本白皮书为资料汇编：所有正文段落逐字取自 Milvus 官方文档（v2.6.x）与 Zilliz 官方基准页
+  [0c5c32f3e5b2] Hybrid Search & Retrieval Performance A technical whitepaper on multi-vector retrieval, RRF reranking, full-text search, and measured performance 本白皮书为资料汇编：所有正文段落逐字取自 Milvus 官方文档（v2.6.x）与 Zilliz 官方基准页
+
+── scanned_performance_faq（2 块）
+  [0cb3ed607a39] scanned_performance_faq.pdf -> 第 2 页 However,indexingaVARCHARfielddoesnotspeedup: DeletingbyIDs:WhentheVARCHARfield istheprimarykey. UnrelatedExpressions:WhentheVARCHARfieldisn'tpartofthedelete expres
+  [31109bf8138c] scanned_performance_faq.pdf -> 第 1 页 PerformanceFAQ HowtosetnlistandnprobeforIVFindexes? Settingnlistisscenario-specific.Asaruleof thumb,therecommendedvalueof nlist is4×sqrt(n),wherenis thetotal numbe
+
+====================================================================================================
+E. 主题重合分析（哪些文件讲了同一件事 -> 跨文档题素材）
+====================================================================================================
+
+── 主题「混合检索 / RRF」出现在:
+     hnsw_anns_paper.pdf.md                         1 块命中（共 55 块）
+     milvus_capability_matrix.xlsx.md               3 块命中（共 11 块）
+     milvus_deployment_requirements.docx.md         2 块命中（共 12 块）
+     milvus_glossary.md                             2 块命中（共 51 块）
+     milvus_hybrid_search_whitepaper.pdf.md        11 块命中（共 15 块）
+     milvus_product_intro.pptx.md                   4 块命中（共 14 块）
+     milvus_product_overview.md                     3 块命中（共 17 块）
+     milvus_vectordb_paper.pdf.md                   8 块命中（共 69 块）
+     milvus_vs_alternatives.md                      4 块命中（共 10 块）
+     rag_failure_modes_paper.pdf.md                 1 块命中（共 26 块）
+
+── 主题「索引类型选型」出现在:
+     milvus_capability_matrix.xlsx.md               2 块命中（共 11 块）
+     milvus_deployment_requirements.docx.md         2 块命中（共 12 块）
+     milvus_faq.md                                  2 块命中（共 46 块）
+     milvus_glossary.md                             3 块命中（共 51 块）
+     milvus_hybrid_search_whitepaper.pdf.md         3 块命中（共 15 块）
+     milvus_index_spec.docx.md                     14 块命中（共 30 块）
+     milvus_product_intro.pptx.md                   6 块命中（共 14 块）
+     milvus_product_overview.md                     2 块命中（共 17 块）
+     milvus_spec_summary.xlsx.md                    2 块命中（共 19 块）
+     milvus_troubleshooting.md                      2 块命中（共 30 块）
+     milvus_vectordb_paper.pdf.md                  10 块命中（共 69 块）
+     milvus_vs_alternatives.md                      4 块命中（共 10 块）
+
+── 主题「召回率 / 性能」出现在:
+     hnsw_anns_paper.pdf.md                        12 块命中（共 55 块）
+     milvus_capability_matrix.xlsx.md               4 块命中（共 11 块）
+     milvus_deployment_requirements.docx.md         4 块命中（共 12 块）
+     milvus_glossary.md                             1 块命中（共 51 块）
+     milvus_hybrid_search_whitepaper.pdf.md         5 块命中（共 15 块）
+     milvus_index_spec.docx.md                      9 块命中（共 30 块）
+     milvus_product_intro.pptx.md                   3 块命中（共 14 块）
+     milvus_product_overview.md                     1 块命中（共 17 块）
+     milvus_spec_summary.xlsx.md                    2 块命中（共 19 块）
+     milvus_vectordb_paper.pdf.md                  10 块命中（共 69 块）
+     milvus_vs_alternatives.md                      1 块命中（共 10 块）
+     scanned_performance_faq.pdf.md                 1 块命中（共 2 块）
+     vector_db_benchmark.xlsx.md                    7 块命中（共 7 块）
+
+── 主题「部署方式」出现在:
+     milvus_architecture.pptx.md                    2 块命中（共 10 块）
+     milvus_capability_matrix.xlsx.md               4 块命中（共 11 块）
+     milvus_deployment_requirements.docx.md         4 块命中（共 12 块）
+     milvus_faq.md                                  3 块命中（共 46 块）
+     milvus_glossary.md                             5 块命中（共 51 块）
+     milvus_index_spec.docx.md                      4 块命中（共 30 块）
+     milvus_product_intro.pptx.md                   2 块命中（共 14 块）
+     milvus_product_overview.md                     5 块命中（共 17 块）
+     milvus_spec_summary.xlsx.md                    2 块命中（共 19 块）
+     milvus_troubleshooting.md                      1 块命中（共 30 块）
+     milvus_vectordb_paper.pdf.md                   5 块命中（共 69 块）
+     milvus_vs_alternatives.md                      6 块命中（共 10 块）
+
+── 主题「相似度度量」出现在:
+     hnsw_anns_paper.pdf.md                         9 块命中（共 55 块）
+     milvus_capability_matrix.xlsx.md               2 块命中（共 11 块）
+     milvus_cli_reference.md                       49 块命中（共 72 块）
+     milvus_faq.md                                  7 块命中（共 46 块）
+     milvus_glossary.md                            10 块命中（共 51 块）
+     milvus_hybrid_search_whitepaper.pdf.md         6 块命中（共 15 块）
+     milvus_index_spec.docx.md                     14 块命中（共 30 块）
+     milvus_product_intro.pptx.md                   5 块命中（共 14 块）
+     milvus_product_overview.md                     5 块命中（共 17 块）
+     milvus_spec_summary.xlsx.md                    6 块命中（共 19 块）
+     milvus_troubleshooting.md                      2 块命中（共 30 块）
+     milvus_vectordb_paper.pdf.md                  33 块命中（共 69 块）
+     milvus_vs_alternatives.md                      8 块命中（共 10 块）
+     rag_failure_modes_paper.pdf.md                 9 块命中（共 26 块）

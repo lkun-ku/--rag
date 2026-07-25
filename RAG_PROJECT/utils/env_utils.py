@@ -162,7 +162,36 @@ DOC_SOURCES = [
 KB_TENANTS_JSON = os.getenv('KB_TENANTS')
 # 未配置时为空 dict -> 退化为「单租户模式」（可访问全部 enabled 源）。
 # 这是**刻意的默认**：不设置该环境变量时，行为与引入本功能前完全一致。
-TENANTS = json.loads(KB_TENANTS_JSON) if KB_TENANTS_JSON else {}
+def _parse_tenants(raw: str) -> dict:
+    """解析 KB_TENANTS；格式错误时抛出**带上下文**的错误。
+
+    [FIX 2026-10-11 / P0-4] 原先是一行裸的 `json.loads(...)`，无任何保护。
+    实测设 `KB_TENANTS='{acme: [milvus_docs]}'`（键忘加引号）会让本模块
+    **在 import 期**抛 `json.decoder.JSONDecodeError`，而 `env_utils` 是全项目的
+    基础依赖（retriever / api / graph / eval 全部 import 它）——
+    于是**所有入口都起不来**，且错误信息里完全看不出问题出在租户配置上。
+
+    为什么是「显式报错」而不是「退化为单租户模式」：
+        静默退化会让调用方以为多租户隔离已生效，实际却放开了全部集合 ——
+        **这是越权风险，比启动失败严重得多**。与项目「不得静默降级」的约定一致。
+    """
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"KB_TENANTS 不是合法 JSON：{e.msg}（位置 {e.pos}）。收到的是 {raw!r}。"
+            '正确格式示例：{"acme": ["milvus_docs", "manuals"], "beta": ["papers"]}'
+            "（键名与字符串都要用双引号）"
+        ) from e
+    if not isinstance(parsed, dict):
+        raise ValueError(
+            f"KB_TENANTS 必须是 JSON 对象（租户名 -> 源名列表），"
+            f"收到 {type(parsed).__name__}: {parsed!r}"
+        )
+    return parsed
+
+
+TENANTS = _parse_tenants(KB_TENANTS_JSON) if KB_TENANTS_JSON else {}
 
 # ---- LLM 服务商配置（换服务商/换模型不用改代码）----
 # 原项目把 base_url 与 model 硬编码在 llm_models/all_llm.py 里，换服务商必须改代码。
@@ -181,15 +210,10 @@ LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
 # 而 function_calling 依赖 tool_choice，因此默认关闭。
 LLM_DISABLE_THINKING = os.getenv('LLM_DISABLE_THINKING', '1') not in ('0', 'false', 'False')
 
-# 结构化输出方式。langchain-openai 1.x 的 with_structured_output 默认值已从
-# 'function_calling' 改成 'json_schema'，而 DeepSeek 官方 API 不支持 json_schema
-# （报 "This response_format type is unavailable now"），
-# 因此这里显式指定为 function_calling。换到支持 json_schema 的服务商可改这里。
-LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
-
-# 是否关闭 DeepSeek 的 thinking 模式。thinking 开启时不支持强制 tool_choice，
-# 而 function_calling 依赖 tool_choice，因此默认关闭。
-LLM_DISABLE_THINKING = os.getenv('LLM_DISABLE_THINKING', '1') not in ('0', 'false', 'False')
+# [FIX 2026-10-11 / P0-7] 上方这两个配置项曾**被整段复制了一遍**（含注释），
+# 由阶段二首个提交 e8c506d 引入。两份取值相同故当时无功能差异，但
+# `LLM_STRUCTURED_METHOD` / `LLM_DISABLE_THINKING` 被 all_llm.py、grader_chain.py、
+# query_route_chain.py 同时读取 —— **改一处忘另一处就会静默行为漂移**，故删除重复的一份。
 
 # 混合检索的 reranker 写法（二选一）：
 #   function —— 官方新写法 reranker=Function(RERANK)，语义最准，但要求服务端 Milvus 2.6+

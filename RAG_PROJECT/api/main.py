@@ -67,6 +67,7 @@ class Citation(BaseModel):
     filename: str = ""
     title: str = ""
     chars: int = 0
+    from_web: bool = Field(False, description="该来源是否来自网络搜索（而非知识库，见 P0-9）")
 
 
 class AskResponse(BaseModel):
@@ -222,7 +223,8 @@ def _run_once(question: str, with_trace: bool) -> Dict[str, Any]:
         "refused": is_refusal(answer),
         "citations": [
             {"n": m.get("n"), "filename": m.get("filename", ""),
-             "title": m.get("title", ""), "chars": m.get("chars", 0)}
+             "title": m.get("title", ""), "chars": m.get("chars", 0),
+             "from_web": m.get("from_web", False)}
             for m in meta
         ],
         "elapsed_sec": round(time.time() - t0, 2),
@@ -297,7 +299,8 @@ def ask_stream(req: AskRequest,
                 "refused": is_refusal(answer),
                 "tenant": tenant,
                 "citations": [{"n": m.get("n"), "filename": m.get("filename", ""),
-                               "title": m.get("title", ""), "chars": m.get("chars", 0)}
+                               "title": m.get("title", ""), "chars": m.get("chars", 0),
+                               "from_web": m.get("from_web", False)}
                               for m in meta],
                 "elapsed_sec": round(time.time() - t.t0, 2),
             }, ensure_ascii=False)

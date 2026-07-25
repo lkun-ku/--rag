@@ -40,6 +40,20 @@ def web_search(state):
         web_results = results
     else:
         web_results = "\n".join([d["content"] for d in results])  # 合并搜索结果
-    web_results = Document(page_content=web_results)  # 转换为文档格式
+    # [FIX 2026-10-11 / P0-9] 必须标记「来源是网络搜索」，不能只建成裸 Document。
+    #
+    # 原因：这条分支的结果会与知识库检索结果走**同一条**编号化路径
+    # （`format_context` -> `[1][2]...`，见 generate_node2），并被
+    # `build_citation_meta` 渲染成溯源条目。若不标记，用户在溯源里看到的是一个
+    # 「知识库文档」样式的条目（带 filename/title），**实际内容却来自网页** ——
+    # 比"没有溯源"更容易误导。
+    web_results = Document(
+        page_content=web_results,
+        metadata={
+            "source": "web",
+            "filename": "（网络搜索，非知识库）",
+            "title": "（网络搜索，非知识库）",
+        },
+    )
 
     return {"documents": web_results, "question": question}  # 返回更新状态

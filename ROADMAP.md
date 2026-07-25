@@ -2663,6 +2663,128 @@ ModelScope 源 190s）。实验脚本 `scratch/exp_rerank.py`，结果落 `eval/
    文件名会进 metadata，影响检索。
 3. **刻意留 1~2 个不规范样本**（标题带缩进 / 混合格式的表格）—— 全完美格式测不出健壮性。
 
+## 5.3 新语料入库结果与质量验证
+
+**入库成功，0 失败**（修复字节闸之后，详见 5.4）：
+
+```
+源            文件   块     写入
+milvus_docs    6    249    249
+papers         5    176    176
+manuals        7    103    103
+--------------------------------
+合计          18    528    528        失败项 0
+```
+
+**质量验证**（`eval/ingest_audit_new.txt`）：
+
+| 检查项 | 结果 |
+|---|---|
+| 扫描件 OCR 带页码 | ✅ `scanned_performance_faq.pdf -> 第 1 页 ...`（`PDF_OCR_FALLBACK=1` 生效，这条路径此前从未在正式入库时走过） |
+| 表格块字节合规 | ✅ 67 个表格块，最长 5800，**0 个超 6000** |
+| 块长度分布 | 496 个 content 块，中位 486 字节，最长 5800（精确卡在上限） |
+| 编码乱码 | 0 |
+| 超短块 | 4 个（结构前缀豁免 + 首块无法合并，符合预期） |
+| **NaN** | ⚠️ **8 块**（P1-12 重现：Excel 空单元格 → markitdown 转 `NaN`，而这些块是「扁平平铺」形态、不走 `table_handler`） |
+
+## 5.4 首次入库失败 121 块 —— 新语料**立刻暴露了旧缺陷**
+
+这是换真实语料最直接的价值。**旧语料因为块都很小（最大 2096 字符），从没顶到过 6000 字节**。
+
+```
+首次入库：
+    papers   175 块只写入  88（-87）
+    manuals   97 块只写入  63（-34）
+    报错全部是 MilvusException code=1100 length of varchar field text exceeds max length
+    最长块 20184 字节（VARCHAR(6000) 上限的 3.4 倍）
+```
+
+**根因两层，比 P0-5 原先描述的更严重**：
+
+| 层 | 问题 |
+|---|---|
+| ① | `table_handler` 的闸按**字符**（`DEFAULT_MAX_CHARS=4000` ≈ 12000 字节）→ **做完行切仍超字节上限** |
+| ② | **普通正文块（PDF）完全没有字节约束** —— `text_chunker` 的阈值 5000 也是字符，且 `SemanticChunker` 在语义高度相似时**找不到断点**（表格/数字密集的块尤甚），整块原样保留 |
+
+**修复**：
+
+```
+1. table_handler        DEFAULT_MAX_CHARS(4000 字符) -> DEFAULT_MAX_BYTES(5800 字节)，
+                        判定与收缩循环全改按字节
+2. markdown_parser      新增 MAX_CONTENT_BYTES=5800 与 _enforce_byte_limit/_split_by_bytes，
+                        在管道出口做**与切分器无关的最终兜底**（切分不破坏多字节字符）
+3. write_milvus +
+   pdf_parser           修 P1-4：OCR 开关此前在入库链路上不可达，现通过
+                        PDF_OCR_FALLBACK / PDF_USE_OCR 环境变量开放（默认值不变）
+4. table_handler        顺带修 P0-6（max_rows<=0 死循环）
+```
+
+**修复后重新入库**：`528 / 528`，失败 0。
+
+## 5.5 新基线（32 题，替换已失效的旧 57 题）
+
+新语料入库后旧评测集全部失效（`source_blocks` 是块 ID），因此**重建**。
+做法：`scratch/build_new_golden.py` —— 每题给「问题 + 标准答案 + 唯一关键词」，
+脚本用关键词在**全库**定位目标块（与"本次检索是否召回"解耦，保证标注客观正确）。
+
+**题库构成**（32 题）：数值定位 4 / 跨行比较 2 / 条件过滤 1 / 表头依赖 5 /
+Q&A溯源 5 / 术语 4 / 跨文档 6 / PPT 2 / 扫描件 1 / 拒答 2；
+按源：manuals 14 / milvus_docs 9 / papers 7 / 库外 2。
+
+**基线（`PER_COLLECTION_K=6`，现状）**：
+
+```
+context_recall     0.7492   ⚠️ 告警区间
+hit_rate           0.9375
+context_precision  0.1116   （旧语料 0.0546 -> 新语料更聚焦）
+分源: milvus_docs 1.0000 | manuals 0.7607 | papers 0.6176 | out_of_scope 0.0000
+```
+
+> 注：`out_of_scope` 两题（库外问题）的 `source_blocks` 为空，
+> 但 `run_eval.py` 仍按「recall=0」计入统计，**拉低了整体约 0.06**。
+> 这是评测脚本的一个小缺陷（应把库外题排除在召回统计之外），**待修**。
+
+## 5.6 K 参数扫描：**「K=6 太多」的直觉不成立**（2026-10-11）
+
+用户试用后提出「K=6 有些多了，K=3 应该会好一些」。为此做了 5 组扫描
+（`scratch/scan_K.py`，30 题有效样本，已排除库外题）：
+
+```
+配置               recall     hit_rate  precision  平均块数
+A  k=3  final=9    0.6586     0.9333    0.1556     9.0      Δrecall -0.1405 ❌
+B  k=4  final=12   0.7497     1.0000    0.1500     12.0     Δrecall -0.0494 ❌
+C  k=6  final=18   0.7991     1.0000    0.1191     17.9     （现状）
+D  k=8  final=24   0.8211     1.0000    0.0976     23.9     Δrecall +0.0220
+E  k=6  final=9    0.6409     0.8667    0.1519     9.0      Δrecall -0.1583 ❌
+```
+
+**E 组是关键的对照组**（保持每集合召回 k=6 不变，只把 `final_k` 从 18 降到 9）：
+
+| | recall | precision | 块数 |
+|---|---|---|---|
+| A（k=3, final=9） | 0.6586 | 0.1556 | 9 |
+| **E（k=6, final=9）** | **0.6409** | 0.1519 | 9 |
+
+**A 的 recall 反而比 E 更高** —— 这一组的价值在于**分离了两个可能的原因**：
+
+1. 若「降 K 更好」的原因是**少召回**（每集合少取几块 → 噪声少），那 E 应该与 C 接近；
+2. 若原因是**少给下游**（只把前 N 块交给下游 → 噪声少），那 E 应该与 A 接近。
+
+**实测：E 与 A 接近，且都比 C 差 0.14~0.16** → **收益确实来自「少给下游」，但代价是 recall 暴跌**。
+
+**结论：不能靠降 K（或降 final_k）来降噪。**
+
+- 正确答案**经常排在第 7~18 名**（每集合取 6 块 × 3 集合 = 18 时 recall 才到 0.80）
+- 这也**同时解释了 4.7 里"跨文档综合表现不错"** —— 第二份材料正是靠这个"宽召回"被带进来的
+- precision 只提升 **+0.03**，而 recall 掉 **-0.14**，**性价比极低**
+
+**正确方向**（与 P0-8 的结论一致）：**保持召回不变，在保召回的前提下过滤噪声** ——
+即加**相似度门槛**，而不是降低召回数量。这样既减少送下游的噪声，又不丢正确答案。
+
+**顺带**：D（k=8）的 recall 最高（0.8211），但 precision 降到 0.0976。
+由于 precision 目前只是「仅监控」指标，**若只看 recall，k=8 略优**；
+但收益仅 +0.022，**建议先不动 K**，优先做门槛方案后再复评。
+
 ---
 
 # 第四章 · 阶段四：复核发现的问题清单（待决策）
@@ -2675,6 +2797,105 @@ ModelScope 源 190s）。实验脚本 `scratch/exp_rerank.py`，结果落 `eval/
 
 ## 4.1 P0：确认的 Bug（8 项，均有实测证据）
 
+### 修复进度（2026-10-11 更新）
+
+| 项 | 状态 | 说明与证据 |
+|---|---|---|
+| P0-1 引用指错块 | **待修** | 规模 1/53（98.1% 正确）。修法涉及 prompt，须重跑引用审计验证，成本较高，留待下一轮 |
+| P0-2 表格 rowspan | **已修** ✅ | 改为存 `rowspan`（而非 `rowspan-1`）；`scratch/verify_rowspan.py` **6/6 通过**，含端到端「合并值在两行都出现」 |
+| P0-3 引用正则误判 | **已修** ✅ | 判据改为「编号是否出现在被检索块原文里」+ 新增 `quoted` 分类；`scratch/verify_citations.py` **8/8 通过** |
+| P0-4 `KB_TENANTS` 炸全项目 | **已修** ✅ | 改为带上下文的 `ValueError`（**刻意不退化**：静默退化=隔离失效，是越权风险） |
+| P0-5 字符闸 vs 字节闸 | **已修** ✅ | 更早的修复（`_nbytes()` + `DEFAULT_MAX_BYTES`） |
+| P0-6 `max_rows` 死循环 | **已修** ✅ | 更早的修复（`max(1, int(max_rows or 1))`） |
+| P0-7 配置项重复定义 | **已修** ✅ | 删除重复的一份（由 `e8c506d` 引入） |
+| P0-8 跨集合固定配额 | **验证后否决门槛方案** | 见下方「P0-8 的验证与结论」；真正的杠杆是 reranker（CPU 太慢暂缓） |
+| **P0-9** `web_search` 来源被误标 | **已修** ✅ | `web_search` 结果加 `metadata["source"]="web"`；溯源新增 `from_web` 字段。**另附一条重要的自我更正**（见下） |
+
+### P0-9 · 走 `web_search` 分支时，引用来源会被误标为「知识库块」（**已修**）
+
+修完 P0-2/3/4/7 后跑完整工作流（`scratch/verify_e2e_p03.py`，问「LayoutParser 是什么？」），
+链路本身正常（新增的 `quoted_cites` 字段已生效），但暴露两件事：
+
+```
+ 1.99s  retrieve             18 块
+ 3.83s  grade_documents      0 块      <- 18 块全判不相关
+ 3.83s  decide_to_generate   'transform_query'
+ 5.10s  retrieve             18 块
+ 7.25s  grade_documents      0 块      <- 又全部判不相关
+ 8.69s  retrieve             18 块
+10.66s  grade_documents      0 块      <- 第三次仍全判不相关
+10.66s  decide_to_generate   'web_search'   <- 三轮后放弃知识库，回退网络搜索
+15.66s  web_search           5.0s
+17.77s  grade_generation     useful, cites=[1]
+```
+
+**问题一：曾有「判分系统性误杀」的怀疑 —— 诊断后不成立（重要更正）**
+
+**原始判断**：「LayoutParser 是什么？」的 18 块被连续三轮全判不相关 →
+怀疑判分链有缺陷，且可能是 P3-1（延迟不确定）的根因。
+
+**实测推翻**（`eval/diag_grade_verdict.py`）：逐块打印判分结果与内容后看到，
+检索到的 18 块**全部是 Milvus 系文档**（`milvus_product_overview.md` /
+`hnsw_anns_paper.pdf.md` / `milvus_capability_matrix.xlsx.md` / `milvus_glossary.md` /
+`milvus_vectordb_paper.pdf.md` / `milvus_vs_alternatives.md` …），**0/18 保留**。
+
+查当前语料全貌（18 个文件）：
+
+```
+kb_milvus  (249 块 / 6 文件)  milvus_cli_reference 94 | milvus_glossary 52 | milvus_faq 46
+                              milvus_troubleshooting 30 | milvus_product_overview 17 | milvus_vs_alternatives 10
+kb_papers  (176 块 / 5 文件)  milvus_vectordb_paper 72 | hnsw_anns_paper 59
+                              rag_failure_modes_paper 26 | milvus_hybrid_search_whitepaper 16 | scanned_performance_faq 3
+kb_manuals (103 块 / 7 文件)  milvus_index_spec 30 | milvus_spec_summary 19 | milvus_product_intro 14
+                              milvus_deployment_requirements 12 | milvus_capability_matrix 11
+                              milvus_architecture 10 | vector_db_benchmark 7
+```
+
+**结论**：「LayoutParser 是什么」**在当前语料里确实没有答案**（语料已换：新 `papers`
+是 Milvus/HNSW/RAG 论文，旧语料的 `layout-parser-paper.pdf` 已不在）。于是
+
+- 判分链全判 NO —— **正确**
+- 回退 `web_search` —— **正确**（这正是「库里没有就上网找」的设计意图）
+- **判分链无需修改**，P3-1 的根因也与此无关
+
+> **真正的教训（比这条问题本身更值得记）**：
+> **不要用旧语料时代的问题去测新语料**。我拿上一轮的验证问题做端到端测试，
+> 把一个**正常的兜底行为**误判成「判分缺陷」。
+> 端到端测试的问题应取自**当前语料的 `eval/golden_dataset.jsonl`**（32 题，已随语料重建）。
+
+**问题二（本条 P0-9 的实际内容）：网络搜索结果的溯源会被标成知识库来源 —— 已修**
+
+`cites=[1]` 且 `invalid_cites=[]` —— 说明 `web_search` 的结果被 `format_context` 编号为 `[1]`，
+而 `build_citation_meta` 会把**网络结果**渲染成「知识库来源」（带 filename / title）。
+用户点开溯源看到的是网页内容，**但界面呈现为知识库文档**。
+
+**与 P0-1 的区别**：P0-1 是「编号抄错块」，本条是「**来源类型丢失**」—— 成因不同、修法不同。
+
+**修法（已实施）**：
+
+1. `graph2/web_search_node.py`：结果 Document 带 `metadata={"source": "web",
+   "filename": "（网络搜索，非知识库）", "title": "（网络搜索，非知识库）"}`
+2. `utils/citation.py` 的 `build_citation_meta`：新增 `from_web: bool` 字段
+3. `api/main.py`：`Citation` 模型加 `from_web`；`/ask` 与 `/ask/stream` 的响应都带上
+
+验证见 `eval/diag_grade_verdict.py` 第 1 节（知识库块 `from_web=False`、
+网络块 `from_web=True`）。
+
+**用当前语料的题重跑端到端（`eval/verify_e2e.py`，已改为从 `golden_dataset.jsonl` 读题）**：
+
+```
+n001「Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？」
+  6.37s / 6 步：vectorstore -> 18 块 -> grade 保留 5 -> generate
+  cites=[1,3,4]  invalid=[]  答案 9,575.69   <- 与 golden 完全一致 ✓
+
+n002「ElasticCloud-8c60g-force_merge 的 P99 延迟是多少毫秒？」
+  5.27s / 6 步：grade 保留 6，cites=[1,2,3,5]  invalid=[]  答案 17.1   <- 与 golden 一致 ✓
+```
+
+**这组对照很能说明问题**：同一个工作流，问**语料里有答案的问题** → 5~6s、6 步、判分保留 5~6 块、
+答案与 golden 一致；问**语料里没有答案的问题**（LayoutParser）→ 17.8s、15 步、
+走两轮 `transform_query` 后回退 `web_search`。**差异完全来自语料，而非判分或链路。**
+
 ### P0-8 · 跨集合「固定配额」把不相关集合的内容必然塞进上下文（**多个问题的共同根因**）⭐
 
 | 项 | 内容 |
@@ -2686,6 +2907,90 @@ ModelScope 源 190s）。实验脚本 `scratch/exp_rerank.py`，结果落 `eval/
 | 连锁后果 | 这**一个机制同时解释了四个既有观测**：<br>① `context_precision` 仅 **0.0546**（18 块里通常只有 1 块相关）<br>② q006 的答案引到了论文库的「表面能改性」（P0-1 的直接诱因）<br>③ `grade_documents` 常把 18 块过滤到只剩 0~3 块 → 触发 `transform_query` 多轮循环（P3-1）<br>④ `papers` 集合的召回率长期偏低（噪声块挤占了它的配额） |
 | 修法方向 | ① **加相似度门槛**：分数低于阈值的块直接丢弃（实测噪声底约 0.60，相关块 > 0.63，可设 ~0.62 试）<br>② **动态配额**：不相关集合少给或不给（需要"集合整体相关性"的判据）<br>③ **让 RRF 融合参与取舍**：现在 `final_k` 恰好等于配额总和，所以"取 top-18" 等价于"全取"；把 `final_k` 调小（如 9）能立刻见效但会牺牲召回 —— 需要与 3.0.3 的 `fetch_k=12` 一起重新扫描<br>④ 指标上：`context_precision` 应从「仅监控」升级为**有门禁的指标**，否则这个根因会一直被忽略 |
 | 备注 | 这不是「bug」而是**架构层面的设计后果**，但它对答案质量的影响最大。<br>注意分数是 **IP（内积）** 不是归一化余弦（`manuals` 出现 1.34 > 1），所以**同一集合内比较有效、跨集合比较无效** —— 这也正是当初选 RRF 的理由，但代价是不相关集合的内容无法被排除。 |
+
+#### P0-8 的验证与结论（2026-10-11，**数据否决门槛方案**）
+
+新语料（528 块，以表格为主）落地后，对上述「修法方向①：相似度门槛」做了完整验证。
+**结论：不采用门槛，也不需要为此新增检索器。**
+
+**（1）先确认「哪条路径能拿到分数」—— 三条路径全堵死**（读 `langchain_milvus/vectorstores/milvus.py`）
+
+| 行 | 代码 | 后果 |
+|---|---|---|
+| 1902 | `if self._is_multi_vector: -> _collection_hybrid_search()` | `vector_field=['dense','sparse']` 时**必走 hybrid**，无开关可绕 |
+| 2136 | `_select_relevance_score_fn` 在多向量时 `raise ValueError` | `as_retriever(search_type="similarity_score_threshold")` **不可用** |
+| 2484 | `default_weights = [1.0] * len(...)` → `WeightedRanker` | 直接调 `similarity_search_with_score` 会因 weights 长度不匹配报 `code=1100` |
+
+**（2）三条路径的分数形态**（`eval/probe_scores.py`，题 n001）
+
+```
+A. dense only (IP)    golden 块**未进 top-10**；得分最高（0.653）的是非 golden 的 milvus_index_spec.docx.md
+B. hybrid + RRF       golden 第 1 名 ✅ 但 0.01891 vs 噪声 0.01878（差 0.0002，不可分）
+C. hybrid + Weighted  golden 1.64153 / 0.97696，噪声 1.63998 / 1.55637（有档位但重叠）
+```
+
+> **A 是本次最重要的意外发现**：新语料的检索**本质是关键词/数值精确匹配**
+> （题目问 `Milvus-16c64g-sq4u-fp16-force_merge` 的 QPS），**BM25 才是主力，dense 语义检索失效**。
+> 这既解释了 hybrid 的必要性，也说明「凭 IP 分数设门槛」在新语料上从根上不成立。
+
+**（3）批量量化（30 题，`eval/quant_threshold.py`）**
+
+分数分布（RRF，生产路径）：
+
+```
+            min      p25      median   max
+golden   0.00980  0.01888  0.01942  0.01980
+noise    0.00943  0.00971  0.00990  0.01980     <- max 完全相同
+```
+
+**golden 的 p25 与 noise 的 max 完全重叠 → 不存在能干净分开两者的单阈值。**
+
+题级指标（真实影响）：
+
+| 门槛 | recall | hit_rate | precision | 平均块数 | Δrecall |
+|---|---|---|---|---|---|
+| **0（基线）** | **0.7991** | **1.0000** | 0.1185 | 18.0 | — |
+| 0.0095 | 0.7991 | 1.0000 | 0.1212 | 17.6 | ±0（只清 2.3% 噪声，几乎无收益） |
+| 0.0100 | 0.7191 | 0.9000 | **0.2234** | 9.1 | **−0.0800** |
+| 0.0190 | 0.5985 | 0.8000 | 0.3436 | 4.7 | −0.2006 |
+
+> 基线 0.7991 仅含 30 道有 golden 的题；折算到全 32 题为 `0.7991 × 30/32 = 0.7492`，
+> 与 `run_eval.py` 的基线一致 —— 数据可信。
+
+**（4）结论：收益不对称，不采用**
+
+- precision 翻倍（0.1185 → 0.2234）的代价是 **recall 掉 8%**、**hit_rate 掉 10%**；
+  而被清掉的「噪声」**大多来自相关文档**（见下），清掉它们对答案质量几乎无影响。
+- **recall 是主要指标**（0.7492 本身已不高），**用 8% 换 precision 翻倍不划算**。
+
+**（5）更重要的副产品：`context_precision` 在当前语料下口径失真**
+
+```
+平均每题返回块数: 18.0
+同一 filename 占最多块的平均占比: 27.0%
+```
+
+最典型的一例（n005「参与评测的产品里，召回率最低的是哪个？」）：
+
+```
+GOLDEN     vector_db_benchmark.xlsx.md  表格：检索性能实测（第 1-30 行）
+GOLDEN     vector_db_benchmark.xlsx.md  表格：检索性能实测（第 31-60 行）
+非 golden  vector_db_benchmark.xlsx.md  表格：检索性能实测（第 61-85 行）  <- 同一张表的第三段
+```
+
+**一张 85 行的表被切成 3 块，只有含答案的 1~2 段算 golden，其余被计为「噪声」—— 但它们是同一张表。**
+
+所以 **`context_precision` 低不等于「检索差」**：它的分母被「同表其他行段 + 同文档其他片段」撑大。
+**用它指导优化会误导** —— 注意 P0-8 原文建议「把 precision 升级为门禁指标」，**在新语料下该建议本身已不可靠**。
+
+**（6）关于「要不要新增检索器」**
+
+**当前不需要。** 加检索器的唯一动机是「拿原始分数做门槛」，而门槛已被数据否决。
+**但触发条件明确**：**一旦要接 reranker**（3.4.2 已实测有效，仅因 CPU 太慢暂缓），
+就**必须**自己实现检索器 —— 因为 `as_retriever` 封装死了候选列表与分数，
+reranker 需要拿到「候选 + 每块分数」才能重排。
+届时改造形态：`MultiCollectionRetriever` **内部**改用原生 pymilvus
+（`AnnSearchRequest` × 2 + `RRFRanker`），**对外接口不变** —— 不新增并列的检索器，避免双路径漂移。
 
 ### P0-1 · 引用编号「指错块」（**比越界更隐蔽，本次复核新发现**）⭐
 

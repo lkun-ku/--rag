@@ -62,7 +62,30 @@ def parse_citations(answer: str) -> List[int]:
     return out
 
 
-def validate_citations(answer: str, n_docs: int, start: int = 1) -> Dict:
+# 被检索块**原文自带**的方括号编号，形如 `[28]` / `[28, 29]` / `[28,29]`。
+# 用途见 validate_citations 的 `quoted`（P0-3）。
+_QUOTED_NUM_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+
+
+def _numbers_in_docs(docs: Sequence[Document]) -> set:
+    """收集被检索块正文里出现过的方括号编号。
+
+    只处理 `[N]` 与 `[N, M]` 两种最常见形态。区间写法（`[28-30]`）不展开 ——
+    当前语料（`papers` 集合转出的 Markdown）实测都是前两种。
+    """
+    out = set()
+    for d in docs or []:
+        content = getattr(d, "page_content", "") or ""
+        for m in _QUOTED_NUM_RE.finditer(content):
+            for part in m.group(1).split(","):
+                part = part.strip()
+                if part.isdigit():
+                    out.add(int(part))
+    return out
+
+
+def validate_citations(answer: str, n_docs: int, start: int = 1,
+                       docs: Sequence[Document] = None) -> Dict:
     """校验引用编号是否落在实际上下文范围内。
 
     为什么必须校验：模型可能引用不存在的编号（幻觉的一种形式）。
@@ -72,16 +95,46 @@ def validate_citations(answer: str, n_docs: int, start: int = 1) -> Dict:
         answer: 模型输出。
         n_docs: 本次提供的上下文块数。
         start: 编号起始值（与 format_context 保持一致）。
+        docs: 本次提供的上下文块。**传入后可区分「幻觉引用」与「复述原文编号」**
+            （见 `quoted`）；不传则行为与旧版一致（越界一律算 invalid）。
 
     Returns:
-        {"cites": [...], "invalid": [...], "valid": bool, "is_refusal": bool}
+        {"cites": [...], "invalid": [...], "quoted": [...], "valid": bool,
+         "is_refusal": bool}
+
+    `quoted` 与 `invalid` 的区别（**[FIX 2026-10-11 / P0-3]**）：
+
+        越界编号分两类，处理方式必须不同：
+          * **quoted**：该编号**确实存在于被检索块的原文里** —— 例如 `papers`
+            集合的块正文含参考文献编号 `[28]`，LLM 复述原文时把它带了出来。
+            这**不是幻觉**（它没编造依据），不应触发熔断重试。
+          * **invalid**：编号在原文里找不到 —— 这才是模型编造的引用。
+
+        修复前的判据是「超出 1..n_docs 就算错」，于是 `[28]` 这类原文编号会被
+        误判 → `graph_2` 走 `not supported` → **触发重生成（最多 2 次）**：
+        白烧 LLM 调用，且**可能把原本正确的答案改坏**。
+
+        判据选「是否出现在原文」而不是「数值是否大于某个量级」的原因：
+        `[28]`（真实参考文献）与 `[19]`（幻觉，n_docs=18 时）在数值上无法区分，
+        而「原文里有没有」是确定性的。
     """
     cites = parse_citations(answer)
     upper = start + n_docs - 1
-    invalid = [c for c in cites if c < start or c > upper]
+    out_of_range = [c for c in cites if c < start or c > upper]
+
+    quoted: List[int] = []
+    invalid: List[int] = []
+    if out_of_range and docs:
+        in_docs = _numbers_in_docs(docs)
+        for c in out_of_range:
+            (quoted if c in in_docs else invalid).append(c)
+    else:
+        invalid = out_of_range
+
     return {
         "cites": cites,
         "invalid": invalid,
+        "quoted": quoted,
         "valid": not invalid,
         "is_refusal": is_refusal(answer),
     }
@@ -116,5 +169,8 @@ def build_citation_meta(docs: Sequence[Document], cites: Sequence[int],
                 # 这里透传正文首行，便于前端展示「引用的是哪张表的哪一段」。
                 "title": d.metadata.get("title", ""),
                 "chars": len(d.page_content),
+                # [FIX 2026-10-11 / P0-9] 该来源是否来自**网络搜索**而非知识库。
+                # 不区分的话，网页内容会被当成知识库文档展示给用户。
+                "from_web": d.metadata.get("source") == "web",
             })
     return out
