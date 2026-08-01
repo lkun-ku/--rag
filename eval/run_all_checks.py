@@ -1,0 +1,126 @@
+"""统一回归入口 —— 一键跑完全部检查。
+
+## 为什么需要它
+
+SSE 的教训：3.3 引入多租户后**没有任何测试覆盖 SSE**，它一直坏到 P1-2 才被发现
+（`answer` 事件从未发出）。而当时并不是「没有验证脚本」，而是**没有一个地方能把
+所有验证串起来跑** —— 于是新加的路径没人测、改动的路径靠记忆去测。
+
+本脚本把 `eval/` 下的全部检查按「快 / 慢」两档串起来，一次跑完并给统一结论。
+
+## 两档
+
+    --quick   只跑**秒级**的检查（静态扫描 / 模块边界 / 纯逻辑验证），默认档
+    --full    加上需要 LLM 或起服务的检查（API+SSE、多租户联动矩阵），约 3~5 分钟
+
+## 判定方式
+
+每个检查自己输出「`X/Y 通过`」或 `**FAIL**`；本脚本解析这两者，不重复实现断言。
+`deep_scan` 属**报告型**（它给的是清单而非通过/失败），单列为「报告」不参与判定。
+
+用法：
+    .venv\\Scripts\\python.exe eval\\run_all_checks.py            # 快速档
+    .venv\\Scripts\\python.exe eval\\run_all_checks.py --full      # 完整档
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import time
+
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.parent
+PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
+if not pathlib.Path(PY).exists():
+    PY = sys.executable
+
+# (名称, 脚本, 档位, 说明)
+CHECKS = [
+    ("静态扫描", "eval/deep_scan.py", "report", "AST 13 类规则（报告型，不看通过率）"),
+    ("模块边界", "eval/module_tests.py", "quick", "66 个模块级边界用例"),
+    ("表格处理", "eval/verify_rowspan.py", "quick", "rowspan/colspan/合并单元格 + 配置边界"),
+    ("引用校验", "eval/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),
+    ("API + SSE", "eval/verify_p1_batch.py", "slow", "SSE 事件类型、trace 落盘、disabled 源"),
+    ("多租户联动", "eval/verify_integration.py", "slow", "配置 x 入口 矩阵（5 场景）"),
+]
+
+
+def run_one(name: str, script: str) -> tuple:
+    """跑一个检查，返回 (ok_or_None, 摘要)。None 表示「报告型」。"""
+    path = ROOT / script
+    if not path.exists():
+        return False, "**脚本不存在**"
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["PYTHONPATH"] = str(ROOT / "RAG_PROJECT")
+    t0 = time.time()
+    r = subprocess.run([PY, "-u", str(path)], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", env=env, cwd=str(ROOT))
+    out = (r.stdout or "") + (r.stderr or "")
+    el = time.time() - t0
+
+    m = re.search(r"(\d+)\s*/\s*(\d+)\s*通过", out)
+    if m:
+        a, b = int(m.group(1)), int(m.group(2))
+        ok = a == b
+        return ok, "%d/%d 通过（%.1fs）" % (a, b, el)
+    if "**FAIL**" in out or "FAIL:" in out:
+        return False, "输出含 FAIL（%.1fs）" % el
+    return None, "已运行，无通过率可解析（%.1fs）" % el
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="统一回归入口")
+    ap.add_argument("--full", action="store_true", help="含慢检查（LLM / 起服务）")
+    args = ap.parse_args()
+
+    print("=" * 100)
+    print("统一回归检查（%s档）" % ("完整" if args.full else "快速"))
+    print("=" * 100)
+    print()
+
+    results = []
+    for name, script, tier, desc in CHECKS:
+        if tier == "slow" and not args.full:
+            results.append((name, None, "跳过（需 --full）"))
+            print("  [跳过] %-12s %s" % (name, desc))
+            continue
+        print("  [运行] %-12s %s ..." % (name, desc), flush=True)
+        ok, summary = run_one(name, script)
+        if tier == "report":
+            ok = None
+        results.append((name, ok, summary))
+        mark = "OK  " if ok else ("报告" if ok is None else "**FAIL**")
+        print("         [%s] %s" % (mark, summary))
+
+    print()
+    print("=" * 100)
+    print("汇总")
+    print("=" * 100)
+    judged = [(n, o, s) for n, o, s in results if o is not None]
+    n_ok = sum(1 for _n, o, _s in judged if o)
+    for name, ok, summary in results:
+        if ok is None:
+            print("  [报告] %-14s %s" % (name, summary))
+        else:
+            print("  [%s] %-14s %s" % ("OK  " if ok else "FAIL", name, summary))
+    print()
+    if judged:
+        print("  判定项合计 %d/%d 通过" % (n_ok, len(judged)))
+    print("=" * 100)
+
+    fails = [n for n, o, _s in judged if not o]
+    if fails:
+        print()
+        print("  **失败项**: %s" % ", ".join(fails))
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

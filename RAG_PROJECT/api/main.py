@@ -31,7 +31,6 @@
 from __future__ import annotations
 
 import json
-import os
 import pathlib
 import sys
 import time
@@ -268,7 +267,9 @@ def ask_stream(req: AskRequest,
     为什么值得流式：完整链路实测可达 42s（含 multi-round 的判分与改写），
     用户等待期间能看到「正在检索 / 正在判分 / 正在生成」比空等体验好得多。
     """
-    from tools.retriever_tools import tenant_scope
+    # [FIX 2026-10-11 · 严重] SSE 分支**不能用** `tenant_scope()`（见 gen() 内注释），
+    # 改用 `set_tenant`。
+    from tools.retriever_tools import set_tenant
 
     tenant = _resolve_tenant(x_tenant_id)
 
@@ -278,19 +279,41 @@ def ask_stream(req: AskRequest,
         t = tracer.start(req.question, enabled=True)
         config = {"callbacks": t.callbacks} if t.callbacks else None
         final: Dict[str, Any] = {}
+
+        # [FIX 2026-10-11 · 严重回归] **不能用 `tenant_scope()` 的 token-reset**。
+        #
+        # 根因：SSE 的 `gen()` 是**生成器**，由 FastAPI 在**另一个上下文**
+        # （AnyIO worker thread）里迭代；而 `ContextVar.reset(token)` 要求
+        # token 与 reset 在**同一 Context** 中，否则抛
+        #     ValueError: Token ... was created in a different Context
+        # 实测后果：SSE 直接发 `event: error`，**连 answer 事件都拿不到**，SSE 形同废弃。
+        #
+        # 这个 bug 是 3.3 引入多租户时植入的（当时的 `verify_api.py` 是在 3.3 **之前**
+        # 跑的，之后 SSE 再没被测过 —— 直到本次 P1-2 修复顺带暴露）。
+        #
+        # 改用「set + finally 归零」：只设值、不碰 token，因此与上下文无关。
+        # `retriever_node` 每次迭代都在同一上下文读取该值，语义等价。
+        set_tenant(tenant)
         try:
-            # 租户上下文必须包住整个 stream —— retriever_node 在生成器内部执行，
-            # 若只在外层设置、而生成器在别的上下文里迭代，会读不到租户。
-            with tenant_scope(tenant):
-                for output in graph.stream({"question": req.question}, config=config):
-                    for node, value in output.items():
-                        if isinstance(value, dict):
-                            final.update(value)
-                        yield "event: step\ndata: %s\n\n" % json.dumps(
-                            {"node": node, "t": round(time.time() - t.t0, 2)},
-                            ensure_ascii=False)
+            for output in graph.stream({"question": req.question}, config=config):
+                for node, value in output.items():
+                    if isinstance(value, dict):
+                        final.update(value)
+                    yield "event: step\ndata: %s\n\n" % json.dumps(
+                        {"node": node, "t": round(time.time() - t.t0, 2)},
+                        ensure_ascii=False)
 
             answer = final.get("generation", "") or ""
+
+            # [FIX 2026-10-11 / P1-2] **落盘 trace**。
+            # 原先 SSE 分支起了 tracer 却从不 save —— 结果是**走 SSE 的请求在
+            # logs/trace.jsonl 里完全不存在**。而 SSE 是前端的默认路径，
+            # 恰恰是最需要可观测的那条：它耗时最长（实测可达 42s），
+            # 也最容易暴露多轮循环问题（见 3.1.3）。
+            # run_with_trace() 有这两行，这里当初漏了。
+            t.result = answer
+            t.save()
+
             docs = final.get("documents") or []
             cites = parse_citations(answer)
             meta = build_citation_meta(docs, cites) if cites and docs else []
@@ -307,6 +330,11 @@ def ask_stream(req: AskRequest,
         except Exception as e:  # noqa: BLE001
             yield "event: error\ndata: %s\n\n" % json.dumps(
                 {"error": f"{type(e).__name__}: {str(e)[:200]}"}, ensure_ascii=False)
+        finally:
+            # 归零租户。用 `set(None)` 而不是 token.reset()（跨上下文会抛，见上）。
+            # 不归零的后果很严重：同一 worker 的**后续请求会继承上一个租户** ——
+            # 那是越权风险（租户 A 的查询会被限制到租户 B 的集合上）。
+            set_tenant(None)
 
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache",
@@ -330,6 +358,16 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=400,
             detail="未知源 %r；可用: %s" % (key, [s.get("name") for s in DOC_SOURCES]),
+        )
+    if not src.get("enabled", True):
+        # [FIX 2026-10-11 / P1-3] 原先对 `enabled: False` 的源**也返回 200 + ok=True**：
+        # `write_milvus.main()` 内部会再过滤一次 `enabled`，于是 stats 是空列表，
+        # 但 HTTP 仍报成功 —— 调用方会**误以为已经入库**（这类「假成功」最难排查）。
+        # 这里显式拒绝并说明原因。
+        raise HTTPException(
+            status_code=400,
+            detail="源 %r 在 DOC_SOURCES 中已禁用（enabled=False），不会入库；"
+                   "如需启用请改配置并重启服务" % key,
         )
 
     try:

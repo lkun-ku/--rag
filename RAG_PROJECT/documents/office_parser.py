@@ -29,11 +29,10 @@ from typing import List
 
 from langchain_core.documents import Document
 
-from documents.markdown_parser import MarkdownParser
+# [FIX 2026-10-11 / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（值不变），
+# 与 pdf_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
+from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
 from utils.log_utils import log
-
-# 转换后最少应有多少字符（低于此值说明转换失败或文件为空）
-MIN_MARKDOWN_CHARS = 50
 
 # markitdown 转 pptx 时会插入 `<!-- Slide number: N -->` 这类 HTML 注释。
 # 它们是结构标记而非文档内容，直接入库会污染块的正文，故默认清理。

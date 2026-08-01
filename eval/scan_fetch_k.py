@@ -1,12 +1,29 @@
 """fetch_k 参数扫描：寻找「召回与排序」的平衡点，判断是否能不依赖 reranker。
 
-背景（3.0.3）：
-  fetch_k=4（旧默认）  整体 recall 0.8801  manuals 0.9412  milvus_docs 0.8750
-  fetch_k=50（修复值） 整体 recall 0.8626  manuals 1.0000  milvus_docs 0.8125
-  两者各有胜负（2 UP / 3 DOWN）。reranker 因 CPU 推理太慢（16s/题）暂不可用于线上，
-  因此改为扫描 fetch_k 找平衡点。
+## 最终取值：`fetch_k = 12`（恰为 2 × PER_COLLECTION_K）
 
-方法：直接构造不同 fetch_k 的跨集合检索器，跑 57 题检索层指标（不调 LLM，秒级）。
+结论已写入 `tools/retriever_tools.FETCH_K_PER_ROUTE`。当时的扫描结果：
+
+    fetch_k     recall      未满分题数
+    ------------------------------------
+    默认(4)     0.8801      8
+    8           0.9181      6
+    12          0.9327      5   <- 采用
+    16          0.9197      8
+    32          0.8947      9
+    50          0.8626      9
+    120         0.8012      13
+
+**太小**（候选池不足 → q043 那种「正确块进不了融合」）与**太大**
+（RRF 的 `1/(k+rank)` 让「两路都中等」的块压过「单路极强」的块）都不好，
+12 是平衡点。
+
+> [说明 2026-10-11 / P2-2] 本 docstring 原先写「fetch_k=50（修复值）」——
+> 那是**中间版本**的值（最终扫描定为 12）；题数也仍写 57（旧语料，现为 32）。
+> 两处均已更正。**实际生效值以 `tools/retriever_tools.py` 为准**，脚本里不再写死。
+
+方法：直接构造不同 fetch_k 的跨集合检索器，跑**当前评测集**的检索层指标
+（不调 LLM，秒级）。
 """
 import hashlib
 import json
@@ -23,7 +40,7 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 
 from documents.milvus_db import MilvusVectorSave  # noqa: E402
 from tools.retriever_tools import (  # noqa: E402
-    FINAL_K, PER_COLLECTION_K, RRF_K, MultiCollectionRetriever,
+    FETCH_K_PER_ROUTE, FINAL_K, PER_COLLECTION_K, RRF_K, MultiCollectionRetriever,
     _build_search_kwargs, _discover_collections,
 )
 
@@ -83,7 +100,8 @@ def evaluate(retr):
 
 
 print("=" * 104)
-print("fetch_k 扫描（57 题检索层，PER_COLLECTION_K=%d / FINAL_K=%d）" % (PER_COLLECTION_K, FINAL_K))
+print("fetch_k 扫描（%d 题检索层，PER_COLLECTION_K=%d / FINAL_K=%d）"
+      % (len(cases), PER_COLLECTION_K, FINAL_K))
 print("=" * 104)
 print("  %-9s %-9s %-9s %-9s %s" % ("fetch_k", "recall", "hit_rate", "平均块数", "分源 recall"))
 print("  " + "-" * 100)
@@ -108,7 +126,11 @@ print("=" * 104)
 print("  最佳 recall : fetch_k=%s -> %.4f（hit_rate %.4f，平均 %.1f 块，耗时 %.0fs）" % (
     best["fetch_k"] if best["fetch_k"] else "默认",
     best["recall"], best["hit_rate"], best["avg_blocks"], best["sec"]))
-print("  当前值 50  : recall %.4f" % next(r["recall"] for r in rows if r["fetch_k"] == 50))
+# [FIX 2026-10-11 / P2-2] 不再写死「当前值 50」—— 直接从生产配置读，
+# 避免下次改了 FETCH_K_PER_ROUTE 又忘了改这里（这正是原先脱节的成因）。
+_cur = next((r["recall"] for r in rows if r["fetch_k"] == FETCH_K_PER_ROUTE), None)
+print("  当前值 %-4s: recall %s" % (
+    FETCH_K_PER_ROUTE, ("%.4f" % _cur) if _cur is not None else "（不在扫描点内）"))
 print("  旧默认 4   : recall %.4f" % next(r["recall"] for r in rows if r["fetch_k"] is None))
 print()
 print("  各配置未满分题:")

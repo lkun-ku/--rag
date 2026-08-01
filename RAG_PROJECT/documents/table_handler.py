@@ -43,6 +43,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from langchain_core.documents import Document
 
+from utils.log_utils import log
+
 # 默认行数阈值：超过则触发行切 + 表头注入。
 # 取 30 与业界经验一致；实测 60 行表切成 2 块（667 / 715 字符），远小于语义切割阈值 5000。
 DEFAULT_MAX_ROWS = 30
@@ -320,17 +322,19 @@ def restore_table_documents(doc: Document,
         return []
 
     out: List[Document] = []
-    total = len(chunks)
-    for i, text in enumerate(chunks, 1):
+    # [FIX 2026-10-11 / P1-8] 原先用 `enumerate(chunks, 1)`，但那个序号 `i` **从未被使用**。
+    for text in chunks:
         meta = dict(doc.metadata)
         meta.pop('text_as_html', None)   # schema 无此字段；且已还原进正文，无需再存
         meta['category'] = 'content'
         # 保留原有 title（若有），否则用表名兜底 —— Milvus schema 要求非空。
         if table_name and not meta.get('title'):
             meta['title'] = table_name
-        # 多分片时在元数据里标注序号，便于排查（不改 schema 字段，只写已有字段的值）
         out.append(Document(page_content=text, metadata=meta))
-    if total > 1:
-        # 分片信息只用于日志，不写入 metadata（避免新增 schema 字段）
-        pass
+    # [FIX 2026-10-11 / P1-8] 原先这里是 `total = len(chunks)` + `if total > 1: pass` ——
+    # 一个**空分支**（注释写「分片信息只用于日志」却没有任何日志语句，`total` 也只被它用到）。
+    # 改为真的记一条：分片信息对排查「跨行统计类问题为何不稳定」有用
+    # （见 4.8.6 的高频抖动题 与 P0-1 的 n005）。
+    if len(chunks) > 1:
+        log.info(f"表格「{table_name or '未命名'}」切分为 {len(chunks)} 块（含表头注入与行范围标注）")
     return out

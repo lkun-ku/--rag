@@ -1,0 +1,499 @@
+[
+  {
+    "group": "M1",
+    "case": "parse 空串 -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M1",
+    "case": "parse None -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M1",
+    "case": "parse 无引用 -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M1",
+    "case": "parse 去重保序 [1][1][2] -> [1,2]",
+    "ok": true,
+    "expect": "[1, 2]",
+    "got": "[1, 2]"
+  },
+  {
+    "group": "M1",
+    "case": "parse [0] 也会被提取（越界交给 validate）",
+    "ok": true,
+    "expect": "[0]",
+    "got": "[0]"
+  },
+  {
+    "group": "M1",
+    "case": "parse 连续 [1][3] -> [1,3]",
+    "ok": true,
+    "expect": "[1, 3]",
+    "got": "[1, 3]"
+  },
+  {
+    "group": "M1",
+    "case": "validate 空答案 valid=True",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M1",
+    "case": "validate 边界内 [5]/n=5 valid",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M1",
+    "case": "validate 越界 [6]/n=5 invalid=[6]",
+    "ok": true,
+    "expect": "[6]",
+    "got": "[6]"
+  },
+  {
+    "group": "M1",
+    "case": "validate n=0 时任何引用都越界",
+    "ok": true,
+    "expect": "[1]",
+    "got": "[1]"
+  },
+  {
+    "group": "M1",
+    "case": "validate 原文编号 -> quoted 而非 invalid",
+    "ok": true,
+    "expect": "([28], [])",
+    "got": "([28], [])"
+  },
+  {
+    "group": "M1",
+    "case": "validate 真幻觉仍 invalid",
+    "ok": true,
+    "expect": "[99]",
+    "got": "[99]"
+  },
+  {
+    "group": "M1",
+    "case": "validate 拒答 is_refusal=True",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M1",
+    "case": "format_context 空列表 -> 空串",
+    "ok": true,
+    "expect": "''",
+    "got": "''"
+  },
+  {
+    "group": "M1",
+    "case": "format_context 编号从 1 开始",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M1",
+    "case": "build_meta 越界编号被忽略",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M1",
+    "case": "build_meta 空 cites -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M1",
+    "case": "build_meta 知识库来源 from_web=False",
+    "ok": true,
+    "expect": "False",
+    "got": "False"
+  },
+  {
+    "group": "M1",
+    "case": "build_meta 网络来源 from_web=True",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M1",
+    "case": "is_refusal 非拒答 -> False",
+    "ok": true,
+    "expect": "False",
+    "got": "False"
+  },
+  {
+    "group": "M2",
+    "case": "parse 空串 -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "parse 非表格 -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "parse 单行表",
+    "ok": true,
+    "expect": "[['a']]",
+    "got": "[['a']]"
+  },
+  {
+    "group": "M2",
+    "case": "parse 空单元格保留",
+    "ok": true,
+    "expect": "[['a', '']]",
+    "got": "[['a', '']]"
+  },
+  {
+    "group": "M2",
+    "case": "parse 未闭合标签的表 -> 整体丢弃（返回 []，不抛）",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "clean_cell NaN -> 空",
+    "ok": true,
+    "expect": "''",
+    "got": "''"
+  },
+  {
+    "group": "M2",
+    "case": "clean_cell nan -> 空",
+    "ok": true,
+    "expect": "''",
+    "got": "''"
+  },
+  {
+    "group": "M2",
+    "case": "clean_cell 1200.0 -> 1200",
+    "ok": true,
+    "expect": "'1200'",
+    "got": "'1200'"
+  },
+  {
+    "group": "M2",
+    "case": "clean_cell 1.5 保留",
+    "ok": true,
+    "expect": "'1.5'",
+    "got": "'1.5'"
+  },
+  {
+    "group": "M2",
+    "case": "clean_cell 普通文本不变",
+    "ok": true,
+    "expect": "'abc'",
+    "got": "'abc'"
+  },
+  {
+    "group": "M2",
+    "case": "build 空 html -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "build 只有表头 -> 1 块",
+    "ok": true,
+    "expect": "1",
+    "got": "1"
+  },
+  {
+    "group": "M2",
+    "case": "build 带表名 -> 前缀含「表格：」",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "build max_rows=0 不死循环且仍产出",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "build max_rows=1 按行切分（每块 1 行 + 表头）",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M2",
+    "case": "restore 无 text_as_html -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "restore 非 Table -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M2",
+    "case": "restore 正常 -> category=content 且不残留 text_as_html",
+    "ok": true,
+    "expect": "('content', False)",
+    "got": "('content', False)"
+  },
+  {
+    "group": "M2",
+    "case": "PPT 表格带「表格：」前缀（否则短表会被超短块合并吞掉）",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "PPT 表格清洗 NaN -> 空（原先原样入库）",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "PPT 表格清洗 1200.0 -> 1200",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "PPT 表格含「列名：」行",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M2",
+    "case": "PPT 表格无 table 属性时返回空串",
+    "ok": true,
+    "expect": "''",
+    "got": "''"
+  },
+  {
+    "group": "M3",
+    "case": "merge 空列表 -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M3",
+    "case": "merge 长块不动",
+    "ok": true,
+    "expect": "1",
+    "got": "1"
+  },
+  {
+    "group": "M3",
+    "case": "merge 超短块并入前一块（同文件 + content）",
+    "ok": true,
+    "expect": "(1, True)",
+    "got": "(1, True)"
+  },
+  {
+    "group": "M3",
+    "case": "merge 首块超短 -> 原样保留、不向后找（绝不丢内容）",
+    "ok": true,
+    "expect": "(2, '短')",
+    "got": "(2, '短')"
+  },
+  {
+    "group": "M3",
+    "case": "merge 结构块不被合并（块数不变）",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M3",
+    "case": "merge 跨文件不合并",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M3",
+    "case": "merge 未标注 filename 的块不参与合并",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M3",
+    "case": "merge 前一块非 content -> 不合并",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M3",
+    "case": "STRUCT_PREFIXES 含「表格：」与「幻灯片」",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M3",
+    "case": "MIN_CHUNK_CHARS 为正数",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M4",
+    "case": "disabled trace 不记录步骤",
+    "ok": true,
+    "expect": "0",
+    "got": "0"
+  },
+  {
+    "group": "M4",
+    "case": "disabled save 返回 None",
+    "ok": true,
+    "expect": "None",
+    "got": "None"
+  },
+  {
+    "group": "M4",
+    "case": "current() 未 start 时为 None",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M4",
+    "case": "enabled trace 记录 2 步",
+    "ok": true,
+    "expect": "2",
+    "got": "2"
+  },
+  {
+    "group": "M4",
+    "case": "to_dict 含关键字段",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M4",
+    "case": "to_dict 的 question 正确",
+    "ok": true,
+    "expect": "'问题'",
+    "got": "'问题'"
+  },
+  {
+    "group": "M4",
+    "case": "traced 包装不改返回值",
+    "ok": true,
+    "expect": "{'ok': True}",
+    "got": "{'ok': True}"
+  },
+  {
+    "group": "M5",
+    "case": "DOC_SOURCES 非空",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M5",
+    "case": "每个源都有 name/collection",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M5",
+    "case": "集合名合法（字母数字下划线）",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M5",
+    "case": "EMBEDDING_DIM 为正整数",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M5",
+    "case": "未配置 KB_TENANTS 时 TENANTS 为空 dict",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M6",
+    "case": "_discover_collections 返回非空且无重复",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M6",
+    "case": "_discover_collections(only=子集) 生效",
+    "ok": true,
+    "expect": "['kb_milvus_bge_large_1024']",
+    "got": "['kb_milvus_bge_large_1024']"
+  },
+  {
+    "group": "M6",
+    "case": "_discover_collections(only=空集) -> []",
+    "ok": true,
+    "expect": "[]",
+    "got": "[]"
+  },
+  {
+    "group": "M6",
+    "case": "未登记租户抛 PermissionError",
+    "ok": true,
+    "expect": "'PermissionError'",
+    "got": "'PermissionError'"
+  },
+  {
+    "group": "M6",
+    "case": "默认 get_retriever() 返回非 None",
+    "ok": true,
+    "expect": "True",
+    "got": "True"
+  },
+  {
+    "group": "M6",
+    "case": "set_tenant(None) 后 get_tenant() 为 None",
+    "ok": true,
+    "expect": "None",
+    "got": "None"
+  }
+]

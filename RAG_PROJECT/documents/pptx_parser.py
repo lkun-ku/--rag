@@ -39,6 +39,9 @@ from typing import List
 
 from langchain_core.documents import Document
 
+# [FIX 2026-10-11 / P1-1] 表格处理复用通用实现，避免「两套规则」
+# （table_handler 不 import pptx_parser，无循环依赖）
+from documents.table_handler import clean_cell, grid_to_markdown
 from utils.log_utils import log
 
 # SmartArt 的 diagram data 部件的命名空间
@@ -50,7 +53,14 @@ _NS = {
 _DGM_URI = 'http://schemas.openxmlformats.org/drawingml/2006/diagram'
 
 # 单页字符数低于该值且该页含图片/SmartArt 时，说明内容主要在「图里」，
-# 属于标记该页为「提取不充分」的阈值（暂只记日志，不触发额外处理）
+# 属于标记该页为「提取不充分」的阈值（暂只记日志，不触发额外处理）。
+#
+# [说明 2026-10-11 / P1-5] 本阈值**刻意不与** `markdown_parser.MIN_MARKDOWN_CHARS`
+# 统一 —— 两者语义不同：
+#   * MIN_MARKDOWN_CHARS：**整份文件**转换结果过少 -> **报错**（转换失败 / 文件为空）
+#   * SPARSE_PAGE_CHARS ：**单页**内容稀疏      -> **日志警告**（该页内容可能在图里）
+# 硬凑成同一个数会让两边都失真：文件级阈值用于「拒绝入库」必须保守（怕误报），
+# 而单页阈值用于「提示可能漏提取」可以宽松（怕漏报）。
 SPARSE_PAGE_CHARS = 80
 
 
@@ -114,23 +124,34 @@ class PPTParser:
 
     # ------------------------------------------------------------------ 元素转换
     @staticmethod
-    def _table_to_markdown(shape) -> str:
-        """PPT 原生表格 -> Markdown（逐格读，避免合并单元格错位）。"""
+    def _table_to_markdown(shape, table_name: str = '') -> str:
+        """PPT 原生表格 -> Markdown（逐格读，避免合并单元格错位）。
+
+        [FIX 2026-10-11 / P1-1] 改为**复用 `table_handler` 的通用实现**，修掉两处不一致：
+
+          1. **缺清洗**：原先直接取 `c.text`，于是 `NaN`（markitdown 对空单元格的写法）
+             与 `1200.0`（整数被写成浮点）会**原样入库** —— 而通用表格路径
+             （`table_handler.clean_cell`）会清掉它们。一个项目里两套规则，
+             同类问题在 .docx/.xlsx 里已修好、在 .pptx 里照旧。
+          2. **缺结构前缀**：原先只输出裸 Markdown 表，**没有「表格：」「列名：」前缀**，
+             于是它匹配不上 `MarkdownParser.STRUCT_PREFIXES` —— 短的 PPT 表格会被
+             `_merge_short_chunks` 当成普通碎片**并入前一块**，表格语义丢失。
+
+        注意：`table_name` **不能为空**，否则 `grid_to_markdown` 不加「表格：」前缀，
+        问题 2 依旧存在。调用方传 `幻灯片 N`（此时页面标题还未解析出来）。
+        """
         try:
             tbl = shape.table
         except Exception:  # noqa: BLE001
             return ''
-        rows = []
-        for r in tbl.rows:
-            rows.append([c.text.strip().replace('\n', ' ') for c in r.cells])
+        rows = [[clean_cell(c.text).replace('\n', ' ') for c in r.cells] for r in tbl.rows]
         if not rows:
             return ''
+        # 先补齐列数再交给 grid_to_markdown —— 后者按表头长度 `r[:len(header)]` 截断，
+        # 行比表头长时会**静默丢列**。
         width = max(len(r) for r in rows)
         rows = [r + [''] * (width - len(r)) for r in rows]
-        head = '| ' + ' | '.join(rows[0]) + ' |'
-        sep = '|' + '|'.join(['---'] * width) + '|'
-        body = ['| ' + ' | '.join(r) + ' |' for r in rows[1:]]
-        return '\n'.join([head, sep] + body)
+        return grid_to_markdown(rows, table_name)
 
     @staticmethod
     def _chart_to_markdown(shape) -> str:
@@ -203,14 +224,21 @@ class PPTParser:
 
         try:
             shapes = self._sort_by_position(list(self._iter_shapes(slide.shapes)))
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
+            # [FIX 2026-10-11 / 深度扫描 R7] 原先静默置空 —— 后果是**整页内容变空**却没有任何
+            # 痕迹（解析"成功"、块数为 0），排查时无从下手。降级本身是合理的（不该中断
+            # 整份文档），但必须留痕。
             shapes = []
+            log.warning(f"幻灯片 {index} 形状排序失败，本页按空处理: "
+                        f"{type(e).__name__}: {str(e)[:80]}")
 
         for shp in shapes:
             role = self._shape_role(shp)
 
             if getattr(shp, 'has_table', False):
-                md = self._table_to_markdown(shp)
+                # 表名用「幻灯片 N」：前缀「表格：」属于 STRUCT_PREFIXES，缺了它短表
+                # 会被超短块合并吞掉（P1-1）。此处页面标题尚未解析出来，故用页码。
+                md = self._table_to_markdown(shp, table_name=f'幻灯片 {index}')
                 if md:
                     tables.append(md)
                 continue
@@ -230,8 +258,12 @@ class PPTParser:
                         if t:
                             blocks.append('图片文字：' + t)
                     continue
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as e:  # noqa: BLE001
+                # [FIX 2026-10-11 / P1-6] 原先这里是 `pass` —— **静默吞掉**形状类型判断异常，
+                # 与本项目「不得静默降级」的约定不符（同文件其它处至少返回空值）。
+                # 后果：`shape_type` 取不到时**无迹可寻** —— 该形状会被当作普通文本处理
+                # 或直接丢弃，排查时看不到任何线索。
+                log.warning(f"形状类型判断失败，按非图片处理: {type(e).__name__}: {str(e)[:80]}")
 
             if not getattr(shp, 'has_text_frame', False):
                 continue

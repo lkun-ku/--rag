@@ -1,0 +1,58 @@
+[
+  {
+    "scenario": "A",
+    "label": "单租户 + 同步 /ask（基线）",
+    "ok": "FLAT、IVF_FLAT、IVF_PQ、IVF_SQ8、HNSW、HNSW_SQ、HNSW_PQ、HNSW_PRQ、SCANN [5]；BIN_FLAT、BIN_IVF_FLAT [5]；SPARSE_INVERTED_INDEX [5]。",
+    "detail": {
+      "http": 200,
+      "refused": false,
+      "n_cites": 1,
+      "answer_len": 121
+    }
+  },
+  {
+    "scenario": "B",
+    "label": "多租户 + 同步 /ask（acme）",
+    "ok": true,
+    "detail": {
+      "http": 200,
+      "refused": true,
+      "tenant": "acme",
+      "cited_files": []
+    }
+  },
+  {
+    "scenario": "C",
+    "label": "多租户 + SSE /ask/stream（acme）**关键：回归出在这里**",
+    "ok": true,
+    "detail": {
+      "http": 200,
+      "event_types": [
+        "answer",
+        "step"
+      ],
+      "has_answer": true,
+      "has_error": false,
+      "tenant": "acme",
+      "answer_len": 354
+    }
+  },
+  {
+    "scenario": "D",
+    "label": "多租户 + 未带租户头（应 400）",
+    "ok": true,
+    "detail": {
+      "http": 400,
+      "body": "{'detail': '服务已启用多租户，请在 X-Tenant-Id 头中指定租户'}"
+    }
+  },
+  {
+    "scenario": "E",
+    "label": "多租户 + 未知租户（应 403）",
+    "ok": true,
+    "detail": {
+      "http": 403,
+      "body": "{'detail': \"未知租户 'nobody'\"}"
+    }
+  }
+]

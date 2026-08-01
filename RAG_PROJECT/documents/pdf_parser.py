@@ -27,12 +27,10 @@ from typing import List
 
 from langchain_core.documents import Document
 
-from documents.markdown_parser import MarkdownParser
+# [FIX 2026-10-11 / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（原为本地 100），
+# 与 office_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
+from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
 from utils.log_utils import log
-
-# 转换后最少应有多少字符。低于此值几乎可以断定是「扫描件（无文本层）」或转换失败，
-# 此时必须显式报错 —— 静默返回少量/空内容会伪装成「文档本来就没内容」。
-MIN_MARKDOWN_CHARS = 100
 
 # PDF 自带文本层少于该字符数即判为扫描件。实测样本（把文字渲染成图片再嵌回 PDF）
 # 的文本层为 0 字符，而正常电子版 PDF 为数千至上万字符，阈值取 50 有充足余量。

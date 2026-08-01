@@ -148,19 +148,18 @@ def current() -> Optional[Tracer]:
     return _CURRENT.get()
 
 
-def mark(node: str, **info: Any):
-    """在任意位置打一个点（无 trace 时静默跳过）。"""
-    t = _CURRENT.get()
-    if t is not None:
-        t.step(node, **info)
+# [删除 2026-10-11 / P1-9] 这里原先有个 `mark(node, **info)` 辅助函数，
+# **全项目没有任何调用方** —— 它是个「通用打点 API」，但实际打点由
+# `graph2._traced_router` 包装条件边后直接调 `t.step()` 完成。
+# 留着它只会造成「两套打点方式」，而文档还指着它（见下），属于误导。
 
 
 def traced(name: str):
     """节点包装器：自动记录耗时 + 状态摘要。
 
-    只记录「可由 state 推断」的信息（如 documents 数量、generation 长度），
-    更细的语义（路由结果、判分结论）由各条件边函数显式调用 `mark()` 补充 ——
-    这样无需改动节点实现文件。
+    只记录「可由 state 推断」的信息（如 documents 数量、generation 长度）；
+    更细的语义（**路由决策、判分结论**）由 `graph2._traced_router` 包装条件边后
+    直接调 `tracer.current().step()` 补充 —— 这样无需改动任何节点实现文件。
     """
 
     def deco(fn):
