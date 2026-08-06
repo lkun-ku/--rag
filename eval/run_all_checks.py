@@ -40,6 +40,9 @@ if not pathlib.Path(PY).exists():
 
 # (名称, 脚本, 档位, 说明)
 CHECKS = [
+    # **前置门禁**：LLM 端点不可达时，后面所有需要 LLM 的检查都会失败。
+    # A/B 那次是跑了 8 分钟才在日志里发现全是超时 —— 这条能在十几秒内给出结论。
+    ("LLM 端点", "eval/check_llm.py", "quick", "前置门禁：走 SDK 真实调用（非裸 socket）"),
     ("静态扫描", "eval/deep_scan.py", "report", "AST 13 类规则（报告型，不看通过率）"),
     ("模块边界", "eval/module_tests.py", "quick", "66 个模块级边界用例"),
     ("表格处理", "eval/verify_rowspan.py", "quick", "rowspan/colspan/合并单元格 + 配置边界"),
@@ -63,6 +66,12 @@ def run_one(name: str, script: str) -> tuple:
                        encoding="utf-8", errors="replace", env=env, cwd=str(ROOT))
     out = (r.stdout or "") + (r.stderr or "")
     el = time.time() - t0
+
+    # check_llm.py 的判定（它给的是「可用 / 不可用」而非通过率）
+    if "**可用**" in out:
+        return True, "可用（%.1fs）" % el
+    if "**不可用**" in out:
+        return False, "**不可用**（%.1fs）—— 需 LLM 的检查会全部失败" % el
 
     m = re.search(r"(\d+)\s*/\s*(\d+)\s*通过", out)
     if m:

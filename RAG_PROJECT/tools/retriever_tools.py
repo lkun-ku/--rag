@@ -221,7 +221,9 @@ def _discover_collections(only: Optional[set] = None) -> List[str]:
     return out
 
 
-def _build_multi_retriever(only_collections: Optional[set] = None) -> MultiCollectionRetriever:
+def _build_multi_retriever(only_collections: Optional[set] = None,
+                           per_k: Optional[int] = None,
+                           final_k: Optional[int] = None) -> MultiCollectionRetriever:
     """为每个启用集合各建一个 retriever，组装成跨集合检索器。
 
     集合不存在时跳过（首次运行还没入库时的正常情况），只记 warning。
@@ -229,6 +231,20 @@ def _build_multi_retriever(only_collections: Optional[set] = None) -> MultiColle
     Args:
         only_collections: 只构造这些集合（多租户用）。**该模式下不做兜底回退** ——
             兜底会连到默认集合，等于绕过租户边界把别的数据暴露出去。
+        per_k: 覆盖「每集合取几块」。None 表示用模块常量 `PER_COLLECTION_K`。
+        final_k: 覆盖「最终交给下游几块」。None 表示用模块常量 `FINAL_K`。
+
+    **为什么需要 per_k / final_k 这两个可覆盖参数**（[FIX 2026-10-15]）：
+
+    `MultiCollectionRetriever` 的 `per_collection_k` / `final_k` 是 **pydantic 字段**，
+    其默认值在**类定义时**求值并固定。而本函数原先**不传**这两个参数 ——
+    于是**改模块常量 `FINAL_K` 对本函数构造出来的检索器完全无效**，
+    它永远用「类定义时」的值。
+
+    后果很隐蔽：做参数扫描/端到端 A/B 时，`per_k` 会生效（`_build_search_kwargs()`
+    运行时读模块常量）而 `final_k` 不生效，于是**每集合多取到的块仍在最后被截断掉**，
+    实验看起来「配置改了但数据没变」——实测把 `per_k` 从 6 提到 8，检索块数只从
+    17.7 变 18.0（因为 `final_k` 还是 18）。**连续三次 A/B 都因此无效**（见 ROADMAP 4.11.7）。
     """
     from pymilvus import MilvusClient
 
@@ -241,6 +257,10 @@ def _build_multi_retriever(only_collections: Optional[set] = None) -> MultiColle
         existing = None
 
     kwargs = _build_search_kwargs()
+    if per_k is not None:
+        # 「每集合取几块」实际由 search_kwargs 的 `k` 决定（as_retriever 消费），
+        # 必须一并覆盖 —— 只改 `per_collection_k` 字段是不会生效的。
+        kwargs["k"] = per_k
     built: Dict[str, object] = {}
     for coll in _discover_collections(only=only_collections):
         if existing is not None and coll not in existing:
@@ -271,8 +291,14 @@ def _build_multi_retriever(only_collections: Optional[set] = None) -> MultiColle
             search_type="similarity", search_kwargs=kwargs
         )
 
-    log.info(f"跨集合检索器已构造，覆盖集合: {list(built.keys())}")
-    return MultiCollectionRetriever(retrievers=built)
+    log.info(f"跨集合检索器已构造，覆盖集合: {list(built.keys())} "
+             f"per_k={per_k or PER_COLLECTION_K} final_k={final_k or FINAL_K}")
+    # **显式传参**：不传的话 pydantic 会用类定义时的默认值，改模块常量无效（见 docstring）
+    return MultiCollectionRetriever(
+        retrievers=built,
+        per_collection_k=per_k or PER_COLLECTION_K,
+        final_k=final_k or FINAL_K,
+    )
 
 
 retriever = _build_multi_retriever()

@@ -59,63 +59,63 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 112,
+    "line": 122,
     "detail": "`except (AttributeError, ValueError, KeyError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 121,
+    "line": 145,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 143,
+    "line": 164,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 154,
+    "line": 175,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 172,
+    "line": 193,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 190,
+    "line": 211,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 263,
+    "line": 286,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 285,
+    "line": 308,
     "detail": "`except ImportError` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/documents/pptx_parser.py",
-    "line": 299,
+    "line": 322,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -164,28 +164,28 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 485,
+    "line": 499,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 486,
+    "line": 500,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 487,
+    "line": 501,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 488,
+    "line": 502,
     "detail": "生产代码里的 print("
   },
   {
@@ -220,42 +220,49 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 155,
+    "line": 154,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 160,
+    "line": 159,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 165,
+    "line": 164,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 167,
+    "line": 166,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 169,
+    "line": 168,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 267,
+    "line": 265,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/pdf_parser.py",
+    "line": 270,
     "detail": "生产代码里的 print("
   },
   {
@@ -269,14 +276,7 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 274,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 275,
+    "line": 273,
     "detail": "生产代码里的 print("
   },
   {

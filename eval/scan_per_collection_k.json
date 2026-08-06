@@ -1,0 +1,147 @@
+{
+  "fixed_final": 18,
+  "A": [
+    {
+      "recall": 0.6659,
+      "hit_rate": 0.8667,
+      "precision": 0.1593,
+      "avg_blocks": 9.0,
+      "by_src": {
+        "manuals": 0.5357,
+        "milvus_docs": 1.0,
+        "papers": 0.4965
+      },
+      "per_k": 3,
+      "final_k": 18,
+      "sec": 20.5
+    },
+    {
+      "recall": 0.728,
+      "hit_rate": 0.9667,
+      "precision": 0.1417,
+      "avg_blocks": 12.0,
+      "by_src": {
+        "manuals": 0.6369,
+        "milvus_docs": 1.0,
+        "papers": 0.5607
+      },
+      "per_k": 4,
+      "final_k": 18,
+      "sec": 18.1
+    },
+    {
+      "recall": 0.7991,
+      "hit_rate": 1.0,
+      "precision": 0.1191,
+      "avg_blocks": 17.9,
+      "by_src": {
+        "manuals": 0.7607,
+        "milvus_docs": 1.0,
+        "papers": 0.6176
+      },
+      "per_k": 6,
+      "final_k": 18,
+      "sec": 18.1
+    },
+    {
+      "recall": 0.7991,
+      "hit_rate": 1.0,
+      "precision": 0.1185,
+      "avg_blocks": 18.0,
+      "by_src": {
+        "manuals": 0.7607,
+        "milvus_docs": 1.0,
+        "papers": 0.6176
+      },
+      "per_k": 8,
+      "final_k": 18,
+      "sec": 18.3
+    },
+    {
+      "recall": 0.7991,
+      "hit_rate": 1.0,
+      "precision": 0.1185,
+      "avg_blocks": 18.0,
+      "by_src": {
+        "manuals": 0.7607,
+        "milvus_docs": 1.0,
+        "papers": 0.6176
+      },
+      "per_k": 10,
+      "final_k": 18,
+      "sec": 18.1
+    },
+    {
+      "recall": 0.7991,
+      "hit_rate": 1.0,
+      "precision": 0.1185,
+      "avg_blocks": 18.0,
+      "by_src": {
+        "manuals": 0.7607,
+        "milvus_docs": 1.0,
+        "papers": 0.6176
+      },
+      "per_k": 12,
+      "final_k": 18,
+      "sec": 18.1
+    }
+  ],
+  "B": [
+    {
+      "recall": 0.7991,
+      "hit_rate": 1.0,
+      "precision": 0.1191,
+      "avg_blocks": 17.9,
+      "by_src": {
+        "manuals": 0.7607,
+        "milvus_docs": 1.0,
+        "papers": 0.6176
+      },
+      "per_k": 6,
+      "final_k": 18,
+      "sec": 18.3
+    },
+    {
+      "recall": 0.8526,
+      "hit_rate": 1.0,
+      "precision": 0.1004,
+      "avg_blocks": 23.9,
+      "by_src": {
+        "manuals": 0.8321,
+        "milvus_docs": 1.0,
+        "papers": 0.7038
+      },
+      "per_k": 8,
+      "final_k": 24,
+      "sec": 18.0
+    },
+    {
+      "recall": 0.8994,
+      "hit_rate": 1.0,
+      "precision": 0.0903,
+      "avg_blocks": 29.9,
+      "by_src": {
+        "manuals": 0.8917,
+        "milvus_docs": 1.0,
+        "papers": 0.7855
+      },
+      "per_k": 10,
+      "final_k": 30,
+      "sec": 18.4
+    },
+    {
+      "recall": 0.9225,
+      "hit_rate": 1.0,
+      "precision": 0.0789,
+      "avg_blocks": 35.8,
+      "by_src": {
+        "manuals": 0.9357,
+        "milvus_docs": 1.0,
+        "papers": 0.7965
+      },
+      "per_k": 12,
+      "final_k": 36,
+      "sec": 18.5
+    }
+  ]
+}
