@@ -190,7 +190,7 @@ def main() -> int:
         vs = "SKIPPED" if v is None else "%.4f" % v
         print("%-20s %10s %10.2f %10.2f   %s" % (k, vs, thk["fail"], thk["warn"], labels[k]))
 
-    verdict, reasons = metrics.gate(scores)
+    verdict, reasons = metrics.gate(scores, gen_requested=args.with_generation)
 
     print()
     print(f"耗时: {elapsed:.1f}s")

@@ -96,22 +96,34 @@ def main() -> int:
         import hashlib
         return hashlib.md5(t.encode("utf-8")).hexdigest()[:12]
 
-    results = {}
-    for (pk, fk) in CONFIGS:
-        # 切换配置：**必须显式传参**给 `_build_multi_retriever`。
-        #
-        # [根因 2026-10-15] 首版是「改模块常量 `rt.PER_COLLECTION_K` / `rt.FINAL_K` 后重建」，
-        # 但 `MultiCollectionRetriever` 的这两个值是 **pydantic 字段**，默认值在**类定义时**
-        # 求值并固定；`_build_multi_retriever()` 原先不传它们 => **`final_k` 改不动**，
-        # 每集合多取到的块仍在最后被截断掉。实测 per_k 6->8 时检索块数只从 17.7 变 18.0
-        # （因为 final_k 还是 18），于是**连续三次 A/B 都无效**。
-        rt.retriever = rt._build_multi_retriever(per_k=pk, final_k=fk)
-        print()
-        print("=" * 100)
-        print("per_k = %d / final_k = %d" % (pk, fk))
-        print("=" * 100)
-        rows = []
-        for rnd in range(1, args.rounds + 1):
+    # ---------------------------------------------------------------------
+    # [修正 2026-10-15 · 第四个实验设计缺陷] **交替执行**，不能「跑完 A 再跑 B」。
+    #
+    # 实测教训：顺序执行时 8/24 组在第 5 个样本后耗时整体从 6s 跳到 26s，而**同一题
+    # 同一输入**（n001 两轮，tokens 完全一致 14104）耗时 6.7s vs 25.3s —— 那是
+    # **LLM 服务的时间漂移**，却被算成了「配置导致耗时增加 2.88x」。
+    # 交替执行让两组**共享同一时间窗**，把这类污染平摊掉。
+    #
+    # 注：`_build_multi_retriever(per_k=..., final_k=...)` 必须**显式传参** ——
+    # 那两个值是 pydantic 字段，默认值在**类定义时**固定，改模块常量无效（见 4.11.8）。
+    # ---------------------------------------------------------------------
+    built = {(pk, fk): rt._build_multi_retriever(per_k=pk, final_k=fk)
+             for (pk, fk) in CONFIGS}           # 预先构造；切换时只换引用，不重建
+
+    results = {(pk, fk): [] for (pk, fk) in CONFIGS}
+    block_order = []                            # **配置块**的执行顺序（供「交替自检」用）
+    #
+    # 注意：自检必须看「配置块」的顺序，不能看「样本」的顺序 ——
+    # 首版用 `order[:2]`（前两个**样本**）判断，而那两个样本天然都在第一个配置块内，
+    # 于是**交替明明生效了却被判成「未交替」**。（又一次「测量口径」的错。）
+
+    for rnd in range(1, args.rounds + 1):
+        for (pk, fk) in CONFIGS:                # <- 轮内交替
+            rt.retriever = built[(pk, fk)]
+            block_order.append((pk, fk))
+            print()
+            print("--- 第 %d 轮 / per_k = %d / final_k = %d ---" % (rnd, pk, fk))
+            rows = results[(pk, fk)]
             for c in picked:
                 t0 = time.time()
                 try:
@@ -151,7 +163,21 @@ def main() -> int:
                 last = rows[-1]
                 print("  第 %d 轮末题: recall=%.3f kept=%s tokens=%s elapsed=%.1fs" % (
                     rnd, last["recall"], last["kept"], last["tokens"], last["elapsed"]))
-        results[(pk, fk)] = rows
+        # （不再需要 `results[(pk, fk)] = rows` —— rows 就是该配置列表的引用）
+
+    # ---- 交替自检（对应 TDD 的「验证必须能失败」）----
+    # 若脚本被改回「顺序执行」，前两个**配置块**会是同一个配置 —— 这里必须能发现并拒绝。
+    head = set(block_order[:len(CONFIGS)])
+    if len(head) < len(CONFIGS):
+        print()
+        print("  **[实验无效]** 执行顺序未交替（前 %d 个配置块同属 %s）——"
+              " 无法排除服务时间漂移的污染，结论不可用。"
+              % (len(CONFIGS), sorted(head)))
+        return 4
+    print()
+    print("  交替自检通过：前 %d 个配置块覆盖 %d 个配置 ✅（块序列: %s）"
+          % (len(CONFIGS), len(head),
+             ["%d/%d" % b for b in block_order[:6]]))
 
     # ---- 对比 ----
     def agg(rows, key):

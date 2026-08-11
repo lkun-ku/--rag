@@ -42,9 +42,26 @@ from utils.env_utils import DOC_SOURCES, MILVUS_RERANKER_STYLE
 from utils.log_utils import log
 
 # 单集合召回条数。
-PER_COLLECTION_K = 6
+#
+# [采纳 2026-10-15 / ROADMAP 4.13] 由 6 提到 8，`FINAL_K` 同步由 18 到 24。
+# 依据是**两次独立测量**：
+#   * 6 道稳定题的端到端 A/B（`eval/verify_final_k_ab.py`）：判分后召回
+#     0.5833 -> 0.7083（+21%）、拒答 1 -> 0、tokens 1.25x、耗时 1.12x
+#     —— 四条**事先写死**的标准全过；
+#   * **32 题全集检索层评测**（`eval/verify_final_k_full.py`，口径与 `run_eval` 一致）：
+#     context_recall **0.7492 -> 0.7993（+6.7%）**、**6 题提升 / 0 题下降**、
+#     hit_rate 持平（0.9375）、平均块数 17.9 -> 23.9。
+#
+# 代价与取舍：
+#   * `context_precision` 0.1116 -> 0.0941 —— **不作为否决依据**：该指标在当前
+#     以表格为主的语料下**口径失真**（分母被「同一张表的其他行段」撑大，见 4.10/4.12），
+#     它下降与「答案质量」无必然关系；
+#   * 判分负载 +21%（保留块数 5.92 -> 7.17）、token +25%（1.25x，在标准内）。
+#
+# 注意：`FETCH_K_PER_ROUTE`（每路预取 12）必须 >= 本值，否则候选池不足、k 形同虚设。
+PER_COLLECTION_K = 8
 # 最终交给下游的条数。
-FINAL_K = 18
+FINAL_K = 24
 # 阶段二 RRF 的平滑常数
 RRF_K = 60
 

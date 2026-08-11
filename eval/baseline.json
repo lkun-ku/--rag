@@ -1,18 +1,18 @@
 {
   "verdict": "INCONCLUSIVE",
   "reasons": [
-    "context_recall: 0.7492 处于告警区间 [0.6, 0.8)",
+    "context_recall: 0.7993 处于告警区间 [0.6, 0.8)",
     "生成层指标缺失（faithfulness, answer_relevancy）—— LLM 不可用导致，**不得据此判定质量回退**"
   ],
   "scores": {
-    "context_recall": 0.7491695804195804,
+    "context_recall": 0.7992679195804195,
     "hit_rate": 0.9375,
-    "context_precision": 0.11162173202614378,
+    "context_precision": 0.09408967391304347,
     "faithfulness": null,
     "answer_relevancy": null
   },
   "cases": 32,
-  "elapsed_sec": 20.7,
+  "elapsed_sec": 17.3,
   "with_generation": false,
   "llm_available": true,
   "collections": [
@@ -23,18 +23,18 @@
   "per_source": {
     "manuals": {
       "n": 14,
-      "recall": 0.7607142857142858,
-      "precision": 0.11227824463118581
+      "recall": 0.8321428571428572,
+      "precision": 0.08993271221532091
     },
     "papers": {
       "n": 7,
-      "recall": 0.6176323676323676,
-      "precision": 0.21428571428571427
+      "recall": 0.7037962037962038,
+      "precision": 0.19668737060041405
     },
     "milvus_docs": {
       "n": 9,
       "recall": 1.0,
-      "precision": 0.05555555555555555
+      "precision": 0.041666666666666664
     },
     "out_of_scope": {
       "n": 2,
@@ -51,13 +51,11 @@
         "94e09c6a8006",
         "af0fc19664f3"
       ],
-      "recall": 0.5,
-      "precision": 0.05555555555555555,
+      "recall": 1.0,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
-      "missed": [
-        "94e09c6a8006"
-      ]
+      "retrieved_n": 24,
+      "missed": []
     },
     {
       "id": "n002",
@@ -68,9 +66,9 @@
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.11764705882352941,
+      "precision": 0.08695652173913043,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 23,
       "missed": []
     },
     {
@@ -84,9 +82,9 @@
         "af0fc19664f3"
       ],
       "recall": 0.75,
-      "precision": 0.17647058823529413,
+      "precision": 0.13043478260869565,
       "hit": 1.0,
-      "retrieved_n": 17,
+      "retrieved_n": 23,
       "missed": [
         "3e7f9a39fdb1"
       ]
@@ -99,9 +97,9 @@
         "3e7f9a39fdb1"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -115,9 +113,9 @@
         "f1e2ce7777cf"
       ],
       "recall": 0.5,
-      "precision": 0.1111111111111111,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "3e7f9a39fdb1",
         "94e09c6a8006"
@@ -131,13 +129,11 @@
         "94e09c6a8006",
         "af0fc19664f3"
       ],
-      "recall": 0.5,
-      "precision": 0.05555555555555555,
+      "recall": 1.0,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
-      "missed": [
-        "94e09c6a8006"
-      ]
+      "retrieved_n": 24,
+      "missed": []
     },
     {
       "id": "n007",
@@ -149,14 +145,13 @@
         "94e09c6a8006",
         "af0fc19664f3"
       ],
-      "recall": 0.25,
-      "precision": 0.05555555555555555,
+      "recall": 0.5,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "044bd4ef6ddb",
-        "1e9bb05e9320",
-        "94e09c6a8006"
+        "1e9bb05e9320"
       ]
     },
     {
@@ -171,9 +166,9 @@
         "2d8846562f47"
       ],
       "recall": 1.0,
-      "precision": 0.2777777777777778,
+      "precision": 0.20833333333333334,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -185,9 +180,9 @@
         "d3fbab81e603"
       ],
       "recall": 1.0,
-      "precision": 0.1111111111111111,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -199,9 +194,9 @@
         "27d72cf57f59"
       ],
       "recall": 1.0,
-      "precision": 0.1111111111111111,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -217,9 +212,9 @@
         "a82925e3bcaf"
       ],
       "recall": 1.0,
-      "precision": 0.3333333333333333,
+      "precision": 0.25,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -231,9 +226,9 @@
         "2991ce629641"
       ],
       "recall": 0.5,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "2991ce629641"
       ]
@@ -246,9 +241,9 @@
         "00458dfb1f5d"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -259,9 +254,9 @@
         "0862ab74a2dd"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -272,9 +267,9 @@
         "0110139a9bce"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -285,9 +280,9 @@
         "0ab41d5e7e99"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -298,9 +293,9 @@
         "7fdafb2f9975"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -311,9 +306,9 @@
         "115b11d5c9d6"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -324,9 +319,9 @@
         "1007c1e68c83"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -337,9 +332,9 @@
         "8e9cd218a765"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -350,9 +345,9 @@
         "001e0f87ad39"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -374,17 +369,15 @@
         "7c4a65bb3cc0",
         "f264958b9065"
       ],
-      "recall": 0.5384615384615384,
-      "precision": 0.3888888888888889,
+      "recall": 0.6923076923076923,
+      "precision": 0.375,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "1e9bb05e9320",
-        "6e3cc727e4b7",
         "75291bebb2f7",
         "7c4a65bb3cc0",
-        "f264958b9065",
-        "ff29320e2265"
+        "f264958b9065"
       ]
     },
     {
@@ -398,9 +391,9 @@
         "7c4a65bb3cc0"
       ],
       "recall": 1.0,
-      "precision": 0.2222222222222222,
+      "precision": 0.16666666666666666,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -416,9 +409,9 @@
         "863024b86109"
       ],
       "recall": 0.5,
-      "precision": 0.16666666666666666,
+      "precision": 0.125,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "27d72cf57f59",
         "4300c251cdb3",
@@ -437,9 +430,9 @@
         "a0601ec0d8b4"
       ],
       "recall": 0.4,
-      "precision": 0.1111111111111111,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "37ff1aa574a8",
         "4fddcc128c87",
@@ -465,20 +458,18 @@
         "d810793981df",
         "fb6eb0bb850d"
       ],
-      "recall": 0.3076923076923077,
-      "precision": 0.2222222222222222,
+      "recall": 0.46153846153846156,
+      "precision": 0.25,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
-        "1b3292b1589a",
         "259df3338d91",
         "4d43889ea877",
         "4fddcc128c87",
         "5045647d914c",
         "6f8ea5911e19",
         "75291bebb2f7",
-        "d810793981df",
-        "fb6eb0bb850d"
+        "d810793981df"
       ]
     },
     {
@@ -509,10 +500,10 @@
         "f6d54e4e4328",
         "fb57e260e31b"
       ],
-      "recall": 0.22727272727272727,
-      "precision": 0.2777777777777778,
+      "recall": 0.2727272727272727,
+      "precision": 0.25,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": [
         "143d7cef020e",
         "35b0310aaf31",
@@ -526,7 +517,6 @@
         "84d0902cc385",
         "a640ced7273f",
         "b13c15f9913d",
-        "bc788c590d9c",
         "cabb1abba213",
         "cf7644161036",
         "d41ca85da7fe",
@@ -541,9 +531,9 @@
         "1b3292b1589a"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -554,9 +544,9 @@
         "707f9402482c"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -567,9 +557,9 @@
         "31109bf8138c"
       ],
       "recall": 1.0,
-      "precision": 0.05555555555555555,
+      "precision": 0.043478260869565216,
       "hit": 1.0,
-      "retrieved_n": 18,
+      "retrieved_n": 23,
       "missed": []
     },
     {
@@ -580,7 +570,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     },
     {
@@ -591,7 +581,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 18,
+      "retrieved_n": 24,
       "missed": []
     }
   ]

@@ -307,7 +307,8 @@ THRESHOLDS = {
 }
 
 
-def gate(scores: Dict[str, Optional[float]]) -> Tuple[str, List[str]]:
+def gate(scores: Dict[str, Optional[float]],
+         gen_requested: bool = False) -> Tuple[str, List[str]]:
     """门禁判定。
 
     关键设计（ROADMAP 1.5.3）：**区分「未完成」与「不合格」**
@@ -357,8 +358,15 @@ def gate(scores: Dict[str, Optional[float]]) -> Tuple[str, List[str]]:
     if failed:
         return "FAIL", reasons
     if llm_skipped:
+        # [FIX 2026-10-15] 「生成层缺失」有两种原因，必须区分 —— 原先一律写成
+        # 「LLM 不可用导致」，实测误导过：我跑 `run_eval.py`（**没传 --with-generation**）
+        # 时看到这句，第一反应是「LLM 挂了」，于是去查端点，浪费了排查时间。
+        #   * gen_requested=True  -> LLM 探活失败（余额/网络/服务故障）
+        #   * gen_requested=False -> 本次根本没启用生成层评测
+        why = ("LLM 不可用导致" if gen_requested
+               else "本次未启用生成层评测（未传 --with-generation）")
         return "INCONCLUSIVE", reasons + [
-            f"生成层指标缺失（{', '.join(llm_skipped)}）—— LLM 不可用导致，"
+            f"生成层指标缺失（{', '.join(llm_skipped)}）—— {why}，"
             f"**不得据此判定质量回退**"
         ]
     if warned:

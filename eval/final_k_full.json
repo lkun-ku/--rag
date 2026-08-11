@@ -1,0 +1,547 @@
+{
+  "configs": [
+    [
+      6,
+      18
+    ],
+    [
+      8,
+      24
+    ]
+  ],
+  "n_cases": 32,
+  "results": {
+    "6/18": {
+      "l0": {
+        "context_recall": 0.7491695804195804,
+        "context_precision": 0.11162173202614378,
+        "hit_rate": 0.9375
+      },
+      "per_case": [
+        {
+          "id": "n001",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n002",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.11764705882352941,
+          "hit": 1.0,
+          "retrieved_n": 17
+        },
+        {
+          "id": "n003",
+          "source": "manuals",
+          "recall": 0.75,
+          "precision": 0.17647058823529413,
+          "hit": 1.0,
+          "retrieved_n": 17
+        },
+        {
+          "id": "n004",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n005",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.1111111111111111,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n006",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n007",
+          "source": "papers",
+          "recall": 0.25,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n008",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.2777777777777778,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n009",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.1111111111111111,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n010",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.1111111111111111,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n011",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.3333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n012",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n013",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n014",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n015",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n016",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n017",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n018",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n019",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n020",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n021",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n022",
+          "source": "papers",
+          "recall": 0.5384615384615384,
+          "precision": 0.3888888888888889,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n023",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.2222222222222222,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n024",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.16666666666666666,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n025",
+          "source": "manuals",
+          "recall": 0.4,
+          "precision": 0.1111111111111111,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n026",
+          "source": "papers",
+          "recall": 0.3076923076923077,
+          "precision": 0.2222222222222222,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n027",
+          "source": "papers",
+          "recall": 0.22727272727272727,
+          "precision": 0.2777777777777778,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n028",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n029",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n030",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.05555555555555555,
+          "hit": 1.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n031",
+          "source": "out_of_scope",
+          "recall": 0.0,
+          "precision": 0.0,
+          "hit": 0.0,
+          "retrieved_n": 18
+        },
+        {
+          "id": "n032",
+          "source": "out_of_scope",
+          "recall": 0.0,
+          "precision": 0.0,
+          "hit": 0.0,
+          "retrieved_n": 18
+        }
+      ],
+      "errs": []
+    },
+    "8/24": {
+      "l0": {
+        "context_recall": 0.7992679195804195,
+        "context_precision": 0.09408967391304347,
+        "hit_rate": 0.9375
+      },
+      "per_case": [
+        {
+          "id": "n001",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n002",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.08695652173913043,
+          "hit": 1.0,
+          "retrieved_n": 23
+        },
+        {
+          "id": "n003",
+          "source": "manuals",
+          "recall": 0.75,
+          "precision": 0.13043478260869565,
+          "hit": 1.0,
+          "retrieved_n": 23
+        },
+        {
+          "id": "n004",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n005",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n006",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n007",
+          "source": "papers",
+          "recall": 0.5,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n008",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.20833333333333334,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n009",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n010",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n011",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.25,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n012",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n013",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n014",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n015",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n016",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n017",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n018",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n019",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n020",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n021",
+          "source": "milvus_docs",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n022",
+          "source": "papers",
+          "recall": 0.6923076923076923,
+          "precision": 0.375,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n023",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.16666666666666666,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n024",
+          "source": "manuals",
+          "recall": 0.5,
+          "precision": 0.125,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n025",
+          "source": "manuals",
+          "recall": 0.4,
+          "precision": 0.08333333333333333,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n026",
+          "source": "papers",
+          "recall": 0.46153846153846156,
+          "precision": 0.25,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n027",
+          "source": "papers",
+          "recall": 0.2727272727272727,
+          "precision": 0.25,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n028",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n029",
+          "source": "manuals",
+          "recall": 1.0,
+          "precision": 0.041666666666666664,
+          "hit": 1.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n030",
+          "source": "papers",
+          "recall": 1.0,
+          "precision": 0.043478260869565216,
+          "hit": 1.0,
+          "retrieved_n": 23
+        },
+        {
+          "id": "n031",
+          "source": "out_of_scope",
+          "recall": 0.0,
+          "precision": 0.0,
+          "hit": 0.0,
+          "retrieved_n": 24
+        },
+        {
+          "id": "n032",
+          "source": "out_of_scope",
+          "recall": 0.0,
+          "precision": 0.0,
+          "hit": 0.0,
+          "retrieved_n": 24
+        }
+      ],
+      "errs": []
+    }
+  }
+}

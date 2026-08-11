@@ -44,6 +44,9 @@ CHECKS = [
     # A/B 那次是跑了 8 分钟才在日志里发现全是超时 —— 这条能在十几秒内给出结论。
     ("LLM 端点", "eval/check_llm.py", "quick", "前置门禁：走 SDK 真实调用（非裸 socket）"),
     ("静态扫描", "eval/deep_scan.py", "report", "AST 13 类规则（报告型，不看通过率）"),
+    # 标准评测：32 题检索层指标 + 门禁判定。**回归时必须 `--no-save`** ——
+    # 基线 `baseline.json` 只在「正式评测」时更新，回归跑不该改它（否则会掩盖回退）。
+    ("标准评测", "eval/run_eval.py", "quick", "32 题检索层指标 + 门禁（回归用 --no-save）"),
     ("模块边界", "eval/module_tests.py", "quick", "66 个模块级边界用例"),
     ("表格处理", "eval/verify_rowspan.py", "quick", "rowspan/colspan/合并单元格 + 配置边界"),
     ("引用校验", "eval/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),
@@ -61,8 +64,12 @@ def run_one(name: str, script: str) -> tuple:
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONPATH"] = str(ROOT / "RAG_PROJECT")
+    # 回归用 `--no-save`：`run_eval.py` 默认会把结果写进 `baseline.json`，
+    # 而**基线只能在正式评测时更新** —— 回归顺手改基线会掩盖真实回退。
+    extra = ["--no-save"] if path.name == "run_eval.py" else []
+
     t0 = time.time()
-    r = subprocess.run([PY, "-u", str(path)], capture_output=True, text=True,
+    r = subprocess.run([PY, "-u", str(path), *extra], capture_output=True, text=True,
                        encoding="utf-8", errors="replace", env=env, cwd=str(ROOT))
     out = (r.stdout or "") + (r.stderr or "")
     el = time.time() - t0
@@ -72,6 +79,23 @@ def run_one(name: str, script: str) -> tuple:
         return True, "可用（%.1fs）" % el
     if "**不可用**" in out:
         return False, "**不可用**（%.1fs）—— 需 LLM 的检查会全部失败" % el
+
+    # run_eval.py 的判定（它给的是「门禁判定: PASS/WARN/FAIL/INCONCLUSIVE」）
+    #
+    # **INCONCLUSIVE 不是失败** —— 按项目设计（ROADMAP 1.5.3），它表示「**未完成**」
+    # 而非「不合格」：生成层指标缺失（未传 `--with-generation` 或 LLM 不可用）时，
+    # 即便检索层全达标也会返回它，**不得计为质量回退**。
+    # 首版把它和 FAIL 一起判成 False，于是回归报了「失败项：标准评测」——
+    # 而那次唯一的实际内容只是「recall 0.7993 落在告警区间」，属设计内的提示。
+    # 这里返回 None（报告型），让它不参与判定，但把原因显式打出来。
+    mg = re.search(r"门禁判定[:：]\s*(\w+)", out)
+    if mg:
+        v = mg.group(1)
+        tail = re.search(r"门禁判定[:：][^\n]*\n\s*-\s*(.+)", out)
+        detail = ("（%s）" % tail.group(1).strip()[:64]) if tail else ""
+        if v == "INCONCLUSIVE":
+            return None, "门禁 INCONCLUSIVE —— 生成层缺失，非回退%s（%.1fs）" % (detail, el)
+        return (v in ("PASS", "WARN")), "门禁 %s%s（%.1fs）" % (v, detail, el)
 
     m = re.search(r"(\d+)\s*/\s*(\d+)\s*通过", out)
     if m:

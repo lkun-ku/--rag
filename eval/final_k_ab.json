@@ -5,181 +5,187 @@
     "elapsed_ratio_max": 1.3,
     "kept_blocks_must_increase": true
   },
-  "final_ks": [
-    18,
-    24
+  "configs": [
+    [
+      6,
+      18
+    ],
+    [
+      8,
+      24
+    ]
   ],
   "results": {
-    "18": [
+    "6/18": [
       {
         "id": "n001",
         "round": 1,
         "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 8460,
-        "elapsed": 50.3,
-        "refused": false
-      },
-      {
-        "id": "n002",
-        "round": 1,
-        "recall": 1.0,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 16010,
-        "elapsed": 24.9,
-        "refused": false
-      },
-      {
-        "id": "n003",
-        "round": 1,
-        "recall": 0.25,
-        "n_docs": 3,
-        "kept": 3,
-        "tokens": 6363,
-        "elapsed": 25.9,
-        "refused": false
-      },
-      {
-        "id": "n005",
-        "round": 1,
-        "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 15755,
-        "elapsed": 26.6,
-        "refused": false
-      },
-      {
-        "id": "n007",
-        "round": 1,
-        "recall": 0.25,
-        "n_docs": 4,
-        "kept": 4,
-        "tokens": 10701,
-        "elapsed": 27.8,
-        "refused": false
-      },
-      {
-        "id": "n008",
-        "round": 1,
-        "recall": 1.0,
-        "n_docs": 11,
-        "kept": 11,
-        "tokens": 8526,
-        "elapsed": 25.5,
-        "refused": false
-      },
-      {
-        "id": "n001",
-        "round": 2,
-        "recall": 0.5,
-        "n_docs": 5,
+        "n_docs": 18,
         "kept": 5,
         "tokens": 7817,
-        "elapsed": 25.0,
+        "elapsed": 7.5,
+        "refused": false
+      },
+      {
+        "id": "n002",
+        "round": 1,
+        "recall": 1.0,
+        "n_docs": 17,
+        "kept": 5,
+        "tokens": 15523,
+        "elapsed": 5.2,
+        "refused": false
+      },
+      {
+        "id": "n003",
+        "round": 1,
+        "recall": 0.25,
+        "n_docs": 17,
+        "kept": 3,
+        "tokens": 6363,
+        "elapsed": 6.1,
+        "refused": false
+      },
+      {
+        "id": "n005",
+        "round": 1,
+        "recall": 0.0,
+        "n_docs": 18,
+        "kept": 4,
+        "tokens": 16820,
+        "elapsed": 11.5,
+        "refused": true
+      },
+      {
+        "id": "n007",
+        "round": 1,
+        "recall": 0.25,
+        "n_docs": 18,
+        "kept": 4,
+        "tokens": 10701,
+        "elapsed": 7.1,
+        "refused": false
+      },
+      {
+        "id": "n008",
+        "round": 1,
+        "recall": 1.0,
+        "n_docs": 18,
+        "kept": 11,
+        "tokens": 8504,
+        "elapsed": 6.8,
+        "refused": false
+      },
+      {
+        "id": "n001",
+        "round": 2,
+        "recall": 0.5,
+        "n_docs": 18,
+        "kept": 6,
+        "tokens": 8460,
+        "elapsed": 5.7,
         "refused": false
       },
       {
         "id": "n002",
         "round": 2,
         "recall": 1.0,
-        "n_docs": 6,
+        "n_docs": 17,
         "kept": 6,
         "tokens": 16010,
-        "elapsed": 25.9,
+        "elapsed": 5.9,
         "refused": false
       },
       {
         "id": "n003",
         "round": 2,
         "recall": 0.25,
-        "n_docs": 3,
+        "n_docs": 17,
         "kept": 3,
         "tokens": 6363,
-        "elapsed": 25.0,
+        "elapsed": 6.5,
         "refused": false
       },
       {
         "id": "n005",
         "round": 2,
         "recall": 0.5,
-        "n_docs": 6,
+        "n_docs": 18,
         "kept": 6,
-        "tokens": 15737,
-        "elapsed": 25.9,
+        "tokens": 15752,
+        "elapsed": 6.5,
         "refused": false
       },
       {
         "id": "n007",
         "round": 2,
         "recall": 0.25,
-        "n_docs": 4,
+        "n_docs": 18,
         "kept": 4,
-        "tokens": 10707,
-        "elapsed": 26.7,
+        "tokens": 10701,
+        "elapsed": 7.1,
         "refused": false
       },
       {
         "id": "n008",
         "round": 2,
         "recall": 1.0,
-        "n_docs": 11,
+        "n_docs": 18,
         "kept": 11,
         "tokens": 8504,
-        "elapsed": 25.8,
+        "elapsed": 6.1,
         "refused": false
       }
     ],
-    "24": [
+    "8/24": [
       {
         "id": "n001",
         "round": 1,
-        "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 8460,
-        "elapsed": 25.0,
+        "recall": 1.0,
+        "n_docs": 24,
+        "kept": 8,
+        "tokens": 14104,
+        "elapsed": 6.7,
         "refused": false
       },
       {
         "id": "n002",
         "round": 1,
         "recall": 1.0,
-        "n_docs": 6,
+        "n_docs": 23,
         "kept": 6,
         "tokens": 16010,
-        "elapsed": 25.9,
+        "elapsed": 5.6,
         "refused": false
       },
       {
         "id": "n003",
         "round": 1,
         "recall": 0.25,
-        "n_docs": 3,
+        "n_docs": 23,
         "kept": 3,
         "tokens": 6363,
-        "elapsed": 26.0,
+        "elapsed": 6.5,
         "refused": false
       },
       {
         "id": "n005",
         "round": 1,
         "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 15734,
-        "elapsed": 26.2,
+        "n_docs": 24,
+        "kept": 8,
+        "tokens": 20016,
+        "elapsed": 8.0,
         "refused": false
       },
       {
         "id": "n007",
         "round": 1,
-        "recall": 0.25,
-        "n_docs": 4,
-        "kept": 4,
-        "tokens": 10701,
+        "recall": 0.5,
+        "n_docs": 24,
+        "kept": 5,
+        "tokens": 15765,
         "elapsed": 26.9,
         "refused": false
       },
@@ -187,110 +193,112 @@
         "id": "n008",
         "round": 1,
         "recall": 1.0,
-        "n_docs": 11,
-        "kept": 11,
-        "tokens": 8504,
-        "elapsed": 26.3,
+        "n_docs": 24,
+        "kept": 13,
+        "tokens": 9310,
+        "elapsed": 26.5,
         "refused": false
       },
       {
         "id": "n001",
         "round": 2,
-        "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 8460,
-        "elapsed": 26.8,
+        "recall": 1.0,
+        "n_docs": 24,
+        "kept": 8,
+        "tokens": 14104,
+        "elapsed": 25.3,
         "refused": false
       },
       {
         "id": "n002",
         "round": 2,
         "recall": 1.0,
-        "n_docs": 6,
+        "n_docs": 23,
         "kept": 6,
         "tokens": 16010,
-        "elapsed": 26.1,
+        "elapsed": 26.7,
         "refused": false
       },
       {
         "id": "n003",
         "round": 2,
         "recall": 0.25,
-        "n_docs": 3,
+        "n_docs": 23,
         "kept": 3,
         "tokens": 6363,
-        "elapsed": 25.8,
+        "elapsed": 24.7,
         "refused": false
       },
       {
         "id": "n005",
         "round": 2,
         "recall": 0.5,
-        "n_docs": 6,
-        "kept": 6,
-        "tokens": 15755,
-        "elapsed": 25.6,
+        "n_docs": 24,
+        "kept": 8,
+        "tokens": 20016,
+        "elapsed": 26.6,
         "refused": false
       },
       {
         "id": "n007",
         "round": 2,
-        "recall": 0.25,
-        "n_docs": 4,
-        "kept": 4,
-        "tokens": 10701,
-        "elapsed": 28.5,
+        "recall": 0.5,
+        "n_docs": 24,
+        "kept": 5,
+        "tokens": 15765,
+        "elapsed": 26.7,
         "refused": false
       },
       {
         "id": "n008",
         "round": 2,
         "recall": 1.0,
-        "n_docs": 11,
-        "kept": 11,
-        "tokens": 8504,
-        "elapsed": 6.3,
+        "n_docs": 24,
+        "kept": 13,
+        "tokens": 9310,
+        "elapsed": 25.6,
         "refused": false
       }
     ]
   },
   "stats": {
-    "18": {
-      "recall": 0.5833333333333334,
-      "kept": 5.916666666666667,
-      "tokens": 10912.75,
-      "elapsed": 27.941666666666666,
-      "refused": 0
+    "6/18": {
+      "recall": 0.5416666666666666,
+      "kept": 5.666666666666667,
+      "tokens": 10959.833333333334,
+      "elapsed": 6.833333333333333,
+      "n_docs": 17.666666666666668,
+      "refused": 1
     },
-    "24": {
-      "recall": 0.5833333333333334,
-      "kept": 6,
-      "tokens": 10963.75,
-      "elapsed": 24.616666666666667,
+    "8/24": {
+      "recall": 0.7083333333333334,
+      "kept": 7.166666666666667,
+      "tokens": 13594.666666666666,
+      "elapsed": 19.65,
+      "n_docs": 23.666666666666668,
       "refused": 0
     }
   },
   "checks": [
     {
       "name": "recall 提升 > 0.02",
-      "ok": false,
-      "detail": "Δ=0.0000"
+      "ok": true,
+      "detail": "Δ=0.1667"
     },
     {
       "name": "token 增幅 <= 1.5x",
       "ok": true,
-      "detail": "1.00x"
+      "detail": "1.24x"
     },
     {
       "name": "耗时增幅 <= 1.3x",
-      "ok": true,
-      "detail": "0.88x"
+      "ok": false,
+      "detail": "2.88x"
     },
     {
       "name": "判分保留块数增加",
       "ok": true,
-      "detail": "5.92 -> 6.00"
+      "detail": "5.67 -> 7.17"
     }
   ],
   "verdict": "reject"
