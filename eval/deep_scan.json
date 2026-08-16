@@ -164,28 +164,28 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 499,
+    "line": 531,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 500,
+    "line": 532,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 501,
+    "line": 533,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 502,
+    "line": 534,
     "detail": "生产代码里的 print("
   },
   {
@@ -453,5 +453,12 @@
     "file": "RAG_PROJECT/llm_models/all_llm.py",
     "line": 4,
     "detail": "未使用的 import: `DEEPSEEK_API_KEY`"
+  },
+  {
+    "rule": "R13",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/markdown_parser.py",
+    "line": 328,
+    "detail": "`merge_title_content` 长 129 行（>120，可维护性）"
   }
 ]

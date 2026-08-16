@@ -1,18 +1,17 @@
 {
   "verdict": "INCONCLUSIVE",
   "reasons": [
-    "context_recall: 0.7993 处于告警区间 [0.6, 0.8)",
-    "生成层指标缺失（faithfulness, answer_relevancy）—— LLM 不可用导致，**不得据此判定质量回退**"
+    "生成层指标缺失（faithfulness, answer_relevancy）—— 本次未启用生成层评测（未传 --with-generation），**不得据此判定质量回退**"
   ],
   "scores": {
-    "context_recall": 0.7992679195804195,
+    "context_recall": 0.8500868055555556,
     "hit_rate": 0.9375,
-    "context_precision": 0.09408967391304347,
+    "context_precision": 0.06787817028985507,
     "faithfulness": null,
     "answer_relevancy": null
   },
   "cases": 32,
-  "elapsed_sec": 17.3,
+  "elapsed_sec": 16.3,
   "with_generation": false,
   "llm_available": true,
   "collections": [
@@ -23,13 +22,13 @@
   "per_source": {
     "manuals": {
       "n": 14,
-      "recall": 0.8321428571428572,
-      "precision": 0.08993271221532091
+      "recall": 0.9642857142857143,
+      "precision": 0.06586438923395445
     },
     "papers": {
       "n": 7,
-      "recall": 0.7037962037962038,
-      "precision": 0.19668737060041405
+      "recall": 0.6718253968253968,
+      "precision": 0.125
     },
     "milvus_docs": {
       "n": 9,
@@ -48,11 +47,10 @@
       "source": "manuals",
       "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
       "golden_blocks": [
-        "94e09c6a8006",
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -62,11 +60,10 @@
       "source": "manuals",
       "q": "ElasticCloud-8c60g-force_merge 的 P99 延迟是多少毫秒？",
       "golden_blocks": [
-        "94e09c6a8006",
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.08695652173913043,
+      "precision": 0.043478260869565216,
       "hit": 1.0,
       "retrieved_n": 23,
       "missed": []
@@ -76,25 +73,21 @@
       "source": "manuals",
       "q": "流式写入场景下，QdrantCloud-16c64g 的召回率是多少？",
       "golden_blocks": [
-        "3e7f9a39fdb1",
         "408208b67503",
-        "94e09c6a8006",
         "af0fc19664f3"
       ],
-      "recall": 0.75,
-      "precision": 0.13043478260869565,
+      "recall": 1.0,
+      "precision": 0.08695652173913043,
       "hit": 1.0,
       "retrieved_n": 23,
-      "missed": [
-        "3e7f9a39fdb1"
-      ]
+      "missed": []
     },
     {
       "id": "n004",
       "source": "manuals",
       "q": "Pinecone-p2.x8-1node 在流式写入下的 QPS 是多少？",
       "golden_blocks": [
-        "3e7f9a39fdb1"
+        "f1e2ce7777cf"
       ],
       "recall": 1.0,
       "precision": 0.041666666666666664,
@@ -107,30 +100,24 @@
       "source": "manuals",
       "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
       "golden_blocks": [
-        "3e7f9a39fdb1",
-        "94e09c6a8006",
         "af0fc19664f3",
         "f1e2ce7777cf"
       ],
-      "recall": 0.5,
+      "recall": 1.0,
       "precision": 0.08333333333333333,
       "hit": 1.0,
       "retrieved_n": 24,
-      "missed": [
-        "3e7f9a39fdb1",
-        "94e09c6a8006"
-      ]
+      "missed": []
     },
     {
       "id": "n006",
       "source": "manuals",
       "q": "Milvus-16c64g 的 QPS 大约是 ElasticCloud-8c60g 的几倍？",
       "golden_blocks": [
-        "94e09c6a8006",
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -141,17 +128,14 @@
       "q": "静态向量检索场景下，召回率超过 91% 的配置有哪些？",
       "golden_blocks": [
         "044bd4ef6ddb",
-        "1e9bb05e9320",
-        "94e09c6a8006",
         "af0fc19664f3"
       ],
       "recall": 0.5,
-      "precision": 0.08333333333333333,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": [
-        "044bd4ef6ddb",
-        "1e9bb05e9320"
+        "044bd4ef6ddb"
       ]
     },
     {
@@ -160,13 +144,10 @@
       "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
       "golden_blocks": [
         "4d43889ea877",
-        "75291bebb2f7",
-        "259df3338d91",
-        "e686fce1c980",
-        "2d8846562f47"
+        "259df3338d91"
       ],
       "recall": 1.0,
-      "precision": 0.20833333333333334,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -176,11 +157,10 @@
       "source": "manuals",
       "q": "2.6 能力矩阵里，「Int8 向量存储」是哪个版本引入的？",
       "golden_blocks": [
-        "0d2b1702a884",
         "d3fbab81e603"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -190,11 +170,10 @@
       "source": "manuals",
       "q": "milvus_deployment_requirements 里 REQ-001 需求讲的是什么？",
       "golden_blocks": [
-        "116a34c506d9",
-        "27d72cf57f59"
+        "116a34c506d9"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -205,14 +184,11 @@
       "q": "部署要求里 CPU 的推荐配置是什么？",
       "golden_blocks": [
         "0818c360d932",
-        "44f6f75b3893",
         "5c06820d15da",
-        "7e02681cd5f4",
-        "2991ce629641",
-        "a82925e3bcaf"
+        "2991ce629641"
       ],
       "recall": 1.0,
-      "precision": 0.25,
+      "precision": 0.125,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -225,13 +201,11 @@
         "08717126e11b",
         "2991ce629641"
       ],
-      "recall": 0.5,
-      "precision": 0.041666666666666664,
+      "recall": 1.0,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
       "retrieved_n": 24,
-      "missed": [
-        "2991ce629641"
-      ]
+      "missed": []
     },
     {
       "id": "n013",
@@ -358,26 +332,20 @@
         "0c491d0505c4",
         "0c5c32f3e5b2",
         "16d0739cc0b8",
-        "1e9bb05e9320",
         "6e3cc727e4b7",
         "73cf355abb56",
-        "75291bebb2f7",
         "a3bdf54966d1",
         "fcd2d5c54f92",
         "ff29320e2265",
-        "1b3292b1589a",
-        "7c4a65bb3cc0",
-        "f264958b9065"
+        "1b3292b1589a"
       ],
-      "recall": 0.6923076923076923,
-      "precision": 0.375,
+      "recall": 0.7777777777777778,
+      "precision": 0.2916666666666667,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": [
-        "1e9bb05e9320",
-        "75291bebb2f7",
-        "7c4a65bb3cc0",
-        "f264958b9065"
+        "16d0739cc0b8",
+        "6e3cc727e4b7"
       ]
     },
     {
@@ -387,11 +355,10 @@
       "golden_blocks": [
         "16d0739cc0b8",
         "6e3cc727e4b7",
-        "73cf355abb56",
-        "7c4a65bb3cc0"
+        "73cf355abb56"
       ],
       "recall": 1.0,
-      "precision": 0.16666666666666666,
+      "precision": 0.125,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": []
@@ -401,22 +368,15 @@
       "source": "manuals",
       "q": "Milvus 2.6 的 RaBitQ 量化带来了哪些收益？官方指标是多少？",
       "golden_blocks": [
-        "c398d71fa87d",
         "e6382f46d0c2",
         "116a34c506d9",
-        "27d72cf57f59",
-        "4300c251cdb3",
         "863024b86109"
       ],
-      "recall": 0.5,
+      "recall": 1.0,
       "precision": 0.125,
       "hit": 1.0,
       "retrieved_n": 24,
-      "missed": [
-        "27d72cf57f59",
-        "4300c251cdb3",
-        "863024b86109"
-      ]
+      "missed": []
     },
     {
       "id": "n025",
@@ -426,15 +386,13 @@
         "8d6ed55f6f96",
         "1b3292b1589a",
         "4fddcc128c87",
-        "37ff1aa574a8",
         "a0601ec0d8b4"
       ],
-      "recall": 0.4,
+      "recall": 0.5,
       "precision": 0.08333333333333333,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": [
-        "37ff1aa574a8",
         "4fddcc128c87",
         "8d6ed55f6f96"
       ]
@@ -445,31 +403,26 @@
       "q": "Milvus 支持哪些相似度度量类型？",
       "golden_blocks": [
         "4d43889ea877",
-        "75291bebb2f7",
-        "20ed87c9653a",
         "259df3338d91",
         "2cc14120d168",
         "5045647d914c",
         "6f8ea5911e19",
-        "e686fce1c980",
         "1b3292b1589a",
-        "2d8846562f47",
         "4fddcc128c87",
-        "d810793981df",
         "fb6eb0bb850d"
       ],
-      "recall": 0.46153846153846156,
-      "precision": 0.25,
+      "recall": 0.125,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": [
+        "1b3292b1589a",
         "259df3338d91",
         "4d43889ea877",
         "4fddcc128c87",
         "5045647d914c",
         "6f8ea5911e19",
-        "75291bebb2f7",
-        "d810793981df"
+        "fb6eb0bb850d"
       ]
     },
     {
@@ -495,18 +448,15 @@
         "bc788c590d9c",
         "cabb1abba213",
         "cf7644161036",
-        "d41ca85da7fe",
         "f1738f0db686",
-        "f6d54e4e4328",
         "fb57e260e31b"
       ],
-      "recall": 0.2727272727272727,
+      "recall": 0.3,
       "precision": 0.25,
       "hit": 1.0,
       "retrieved_n": 24,
       "missed": [
         "143d7cef020e",
-        "35b0310aaf31",
         "3fbb433e7baf",
         "4887b6191b1f",
         "49d467557e47",
@@ -519,7 +469,6 @@
         "b13c15f9913d",
         "cabb1abba213",
         "cf7644161036",
-        "d41ca85da7fe",
         "f1738f0db686"
       ]
     },
@@ -541,7 +490,7 @@
       "source": "manuals",
       "q": "架构介绍 PPT 里描述的查询（Search）数据流是什么样的？",
       "golden_blocks": [
-        "707f9402482c"
+        "5843b863da91"
       ],
       "recall": 1.0,
       "precision": 0.041666666666666664,
@@ -554,12 +503,12 @@
       "source": "papers",
       "q": "扫描版性能 FAQ 里提到了设置 nlist / nprobe 的问题吗？",
       "golden_blocks": [
-        "31109bf8138c"
+        "28321778ec2b"
       ],
       "recall": 1.0,
-      "precision": 0.043478260869565216,
+      "precision": 0.041666666666666664,
       "hit": 1.0,
-      "retrieved_n": 23,
+      "retrieved_n": 24,
       "missed": []
     },
     {

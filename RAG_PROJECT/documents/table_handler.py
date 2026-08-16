@@ -284,6 +284,121 @@ def build_table_chunks(html: str,
     return chunks
 
 
+# ---------------------------------------------------------------------------
+# 扁平孪生判定（ROADMAP 4.17）
+#
+# ## 要解决的问题
+#
+# 一个 unstructured `Table` 元素会被**两条路径**处理：
+#   1. 其 `page_content` 是**扁平文本**（表格被压成一串词），走原有合并逻辑；
+#   2. 其 `text_as_html` 被 `restore_table_documents()` 重建为**结构化 Markdown 块**。
+#
+# 当前实现**两份都入库**（`markdown_parser` 的注释写「少量重复，可接受」）。
+# 实测（2026-10-15）**「少量」不成立**：库里 528 块中有 **236 块（44.7%）**
+# 落在「同 filename+title」组里，且**直接损害指标** —— n005 的 4 个 golden 中
+# 有 2 个是扁平版，`recall` 因此从 1.00 掉到 0.50（详见 ROADMAP 4.15 / 4.16）。
+#
+# ## 判据：三维同时满足（**严格向：宁可漏判，不误删**）
+#
+#   1. **正向覆盖** —— 结构化块里的长值**全部**出现在扁平文本里；
+#   2. **反向覆盖** —— 扁平文本里的长词**几乎全部**能在结构化块里找到；
+#   3. **长度比** —— 扁平 / 结构化总长在合理区间。
+#
+# ## 阈值全部由实测标定（`eval/measure_flat_twin.py`，库里 15 组）
+#
+#     正向覆盖率  min 0.98  中位 1.00  max 1.00
+#     反向覆盖率  min 0.41  中位 1.00  max 1.00
+#     长度比      min 0.74  中位 0.84  max 1.47
+#
+# **反向阈值取 0.95**，落在实测的空隙里：纯孪生全是 1.00，含额外正文的最高 0.69。
+#
+# **为什么必须有反向覆盖**（本次最关键的一课）：
+# 首版只看正向覆盖，而两个真实样本的**正向覆盖率都是 1.00**，性质却完全不同 ——
+#   * `milvus_capability_matrix / 来源说明`：扁平 = 结构化去掉 `|`/`---`（纯孪生，可删）；
+#   * `milvus_index_spec / 6.2 依赖组件版本`：扁平里多了
+#     「6 部署环境要求 Before installing a Milvus Standalone instance, check…」
+#     「出处：milvus.io v2.6.x — Requirements…」
+#     —— 该扁平块**已被父标题合并逻辑并入了周围正文**，直接删会**丢内容**。
+#
+# **不能**用「扁平 / 结构化最长块」当判据：该比值实测跨 0.74~7.13
+# （一个表格元素会被切成多个行段，分母随切段数变化）。
+# ---------------------------------------------------------------------------
+_FLAT_TWIN_MIN_FORWARD = 0.98
+_FLAT_TWIN_MIN_REVERSE = 0.95
+_FLAT_TWIN_LEN_RATIO: Tuple[float, float] = (0.5, 2.0)
+# 取 >= 4 字符、并排除纯数字：短值（`0%`、`40`）在扁平文本里几乎必然出现，
+# 没有判别力；且格式差异（`61.35%` vs `61.35 %`）会造成误判。
+_FLAT_TWIN_MIN_VALUE_CHARS = 4
+_FLAT_TWIN_MIN_WORD_CHARS = 6
+
+_NUMERICISH_RE = re.compile(r'^[\d.,%\s/\-]+$')
+_FLAT_TWIN_WORD_RE = re.compile(
+    r'[A-Za-z\u4e00-\u9fff0-9./_-]{%d,}' % _FLAT_TWIN_MIN_WORD_CHARS)
+_HAS_LETTER_RE = re.compile(r'[A-Za-z\u4e00-\u9fff]')
+
+
+def _norm_ws(s: str) -> str:
+    """把连续空白压成单空格 —— 扁平文本与 Markdown 表格的空白布局必然不同。"""
+    return re.sub(r'\s+', ' ', s)
+
+
+def _flat_twin_values(chunks: Sequence[str]) -> set:
+    """结构化块里「有判别力」的长值集合（Markdown 表格行中 `|` 分隔的长单元格）。"""
+    vals = set()
+    for c in chunks or []:
+        for line in (c or '').splitlines():
+            line = line.strip()
+            # 只取表格数据行；`|---|---|` 这类分隔行要排除
+            if not line.startswith('|') or set(line) <= set('|- '):
+                continue
+            for v in line.strip('|').split('|'):
+                v = v.strip()
+                if len(v) >= _FLAT_TWIN_MIN_VALUE_CHARS and not _NUMERICISH_RE.match(v):
+                    vals.add(_norm_ws(v))
+    return vals
+
+
+def is_flat_twin(flat_text: str, table_chunks: Sequence[str]) -> bool:
+    """该扁平文本是否为「已产出结构化块的表格」的孪生（是则可安全丢弃）。
+
+    Args:
+        flat_text: 表格元素的 `page_content`（扁平文本）。
+        table_chunks: 由 `restore_table_documents()` 从**同一元素**产出的结构化块。
+
+    Returns:
+        True 表示扁平文本的内容已被结构化块完整覆盖，丢弃它不会丢内容。
+        **宁可靠 False**：任一条判据不满足（或无法判定）都返回 False。
+
+    判据与阈值来源见本节顶部注释（三维：正向覆盖 / 反向覆盖 / 长度比）。
+    实测样本见 `eval/test_flat_twin.py`（正例与负例均取自库中真实数据）。
+    """
+    if not flat_text or not table_chunks:
+        return False
+
+    # 判据 1：正向覆盖 —— 结构化块的长值是否都在扁平文本里
+    vals = _flat_twin_values(table_chunks)
+    if not vals:
+        # 提取不到有判别力的值（如只有表头）-> 无法判定 -> 不删（严格向）
+        return False
+    flat_norm = _norm_ws(flat_text)
+    if sum(1 for v in vals if v in flat_norm) / len(vals) < _FLAT_TWIN_MIN_FORWARD:
+        return False
+
+    # 判据 2：反向覆盖 —— 扁平文本里有没有结构化块「完全没有」的内容
+    # （若没有这一维，「已被父标题合并进周围正文」的扁平块会被误删）
+    st_all = '\n'.join(table_chunks)
+    words = {w for w in _FLAT_TWIN_WORD_RE.findall(flat_text) if _HAS_LETTER_RE.search(w)}
+    if words and sum(1 for w in words if w in st_all) / len(words) < _FLAT_TWIN_MIN_REVERSE:
+        return False
+
+    # 判据 3：长度比 —— 防止「同内容被重复多遍」之类的畸形输入
+    total = sum(len(c) for c in table_chunks)
+    if total <= 0:
+        return False
+    lo, hi = _FLAT_TWIN_LEN_RATIO
+    return lo <= len(flat_text) / total <= hi
+
+
 def has_restorable_table(doc: Document) -> bool:
     """该元素是否为「可恢复结构的表格」。
 

@@ -1,0 +1,609 @@
+{
+  "n_cases": 32,
+  "rows": [
+    {
+      "id": "n027",
+      "source": "papers",
+      "q": "工程实践中 RAG 系统有哪些常见的失败点？",
+      "n_golden": 20,
+      "n_files": 1,
+      "top_file": "rag_failure_modes_paper.pdf.md",
+      "top_n": 20,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n022",
+      "source": "papers",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "n_golden": 9,
+      "n_files": 2,
+      "top_file": "milvus_hybrid_search_whitepaper.pdf.md",
+      "top_n": 8,
+      "same_ratio": 0.889,
+      "unknown": []
+    },
+    {
+      "id": "n026",
+      "source": "papers",
+      "q": "Milvus 支持哪些相似度度量类型？",
+      "n_golden": 8,
+      "n_files": 4,
+      "top_file": "milvus_index_spec.docx.md",
+      "top_n": 4,
+      "same_ratio": 0.5,
+      "unknown": []
+    },
+    {
+      "id": "n023",
+      "source": "papers",
+      "q": "RRF（Reciprocal Rank Fusion）是怎么融合多路检索结果的？",
+      "n_golden": 3,
+      "n_files": 1,
+      "top_file": "milvus_hybrid_search_whitepaper.pdf.md",
+      "top_n": 3,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n025",
+      "source": "manuals",
+      "q": "Milvus 支持哪些索引类型？各自适用什么场景？",
+      "n_golden": 4,
+      "n_files": 3,
+      "top_file": "milvus_product_intro.pptx.md",
+      "top_n": 2,
+      "same_ratio": 0.5,
+      "unknown": []
+    },
+    {
+      "id": "n024",
+      "source": "manuals",
+      "q": "Milvus 2.6 的 RaBitQ 量化带来了哪些收益？官方指标是多少？",
+      "n_golden": 3,
+      "n_files": 2,
+      "top_file": "milvus_deployment_requirements.docx.md",
+      "top_n": 2,
+      "same_ratio": 0.667,
+      "unknown": []
+    },
+    {
+      "id": "n003",
+      "source": "manuals",
+      "q": "流式写入场景下，QdrantCloud-16c64g 的召回率是多少？",
+      "n_golden": 2,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 2,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n005",
+      "source": "manuals",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "n_golden": 2,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 2,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n011",
+      "source": "manuals",
+      "q": "部署要求里 CPU 的推荐配置是什么？",
+      "n_golden": 3,
+      "n_files": 3,
+      "top_file": "milvus_deployment_requirements.docx.md",
+      "top_n": 1,
+      "same_ratio": 0.333,
+      "unknown": []
+    },
+    {
+      "id": "n007",
+      "source": "papers",
+      "q": "静态向量检索场景下，召回率超过 91% 的配置有哪些？",
+      "n_golden": 2,
+      "n_files": 2,
+      "top_file": "milvus_hybrid_search_whitepaper.pdf.md",
+      "top_n": 1,
+      "same_ratio": 0.5,
+      "unknown": []
+    },
+    {
+      "id": "n008",
+      "source": "papers",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "n_golden": 2,
+      "n_files": 2,
+      "top_file": "milvus_hybrid_search_whitepaper.pdf.md",
+      "top_n": 1,
+      "same_ratio": 0.5,
+      "unknown": []
+    },
+    {
+      "id": "n012",
+      "source": "manuals",
+      "q": "Milvus 的 etcd 依赖版本是多少？",
+      "n_golden": 2,
+      "n_files": 2,
+      "top_file": "milvus_index_spec.docx.md",
+      "top_n": 1,
+      "same_ratio": 0.5,
+      "unknown": []
+    },
+    {
+      "id": "n001",
+      "source": "manuals",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n002",
+      "source": "manuals",
+      "q": "ElasticCloud-8c60g-force_merge 的 P99 延迟是多少毫秒？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n004",
+      "source": "manuals",
+      "q": "Pinecone-p2.x8-1node 在流式写入下的 QPS 是多少？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n006",
+      "source": "manuals",
+      "q": "Milvus-16c64g 的 QPS 大约是 ElasticCloud-8c60g 的几倍？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "vector_db_benchmark.xlsx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n009",
+      "source": "manuals",
+      "q": "2.6 能力矩阵里，「Int8 向量存储」是哪个版本引入的？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_capability_matrix.xlsx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n010",
+      "source": "manuals",
+      "q": "milvus_deployment_requirements 里 REQ-001 需求讲的是什么？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_deployment_requirements.docx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n013",
+      "source": "milvus_docs",
+      "q": "Milvus 支持非 x86 架构（如 ARM）吗？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_faq.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n014",
+      "source": "milvus_docs",
+      "q": "在 Milvus 里删除数据后，存储空间会立即释放吗？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_faq.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n015",
+      "source": "milvus_docs",
+      "q": "指定分区查询时，集合大小会影响查询性能吗？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_faq.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n016",
+      "source": "milvus_docs",
+      "q": "开启 partition key 后，num_partitions 的默认值是多少？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_faq.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n017",
+      "source": "milvus_docs",
+      "q": "为什么搜索 topk 时会返回少于 k 个向量？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_faq.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n018",
+      "source": "milvus_docs",
+      "q": "Attu 是什么？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_glossary.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n019",
+      "source": "milvus_docs",
+      "q": "在 Milvus 里，collection 相当于关系数据库里的什么？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_glossary.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n020",
+      "source": "milvus_docs",
+      "q": "Milvus 的 Hybrid Search 是从哪个版本开始支持的？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_glossary.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n021",
+      "source": "milvus_docs",
+      "q": "Log snapshot 是什么？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_glossary.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n028",
+      "source": "manuals",
+      "q": "产品介绍 PPT 里列出的核心能力有哪些？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_product_intro.pptx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n029",
+      "source": "manuals",
+      "q": "架构介绍 PPT 里描述的查询（Search）数据流是什么样的？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "milvus_architecture.pptx.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    },
+    {
+      "id": "n030",
+      "source": "papers",
+      "q": "扫描版性能 FAQ 里提到了设置 nlist / nprobe 的问题吗？",
+      "n_golden": 1,
+      "n_files": 1,
+      "top_file": "scanned_performance_faq.pdf.md",
+      "top_n": 1,
+      "same_ratio": 1.0,
+      "unknown": []
+    }
+  ],
+  "per_case": [
+    {
+      "id": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n002",
+      "q": "ElasticCloud-8c60g-force_merge 的 P99 延迟是多少毫秒？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n003",
+      "q": "流式写入场景下，QdrantCloud-16c64g 的召回率是多少？",
+      "n_golden": 2,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n004",
+      "q": "Pinecone-p2.x8-1node 在流式写入下的 QPS 是多少？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "n_golden": 2,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n006",
+      "q": "Milvus-16c64g 的 QPS 大约是 ElasticCloud-8c60g 的几倍？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n007",
+      "q": "静态向量检索场景下，召回率超过 91% 的配置有哪些？",
+      "n_golden": 2,
+      "n_groups": 2,
+      "block_recall": 0.5,
+      "group_recall": 0.5,
+      "delta": 0.0
+    },
+    {
+      "id": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "n_golden": 2,
+      "n_groups": 2,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n009",
+      "q": "2.6 能力矩阵里，「Int8 向量存储」是哪个版本引入的？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n010",
+      "q": "milvus_deployment_requirements 里 REQ-001 需求讲的是什么？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n011",
+      "q": "部署要求里 CPU 的推荐配置是什么？",
+      "n_golden": 3,
+      "n_groups": 3,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n012",
+      "q": "Milvus 的 etcd 依赖版本是多少？",
+      "n_golden": 2,
+      "n_groups": 2,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n013",
+      "q": "Milvus 支持非 x86 架构（如 ARM）吗？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n014",
+      "q": "在 Milvus 里删除数据后，存储空间会立即释放吗？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n015",
+      "q": "指定分区查询时，集合大小会影响查询性能吗？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n016",
+      "q": "开启 partition key 后，num_partitions 的默认值是多少？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n017",
+      "q": "为什么搜索 topk 时会返回少于 k 个向量？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n018",
+      "q": "Attu 是什么？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n019",
+      "q": "在 Milvus 里，collection 相当于关系数据库里的什么？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n020",
+      "q": "Milvus 的 Hybrid Search 是从哪个版本开始支持的？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n021",
+      "q": "Log snapshot 是什么？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "n_golden": 9,
+      "n_groups": 2,
+      "block_recall": 0.7777777777777778,
+      "group_recall": 1.0,
+      "delta": 0.2222222222222222
+    },
+    {
+      "id": "n023",
+      "q": "RRF（Reciprocal Rank Fusion）是怎么融合多路检索结果的？",
+      "n_golden": 3,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n024",
+      "q": "Milvus 2.6 的 RaBitQ 量化带来了哪些收益？官方指标是多少？",
+      "n_golden": 3,
+      "n_groups": 2,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n025",
+      "q": "Milvus 支持哪些索引类型？各自适用什么场景？",
+      "n_golden": 4,
+      "n_groups": 3,
+      "block_recall": 0.5,
+      "group_recall": 0.6666666666666666,
+      "delta": 0.16666666666666663
+    },
+    {
+      "id": "n026",
+      "q": "Milvus 支持哪些相似度度量类型？",
+      "n_golden": 8,
+      "n_groups": 4,
+      "block_recall": 0.125,
+      "group_recall": 0.25,
+      "delta": 0.125
+    },
+    {
+      "id": "n027",
+      "q": "工程实践中 RAG 系统有哪些常见的失败点？",
+      "n_golden": 20,
+      "n_groups": 1,
+      "block_recall": 0.3,
+      "group_recall": 1.0,
+      "delta": 0.7
+    },
+    {
+      "id": "n028",
+      "q": "产品介绍 PPT 里列出的核心能力有哪些？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n029",
+      "q": "架构介绍 PPT 里描述的查询（Search）数据流是什么样的？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    },
+    {
+      "id": "n030",
+      "q": "扫描版性能 FAQ 里提到了设置 nlist / nprobe 的问题吗？",
+      "n_golden": 1,
+      "n_groups": 1,
+      "block_recall": 1.0,
+      "group_recall": 1.0,
+      "delta": 0.0
+    }
+  ],
+  "avg_block_recall": 0.9068,
+  "avg_group_recall": 0.9472
+}

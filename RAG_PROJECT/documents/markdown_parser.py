@@ -16,6 +16,7 @@ from langchain_core.documents import Document
 from documents.table_handler import (
     DEFAULT_MAX_ROWS,
     has_restorable_table,
+    is_flat_twin,
     restore_table_documents,
 )
 
@@ -354,17 +355,48 @@ class MarkdownParser:
             category = metadata.get('category', None)
             element_id = metadata.get('element_id', None)
 
-            # [ROADMAP 2.4] 表格：恢复结构 + 表格感知切分，**额外**产出一份独立块。
-            # 注意这里**不** continue —— 表格仍要走下面的合并逻辑，
-            # 以保证父标题的累积内容与改造前完全一致（块边界不变）。
+            # [ROADMAP 2.4] 表格：恢复结构 + 表格感知切分，产出一份独立的结构化块。
+            #
+            # [FIX 2026-10-15 / ROADMAP 4.17] 原先这里**不** continue（注释写
+            # 「以保证父标题的累积内容与改造前完全一致，块边界不变」），于是表格的
+            # **扁平文本**（`page_content`）还会走下面的合并逻辑、被拼进**父标题块**：
+            #
+            #     parent.page_content = parent.page_content + ' ' + document.page_content
+            #
+            # 结果同一张表**以两种形态同时入库**（结构化块 + 父块里的扁平文本）。
+            # 2.4 当时判断这是「少量重复，可接受」，但实测（2026-10-15）「少量」不成立：
+            #   * 库里 528 块中 **236 块（44.7%）** 落在「同 filename+title」组里；
+            #   * 且**直接损害指标** —— n005 的 4 个 golden 里有 2 个是扁平版，
+            #     `recall` 因此从 1.00 掉到 0.50（见 4.15 / 4.16）。
+            #
+            # 现在的做法：**只在能证明「扁平文本已被结构化块完整覆盖」时**才跳过累积
+            # （`is_flat_twin`，三维判据 + 实测阈值）。这样：
+            #   * 纯孪生（如 `capability_matrix / 来源说明`）-> 父块不再被塞入表格文本；
+            #   * 含额外正文的（如 `index_spec / 6.2 依赖组件版本`，父块里还有
+            #     「6 部署环境要求 Before installing…」）-> **照旧累积**，绝不丢内容；
+            #   * 判定不出（HTML 解析失败 / 提取不到可判别值）-> 照旧累积（严格向）。
+            #
+            # 为何用 continue 是安全的：`category == 'Table'` 不可能是 `Title`，
+            # 因此跳过下面的 Title 分支不影响面包屑的构建。
             if has_restorable_table(document):
                 table_name = ''
                 if parent_id and parent_id in parent_dict:
                     # 父标题可能已是面包屑（"A -> B"），表名取最后一段
                     table_name = parent_dict[parent_id].page_content.split(' -> ')[-1]
-                extra_table_docs.extend(restore_table_documents(
+                table_chunks = restore_table_documents(
                     document, table_name=table_name, max_rows=self.table_max_rows
-                ))
+                )
+                if table_chunks:
+                    extra_table_docs.extend(table_chunks)
+                    # 注意 `restore_table_documents()` 返回的是 **List[Document]**，
+                    # 而 `is_flat_twin()` 要的是**文本列表**。首版直接传 Documents，
+                    # 在真实 md 文件上抛 `AttributeError: 'Document' object has no
+                    # attribute 'splitlines'`（由 B 段管道验证抓到 —— 见
+                    # eval/verify_flat_twin_pipeline.py；单元测试测不到，因为
+                    # 那里传的是裸字符串）。
+                    if is_flat_twin(document.page_content,
+                                    [d.page_content for d in table_chunks]):
+                        continue
 
             # [ROADMAP 2.7] 顶层正文块（无父标题）独立成块。
             #

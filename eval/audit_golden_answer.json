@@ -1,0 +1,33 @@
+{
+  "checked": 11,
+  "suspicious": [
+    {
+      "id": "n004",
+      "q": "Pinecone-p2.x8-1node 在流式写入下的 QPS 是多少？",
+      "ents": [
+        "Pinecone-p2.x8-1node"
+      ],
+      "blocks": [
+        {
+          "id": "408208b67503",
+          "hit": "",
+          "head": "表格：检索性能实测（第 61-85 行） 列名：场景 | 数据集 | 产品与规格 | 过滤比例 | QPS | P99延"
+        }
+      ]
+    },
+    {
+      "id": "n010",
+      "q": "milvus_deployment_requirements 里 REQ-001 需求讲的是什么？",
+      "ents": [
+        "milvus_deployment_requirements"
+      ],
+      "blocks": [
+        {
+          "id": "116a34c506d9",
+          "hit": "",
+          "head": "表格：2 需求条目 下表“需求说明”栏为官方原文引文（单格篇幅均在 200 字以上），用于约束升级后的平台能力验收口径。"
+        }
+      ]
+    }
+  ]
+}

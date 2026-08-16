@@ -1,0 +1,39 @@
+{
+  "backup": "backup_20261015_220359.json",
+  "collections": {
+    "kb_milvus_bge_large_1024": {
+      "n": 249
+    },
+    "kb_papers_bge_large_1024": {
+      "n": 176
+    },
+    "kb_manuals_bge_large_1024": {
+      "n": 103
+    }
+  },
+  "gone_total": 78,
+  "covered_ok": 75,
+  "lost": [
+    {
+      "filename": "scanned_performance_faq.pdf.md",
+      "title": "scanned_performance_faq.pdf",
+      "coverage": 0.0,
+      "n_frag": 1,
+      "head": "scanned_performance_faq.pdf"
+    },
+    {
+      "filename": "scanned_performance_faq.pdf.md",
+      "title": "第 1 页",
+      "coverage": 0.5,
+      "n_frag": 76,
+      "head": "scanned_performance_faq.pdf -> 第 1 页 PerformanceFAQ HowtosetnlistandnprobeforIVFindexes? Settingnlistisscenario-specific"
+    },
+    {
+      "filename": "scanned_performance_faq.pdf.md",
+      "title": "第 2 页",
+      "coverage": 0.75,
+      "n_frag": 16,
+      "head": "scanned_performance_faq.pdf -> 第 2 页 However,indexingaVARCHARfielddoesnotspeedup: DeletingbyIDs:WhentheVARCHARfield isth"
+    }
+  ]
+}
