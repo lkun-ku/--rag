@@ -1,0 +1,36 @@
+{
+  "question": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+  "n_ret": 36,
+  "n_kept": 8,
+  "method": "tiktoken(cl100k_base)",
+  "nodes": [
+    {
+      "node": "① route_question",
+      "calls": 1,
+      "in": 84,
+      "out": 6
+    },
+    {
+      "node": "② grade_documents",
+      "calls": 36,
+      "in": 23509,
+      "out": 216
+    },
+    {
+      "node": "③ generate",
+      "calls": 1,
+      "in": 4537,
+      "out": 180
+    },
+    {
+      "node": "④ grade_generation",
+      "calls": 2,
+      "in": 8864,
+      "out": 12
+    }
+  ],
+  "total": {
+    "in": 36994,
+    "out": 414
+  }
+}

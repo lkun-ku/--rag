@@ -2,12 +2,12 @@
   {
     "scenario": "A",
     "label": "单租户 + 同步 /ask（基线）",
-    "ok": "FLAT、IVF_FLAT、IVF_PQ、IVF_SQ8、HNSW、HNSW_SQ、HNSW_PQ、HNSW_PRQ、SCANN [5]；BIN_FLAT、BIN_IVF_FLAT [5]；SPARSE_INVERTED_INDEX [5]。",
+    "ok": "FLAT、IVF 系列、HNSW 系列、DISKANN、SCANN、GPU 索引、稀疏索引 [2]；具体包括 FLAT、IVF_FLAT、IVF_PQ、IVF_SQ8、HNSW、HNSW_SQ、HNSW_PQ、HNSW_PRQ、SCANN（CPU ANN 搜索）[3]；二进制向量索引包括 BIN_FLAT、BIN_IVF_FLAT [3]；稀疏向量索引支持 SPARSE_INVERTED_INDEX [3]。",
     "detail": {
       "http": 200,
       "refused": false,
-      "n_cites": 1,
-      "answer_len": 121
+      "n_cites": 2,
+      "answer_len": 206
     }
   },
   {
@@ -34,7 +34,7 @@
       "has_answer": true,
       "has_error": false,
       "tenant": "acme",
-      "answer_len": 354
+      "answer_len": 130
     }
   },
   {

@@ -1,17 +1,18 @@
 {
   "verdict": "INCONCLUSIVE",
   "reasons": [
+    "context_precision: 0.0496 处于告警区间 [0.03, 0.05)",
     "生成层指标缺失（faithfulness, answer_relevancy）—— 本次未启用生成层评测（未传 --with-generation），**不得据此判定质量回退**"
   ],
   "scores": {
-    "context_recall": 0.8500868055555556,
+    "context_recall": 0.86640625,
     "hit_rate": 0.9375,
-    "context_precision": 0.06787817028985507,
+    "context_precision": 0.049553571428571426,
     "faithfulness": null,
     "answer_relevancy": null
   },
   "cases": 32,
-  "elapsed_sec": 16.3,
+  "elapsed_sec": 21.0,
   "with_generation": false,
   "llm_available": true,
   "collections": [
@@ -23,17 +24,17 @@
     "manuals": {
       "n": 14,
       "recall": 0.9642857142857143,
-      "precision": 0.06586438923395445
+      "precision": 0.04382086167800453
     },
     "papers": {
       "n": 7,
-      "recall": 0.6718253968253968,
-      "precision": 0.125
+      "recall": 0.7464285714285713,
+      "precision": 0.10317460317460317
     },
     "milvus_docs": {
       "n": 9,
       "recall": 1.0,
-      "precision": 0.041666666666666664
+      "precision": 0.027777777777777776
     },
     "out_of_scope": {
       "n": 2,
@@ -50,9 +51,9 @@
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -63,9 +64,9 @@
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.043478260869565216,
+      "precision": 0.02857142857142857,
       "hit": 1.0,
-      "retrieved_n": 23,
+      "retrieved_n": 35,
       "missed": []
     },
     {
@@ -77,9 +78,9 @@
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.08695652173913043,
+      "precision": 0.05714285714285714,
       "hit": 1.0,
-      "retrieved_n": 23,
+      "retrieved_n": 35,
       "missed": []
     },
     {
@@ -90,9 +91,9 @@
         "f1e2ce7777cf"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -104,9 +105,9 @@
         "f1e2ce7777cf"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -117,9 +118,9 @@
         "af0fc19664f3"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -131,9 +132,9 @@
         "af0fc19664f3"
       ],
       "recall": 0.5,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": [
         "044bd4ef6ddb"
       ]
@@ -147,9 +148,9 @@
         "259df3338d91"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -160,9 +161,9 @@
         "d3fbab81e603"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -173,9 +174,9 @@
         "116a34c506d9"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -188,9 +189,9 @@
         "2991ce629641"
       ],
       "recall": 1.0,
-      "precision": 0.125,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -202,9 +203,9 @@
         "2991ce629641"
       ],
       "recall": 1.0,
-      "precision": 0.08333333333333333,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -215,9 +216,9 @@
         "00458dfb1f5d"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -228,9 +229,9 @@
         "0862ab74a2dd"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -241,9 +242,9 @@
         "0110139a9bce"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -254,9 +255,9 @@
         "0ab41d5e7e99"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -267,9 +268,9 @@
         "7fdafb2f9975"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -280,9 +281,9 @@
         "115b11d5c9d6"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -293,9 +294,9 @@
         "1007c1e68c83"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -306,9 +307,9 @@
         "8e9cd218a765"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -319,9 +320,9 @@
         "001e0f87ad39"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -339,14 +340,11 @@
         "ff29320e2265",
         "1b3292b1589a"
       ],
-      "recall": 0.7777777777777778,
-      "precision": 0.2916666666666667,
+      "recall": 1.0,
+      "precision": 0.25,
       "hit": 1.0,
-      "retrieved_n": 24,
-      "missed": [
-        "16d0739cc0b8",
-        "6e3cc727e4b7"
-      ]
+      "retrieved_n": 36,
+      "missed": []
     },
     {
       "id": "n023",
@@ -358,9 +356,9 @@
         "73cf355abb56"
       ],
       "recall": 1.0,
-      "precision": 0.125,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -373,9 +371,9 @@
         "863024b86109"
       ],
       "recall": 1.0,
-      "precision": 0.125,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -389,12 +387,12 @@
         "a0601ec0d8b4"
       ],
       "recall": 0.5,
-      "precision": 0.08333333333333333,
+      "precision": 0.05555555555555555,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": [
-        "4fddcc128c87",
-        "8d6ed55f6f96"
+        "8d6ed55f6f96",
+        "a0601ec0d8b4"
       ]
     },
     {
@@ -411,16 +409,14 @@
         "4fddcc128c87",
         "fb6eb0bb850d"
       ],
-      "recall": 0.125,
-      "precision": 0.041666666666666664,
+      "recall": 0.375,
+      "precision": 0.08333333333333333,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": [
-        "1b3292b1589a",
         "259df3338d91",
         "4d43889ea877",
         "4fddcc128c87",
-        "5045647d914c",
         "6f8ea5911e19",
         "fb6eb0bb850d"
       ]
@@ -451,16 +447,15 @@
         "f1738f0db686",
         "fb57e260e31b"
       ],
-      "recall": 0.3,
-      "precision": 0.25,
+      "recall": 0.35,
+      "precision": 0.19444444444444445,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": [
         "143d7cef020e",
         "3fbb433e7baf",
         "4887b6191b1f",
         "49d467557e47",
-        "5c0450442160",
         "65ca91116259",
         "706ed3225329",
         "75f307dae6c2",
@@ -480,9 +475,9 @@
         "1b3292b1589a"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -493,9 +488,9 @@
         "5843b863da91"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -506,9 +501,9 @@
         "28321778ec2b"
       ],
       "recall": 1.0,
-      "precision": 0.041666666666666664,
+      "precision": 0.027777777777777776,
       "hit": 1.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -519,7 +514,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     },
     {
@@ -530,7 +525,7 @@
       "recall": 0.0,
       "precision": 0.0,
       "hit": 0.0,
-      "retrieved_n": 24,
+      "retrieved_n": 36,
       "missed": []
     }
   ]

@@ -50,6 +50,7 @@ CHECKS = [
     ("模块边界", "eval/module_tests.py", "quick", "66 个模块级边界用例"),
     ("表格处理", "eval/verify_rowspan.py", "quick", "rowspan/colspan/合并单元格 + 配置边界"),
     ("表格孪生去重", "eval/test_flat_twin.py", "quick", "is_flat_twin 三维判据（正负例均取自真实样本）"),
+    ("判分 token 埋点", "eval/test_grade_callback.py", "quick", "grade_documents 的 config 透传（含 tracer 包装链路）"),
     ("引用校验", "eval/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),
     ("API + SSE", "eval/verify_p1_batch.py", "slow", "SSE 事件类型、trace 落盘、disabled 源"),
     ("多租户联动", "eval/verify_integration.py", "slow", "配置 x 入口 矩阵（5 场景）"),

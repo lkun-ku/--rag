@@ -1,0 +1,711 @@
+{
+  "rounds": 5,
+  "llm": "deepseek-flash",
+  "temperature": 0.0,
+  "results": [
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 1,
+      "chunk_id": "7ebb24ef84ea",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Comprehensive Feature Set In addition to the key search "
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 2,
+      "chunk_id": "0c491d0505c4",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 3,
+      "chunk_id": "d22bde253443",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：幻灯片 7：（无标题） 相似度度量与字段类型 来源：milvus.io v2.6.x — Metric T"
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 4,
+      "chunk_id": "5c3094a82dc1",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "compact Compacts a collection to merge small segments an"
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 5,
+      "chunk_id": "044bd4ef6ddb",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：5.1 VectorDBBench leaderboard (Cohere Medium 1M × 768"
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 6,
+      "chunk_id": "d8380c72f019",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "7 性能基准参考 Comparing with Milvus 2.1, the QPS of Milvus 2."
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 7,
+      "chunk_id": "42498f3f3f81",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "How does Milvus handle vector data types and precision? "
+    },
+    {
+      "qid": "n001",
+      "q": "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？",
+      "idx": 8,
+      "chunk_id": "d258397f9ecb",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "表格：5.2 Milvus 2.2 scale-up / scale-out benchmark Milvus "
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 1,
+      "chunk_id": "a5f0a493406a",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Product FAQ -> Why is there no vector data in etcd? etcd"
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 2,
+      "chunk_id": "0c5c32f3e5b2",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 3,
+      "chunk_id": "cdcc10e52aff",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：数据来源 列名：字段 | 说明 | 来源  | 字段 | 说明 | 来源 | |---|---|---| "
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 4,
+      "chunk_id": "e8c9099f823c",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Product FAQ -> When vectors with duplicate primary keys "
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 5,
+      "chunk_id": "0c491d0505c4",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 6,
+      "chunk_id": "f1e2ce7777cf",
+      "is_golden": true,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：检索性能实测（第 31-60 行） 列名：场景 | 数据集 | 产品与规格 | 过滤比例 | QPS | "
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 7,
+      "chunk_id": "17c69ad0af5d",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Product FAQ -> Can vectors with duplicate primary keys b"
+    },
+    {
+      "qid": "n005",
+      "q": "参与评测的产品里，召回率最低的是哪个？召回率是多少？",
+      "idx": 8,
+      "chunk_id": "b4d618db0669",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 1,
+      "chunk_id": "0d43dd7e144a",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "milvus_cli > create collection  Please input collection "
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 2,
+      "chunk_id": "4d43889ea877",
+      "is_golden": true,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：4 Sparse vectors, full-text search and the BM25 metri"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 3,
+      "chunk_id": "09df2faf8a20",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "表格：幻灯片 7：（无标题） 相似度度量与字段类型 来源：milvus.io v2.6.x — Metric T"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 4,
+      "chunk_id": "42498f3f3f81",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "How does Milvus handle vector data types and precision? "
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 5,
+      "chunk_id": "b4d618db0669",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 6,
+      "chunk_id": "8442934cb25a",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "幻灯片 7：（无标题） 相似度度量与字段类型 来源：milvus.io v2.6.x — Metric Type"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 7,
+      "chunk_id": "860e1df1adf5",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Terminology -> Metric type Similarity metric types are u"
+    },
+    {
+      "qid": "n008",
+      "q": "FLOAT_VECTOR 字段支持哪些相似度度量类型？",
+      "idx": 8,
+      "chunk_id": "5d058693a513",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "表格：4.2 Multi-vector Queries In many applications, each e"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 1,
+      "chunk_id": "8e9cd218a765",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Terminology -> Hybrid search Hybrid Search is an API for"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 2,
+      "chunk_id": "0c5c32f3e5b2",
+      "is_golden": true,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 3,
+      "chunk_id": "95a9bbce85e6",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "幻灯片 1：（无标题） Milvus 向量数据库产品介绍 开源云原生向量数据库 · 混合检索 · 实测性能（v2"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 4,
+      "chunk_id": "ffb7642721b1",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Terminology -> Multi-Vector Milvus supports multiple vec"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 5,
+      "chunk_id": "0c491d0505c4",
+      "is_golden": true,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 6,
+      "chunk_id": "86db4b93334b",
+      "is_golden": false,
+      "seq": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "raw": [
+        "no",
+        "no",
+        "no",
+        "no",
+        "no"
+      ],
+      "head": "幻灯片 2：（无标题） 产品定位 Milvus is an open-source, cloud-native "
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 7,
+      "chunk_id": "7ebb24ef84ea",
+      "is_golden": false,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Comprehensive Feature Set In addition to the key search "
+    },
+    {
+      "qid": "n022",
+      "q": "Milvus 的混合检索（Hybrid Search）是怎么实现的？实测性能如何？",
+      "idx": 8,
+      "chunk_id": "a3bdf54966d1",
+      "is_golden": true,
+      "seq": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "raw": [
+        "yes",
+        "yes",
+        "yes",
+        "yes",
+        "yes"
+      ],
+      "head": "Hybrid Search & Retrieval Performance A technical whitep"
+    }
+  ]
+}

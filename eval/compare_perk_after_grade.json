@@ -1,0 +1,777 @@
+{
+  "grid": [
+    [
+      8,
+      24
+    ],
+    [
+      12,
+      36
+    ],
+    [
+      16,
+      48
+    ]
+  ],
+  "workers": 8,
+  "detail": {
+    "8/24": [
+      {
+        "id": "n001",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n002",
+        "n_golden": 1,
+        "n_ret": 23,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n003",
+        "n_golden": 2,
+        "n_ret": 23,
+        "n_kept": 2,
+        "g_ret": 2,
+        "g_kept": 1
+      },
+      {
+        "id": "n004",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n005",
+        "n_golden": 2,
+        "n_ret": 24,
+        "n_kept": 6,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n006",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 8,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n007",
+        "n_golden": 2,
+        "n_ret": 24,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n008",
+        "n_golden": 2,
+        "n_ret": 24,
+        "n_kept": 12,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n009",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 2,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n010",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n011",
+        "n_golden": 3,
+        "n_ret": 24,
+        "n_kept": 9,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n012",
+        "n_golden": 2,
+        "n_ret": 24,
+        "n_kept": 4,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n013",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 5,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n014",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n015",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n016",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 1,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n017",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n018",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n019",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n020",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n021",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n022",
+        "n_golden": 9,
+        "n_ret": 24,
+        "n_kept": 16,
+        "g_ret": 7,
+        "g_kept": 7
+      },
+      {
+        "id": "n023",
+        "n_golden": 3,
+        "n_ret": 24,
+        "n_kept": 11,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n024",
+        "n_golden": 3,
+        "n_ret": 24,
+        "n_kept": 4,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n025",
+        "n_golden": 4,
+        "n_ret": 24,
+        "n_kept": 8,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n026",
+        "n_golden": 8,
+        "n_ret": 24,
+        "n_kept": 11,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n027",
+        "n_golden": 20,
+        "n_ret": 24,
+        "n_kept": 8,
+        "g_ret": 6,
+        "g_kept": 6
+      },
+      {
+        "id": "n028",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 8,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n029",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n030",
+        "n_golden": 1,
+        "n_ret": 24,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      }
+    ],
+    "12/36": [
+      {
+        "id": "n001",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n002",
+        "n_golden": 1,
+        "n_ret": 35,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n003",
+        "n_golden": 2,
+        "n_ret": 35,
+        "n_kept": 2,
+        "g_ret": 2,
+        "g_kept": 1
+      },
+      {
+        "id": "n004",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n005",
+        "n_golden": 2,
+        "n_ret": 36,
+        "n_kept": 6,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n006",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 8,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n007",
+        "n_golden": 2,
+        "n_ret": 36,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n008",
+        "n_golden": 2,
+        "n_ret": 36,
+        "n_kept": 16,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n009",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n010",
+        "n_golden": 1,
+        "n_ret": 35,
+        "n_kept": 5,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n011",
+        "n_golden": 3,
+        "n_ret": 36,
+        "n_kept": 9,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n012",
+        "n_golden": 2,
+        "n_ret": 36,
+        "n_kept": 4,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n013",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n014",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n015",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 9,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n016",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 1,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n017",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n018",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n019",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n020",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n021",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n022",
+        "n_golden": 9,
+        "n_ret": 36,
+        "n_kept": 19,
+        "g_ret": 9,
+        "g_kept": 9
+      },
+      {
+        "id": "n023",
+        "n_golden": 3,
+        "n_ret": 36,
+        "n_kept": 13,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n024",
+        "n_golden": 3,
+        "n_ret": 36,
+        "n_kept": 5,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n025",
+        "n_golden": 4,
+        "n_ret": 36,
+        "n_kept": 10,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n026",
+        "n_golden": 8,
+        "n_ret": 36,
+        "n_kept": 16,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n027",
+        "n_golden": 20,
+        "n_ret": 36,
+        "n_kept": 11,
+        "g_ret": 7,
+        "g_kept": 7
+      },
+      {
+        "id": "n028",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 9,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n029",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n030",
+        "n_golden": 1,
+        "n_ret": 36,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      }
+    ],
+    "16/48": [
+      {
+        "id": "n001",
+        "n_golden": 1,
+        "n_ret": 45,
+        "n_kept": 9,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n002",
+        "n_golden": 1,
+        "n_ret": 45,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n003",
+        "n_golden": 2,
+        "n_ret": 43,
+        "n_kept": 2,
+        "g_ret": 2,
+        "g_kept": 1
+      },
+      {
+        "id": "n004",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n005",
+        "n_golden": 2,
+        "n_ret": 43,
+        "n_kept": 7,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n006",
+        "n_golden": 1,
+        "n_ret": 44,
+        "n_kept": 8,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n007",
+        "n_golden": 2,
+        "n_ret": 43,
+        "n_kept": 6,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n008",
+        "n_golden": 2,
+        "n_ret": 41,
+        "n_kept": 18,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n009",
+        "n_golden": 1,
+        "n_ret": 46,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n010",
+        "n_golden": 1,
+        "n_ret": 46,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n011",
+        "n_golden": 3,
+        "n_ret": 45,
+        "n_kept": 9,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n012",
+        "n_golden": 2,
+        "n_ret": 48,
+        "n_kept": 4,
+        "g_ret": 2,
+        "g_kept": 2
+      },
+      {
+        "id": "n013",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n014",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n015",
+        "n_golden": 1,
+        "n_ret": 41,
+        "n_kept": 9,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n016",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 1,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n017",
+        "n_golden": 1,
+        "n_ret": 44,
+        "n_kept": 3,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n018",
+        "n_golden": 1,
+        "n_ret": 43,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n019",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n020",
+        "n_golden": 1,
+        "n_ret": 47,
+        "n_kept": 8,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n021",
+        "n_golden": 1,
+        "n_ret": 43,
+        "n_kept": 4,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n022",
+        "n_golden": 9,
+        "n_ret": 46,
+        "n_kept": 21,
+        "g_ret": 9,
+        "g_kept": 9
+      },
+      {
+        "id": "n023",
+        "n_golden": 3,
+        "n_ret": 43,
+        "n_kept": 13,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n024",
+        "n_golden": 3,
+        "n_ret": 45,
+        "n_kept": 7,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n025",
+        "n_golden": 4,
+        "n_ret": 48,
+        "n_kept": 14,
+        "g_ret": 3,
+        "g_kept": 3
+      },
+      {
+        "id": "n026",
+        "n_golden": 8,
+        "n_ret": 46,
+        "n_kept": 17,
+        "g_ret": 4,
+        "g_kept": 4
+      },
+      {
+        "id": "n027",
+        "n_golden": 20,
+        "n_ret": 44,
+        "n_kept": 13,
+        "g_ret": 8,
+        "g_kept": 8
+      },
+      {
+        "id": "n028",
+        "n_golden": 1,
+        "n_ret": 44,
+        "n_kept": 12,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n029",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 7,
+        "g_ret": 1,
+        "g_kept": 1
+      },
+      {
+        "id": "n030",
+        "n_golden": 1,
+        "n_ret": 48,
+        "n_kept": 6,
+        "g_ret": 1,
+        "g_kept": 1
+      }
+    ]
+  },
+  "summary": {
+    "8/24": {
+      "avg_ret": 23.9,
+      "avg_kept": 5.9,
+      "g_ret": 52,
+      "g_kept": 51,
+      "g_keep_rate": 0.9808,
+      "zero_golden_cases": [],
+      "calls": 718,
+      "sec": 116.7
+    },
+    "12/36": {
+      "avg_ret": 35.9,
+      "avg_kept": 6.8,
+      "g_ret": 57,
+      "g_kept": 56,
+      "g_keep_rate": 0.9825,
+      "zero_golden_cases": [],
+      "calls": 1077,
+      "sec": 127.4
+    },
+    "16/48": {
+      "avg_ret": 45.3,
+      "avg_kept": 7.8,
+      "g_ret": 61,
+      "g_kept": 60,
+      "g_keep_rate": 0.9836,
+      "zero_golden_cases": [],
+      "calls": 1359,
+      "sec": 155.1
+    }
+  }
+}

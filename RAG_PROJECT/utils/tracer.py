@@ -28,6 +28,7 @@ web_search 降级等多个分支 —— **一次问答实际走了哪条路径�
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import pathlib
@@ -160,13 +161,39 @@ def traced(name: str):
     只记录「可由 state 推断」的信息（如 documents 数量、generation 长度）；
     更细的语义（**路由决策、判分结论**）由 `graph2._traced_router` 包装条件边后
     直接调 `tracer.current().step()` 补充 —— 这样无需改动任何节点实现文件。
+
+    ## [FIX 2026-10-16 / ROADMAP 4.20.7] 必须把 `config` 透传给被包装的节点
+
+    原先 `wrapper(state)` 只接 state，**把 LangGraph 传下来的 config 丢掉了**。
+    后果是一条静默的链路断裂：
+
+        LangGraph 传 config -> wrapper 丢弃 -> 节点收到 config=None
+        -> 节点内手动 `.invoke(...)` 拿不到 callbacks -> **token 不被统计**
+
+    实测代价：`grade_documents` 是**最大**的 LLM 调用方（`FINAL_K=36` 时 36 次/题），
+    修好这一处之前，它的消耗在生产监控里**完全不可见**
+    （修复前后 `trace.jsonl` 的 total 只差 637，而 36 次判分本应带来 ~17K）。
+
+    为什么不在 `add_node` 处改、而在包装器改：包装器是所有节点进出的**唯一必经点**，
+    改一处即可覆盖全部节点，且不需要每个节点实现文件都改签名。
     """
 
     def deco(fn):
-        def wrapper(state):
+        # 签名判定：本项目多数节点仍是 `fn(state)`（retrieve / generate /
+        # web_search / transform_query），**统一多传一个参数会直接 TypeError**。
+        # 所以只对「声明了第二个位置参数」的节点透传 config，兼容两种签名。
+        try:
+            _n_pos = len([
+                p for p in inspect.signature(fn).parameters.values()
+                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+            ])
+        except (TypeError, ValueError):      # 内建/无签名可读时按 1 处理（保守）
+            _n_pos = 1
+
+        def wrapper(state, config=None):
             t = _CURRENT.get()
             t0 = time.time()
-            out = fn(state)
+            out = fn(state, config) if _n_pos >= 2 else fn(state)
             if t is not None:
                 info: Dict[str, Any] = {}
                 try:
