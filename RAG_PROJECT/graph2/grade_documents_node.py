@@ -267,7 +267,8 @@ def _format_blocks(docs) -> str:
 
 
 def grade_batch(question: str, documents, config=None,
-                batch_size: int = BATCH_SIZE) -> List[bool]:
+                batch_size: int = BATCH_SIZE,
+                max_workers: int = MAX_GRADE_WORKERS) -> List[bool]:
     """批量判分：一次 LLM 调用判 `batch_size` 个块，返回每块是否相关。
 
     Args:
@@ -275,6 +276,7 @@ def grade_batch(question: str, documents, config=None,
         documents: 待判分的块（任意数量，内部会分批）。
         config: LangGraph 传来的运行配置（只取 callbacks 透传，见 `_sub_config`）。
         batch_size: 每批块数。
+        max_workers: **批间并发度**。
 
     Returns:
         `List[bool]`，长度 == `len(documents)`，**顺序与输入一致**。
@@ -282,7 +284,23 @@ def grade_batch(question: str, documents, config=None,
     契约（由 `eval/test_grade_batch.py` 覆盖）：
         * 长度恒等于输入块数（结构，确定性）；
         * 明显相关的块 True、明显无关的 False（语义，用极端样本验证）；
-        * 单块判定缺失/整批异常时**保守保留（True）**，不中断。
+        * 单块判定缺失/整批异常时**保守保留（True）**，不中断；
+        * **多批时顺序与结果不变**（并发的正确性，C4 保护性测试）。
+
+    ## 批间并发（ROADMAP 4.24）
+
+    首版是**串行分批**（`for start in range(...)`），实测端到端耗时因此从 7.2s
+    升到 8.1s —— 5 批依次发，而逐块版是 8 并发。
+
+    改为并发后有**两个收益**：
+
+    1. **耗时**：判分阶段 ≈ 单批时间（~0.9s）而非「批数 × 单批时间」；
+    2. **可扩展性**（更重要）：耗时从「**随块数线性增长**」变为
+       「`ceil(批数 / 并发度)` × 单批时间」—— 即**块数再涨也只多几轮，
+       不会线性劣化**。这对「语料/配额继续放大」的场景是必需的：
+       例如 `final_k` 到 72 时，串行要 9 批（~8s），并发 8 只要 2 轮（~1.8s）。
+
+    `executor.map` 保证结果顺序与输入一致（与逐块版同一套保证）。
     """
     docs = list(documents or [])
     if not docs:
@@ -292,22 +310,37 @@ def grade_batch(question: str, documents, config=None,
     out: List[bool] = [True] * len(docs)
     chain = _get_batch_chain()
     size = max(1, int(batch_size or 1))
+    batches = [(s, docs[s:s + size]) for s in range(0, len(docs), size)]
 
-    for start in range(0, len(docs), size):
-        chunk = docs[start:start + size]
+    def _run_batch(item):
+        """跑一批。返回 (start, chunk, result_or_None, error_or_None)。"""
+        start, chunk = item
         try:
             res = chain.invoke(
                 {"question": question, "n": len(chunk), "blocks": _format_blocks(chunk)},
                 config=_sub_config(config),
             )
+            return start, chunk, res, None
         except Exception as e:  # noqa: BLE001
-            log.warning(f"---GRADE(batch): 第 {start // size + 1} 批判分失败，"
-                        f"保守保留该批 {len(chunk)} 块: {type(e).__name__}: {str(e)[:80]}---")
+            return start, chunk, None, e
+
+    workers = max(1, min(int(max_workers or 1), len(batches)))
+    if workers == 1:
+        results = [_run_batch(b) for b in batches]
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            results = list(ex.map(_run_batch, batches))
+
+    for start, chunk, res, err in results:
+        no = start // size + 1
+        if err is not None:
+            log.warning(f"---GRADE(batch): 第 {no} 批判分失败，"
+                        f"保守保留该批 {len(chunk)} 块: {type(err).__name__}: {str(err)[:80]}---")
             continue
 
         verdicts = getattr(res, "verdicts", None) or []
         if not verdicts:
-            log.warning(f"---GRADE(batch): 第 {start // size + 1} 批未返回任何判定，"
+            log.warning(f"---GRADE(batch): 第 {no} 批未返回任何判定，"
                         f"保守保留该批 {len(chunk)} 块---")
             continue
 
@@ -321,7 +354,7 @@ def grade_batch(question: str, documents, config=None,
                 out[start + idx - 1] = bool(getattr(v, "relevant", True))
                 got += 1
         if got < len(chunk):
-            log.warning(f"---GRADE(batch): 第 {start // size + 1} 批只返回 {got}/"
+            log.warning(f"---GRADE(batch): 第 {no} 批只返回 {got}/"
                         f"{len(chunk)} 个判定，缺失的块保守保留---")
 
     return out

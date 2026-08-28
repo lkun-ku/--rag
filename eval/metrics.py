@@ -306,6 +306,23 @@ THRESHOLDS = {
     "answer_relevancy": {"fail": 0.60, "warn": 0.80},
 }
 
+# 哪些指标参与「**告警**」（warn）—— 不在集合里的只参与**硬门禁**（fail）。
+#
+# [FIX 2026-10-16 / ROADMAP 4.28] `context_precision` 移出告警集合。
+#
+# 上面那段注释本来就写着它「**只作监控**…**不作为主要门禁**」，
+# 但 `gate()` 的循环里**把它和另两项一起判定**了 —— **代码与自己的注释不一致**。
+# 后果：实测 0.0496 差 0.0004 就落进 `[0.03, 0.05)`，于是**每次回归都报 WARN**，
+# 成了纯噪音（它会掩盖真正的告警）。
+#
+# **为什么 0.0496 是必然**：注释里的「理论上限 1/15 ≈ 0.067」是 `final_k=18`
+# 时代算的（15 ≈ 18 块里约 1 个必需块）。4.14/4.21 把 `final_k` 提到 36 后，
+# 上限降到约 `1/36` —— precision **必然下降**，与检索质量无关。
+#
+# **为什么仍保留 fail**：注释里说它的用途是「发现**检索严重发散**」——
+# 那是硬门禁能干的事（且不会被正常波动触发）。
+_WARN_ELIGIBLE = {"context_recall", "hit_rate", "faithfulness", "answer_relevancy"}
+
 
 def gate(scores: Dict[str, Optional[float]],
          gen_requested: bool = False) -> Tuple[str, List[str]]:
@@ -338,7 +355,9 @@ def gate(scores: Dict[str, Optional[float]],
         if v < th["fail"]:
             reasons.append(f"{name}: {v:.4f} < 硬门禁 {th['fail']}")
             failed = True
-        elif v < th["warn"]:
+        elif v < th["warn"] and name in _WARN_ELIGIBLE:
+            # 不在 _WARN_ELIGIBLE 的指标（当前只有 context_precision）**不告警** ——
+            # 它天然低且随配额放大必然更低，见 _WARN_ELIGIBLE 的定义处。
             reasons.append(f"{name}: {v:.4f} 处于告警区间 [{th['fail']}, {th['warn']})")
             warned = True
 

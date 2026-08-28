@@ -120,6 +120,43 @@ except Exception as e:  # noqa: BLE001
     print("  [**FAIL**] 空输入抛异常: %s: %s" % (type(e).__name__, e))
     check("空输入返回空列表", "抛异常", [])
 
+# --- C4 并发：多批（块数 > BATCH_SIZE）时结果与顺序不变 ----------------------
+#
+# 4.24 给批量判分加了「批内并发」。并发最容易引入的缺陷是**顺序错乱**
+# （`executor.map` 保序，但要**测出来**），以及**批次间结果串位**。
+# 这里用 12 块（> BATCH_SIZE=8，必然走多批）验证：
+#   * 长度与类型（结构）；
+#   * **前 4 块的判定与单批时一致**（顺序正确性的直接证据）。
+print()
+print("[C4·并发] 12 块（> BATCH_SIZE，必然多批）-> 长度/类型/顺序都不变")
+MANY = DOCS + [
+    Document(page_content="Milvus 的索引类型包括 FLAT、IVF_FLAT、HNSW 等。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="本店营业时间为每天上午九点到晚上十点。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是 9575.69。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="今天天气晴朗，适合外出散步。", metadata={"filename": "t.md"}),
+    Document(page_content="Python 的 GIL 限制了多线程的并行计算能力。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 P99 延迟为 2.3ms。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="火锅的底料通常由牛油、辣椒和花椒组成。",
+             metadata={"filename": "t.md"}),
+    Document(page_content="向量数据库的召回率与索引参数 nlist、nprobe 有关。",
+             metadata={"filename": "t.md"}),
+]
+try:
+    out_many = grade_batch(Q, MANY)
+    check("多批：返回长度恒等于输入块数", len(out_many), len(MANY))
+    check("多批：元素类型都是 bool", all(isinstance(x, bool) for x in out_many), True)
+    if out is not None:
+        check("多批：前 4 块判定与单批一致（顺序正确）", out_many[:4], out)
+    print("     多批返回: %s" % out_many)
+except Exception as e:  # noqa: BLE001
+    print("  [**FAIL**] 多批调用抛异常: %s: %s" % (type(e).__name__, e))
+    check("多批：返回长度恒等于输入块数", "抛异常", len(MANY))
+
 print()
 print("=" * 96)
 print("结果：%d/%d 通过" % (passed, passed + len(failures)))

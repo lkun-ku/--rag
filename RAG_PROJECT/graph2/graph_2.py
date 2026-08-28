@@ -1,4 +1,6 @@
+import inspect
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pprint import pprint
 
 from langgraph.constants import START, END
@@ -6,7 +8,7 @@ from langgraph.graph import StateGraph
 
 from graph2.generate_node2 import generate
 from graph2.grade_answer_chain import answer_grader_chain
-from graph2.grade_documents_node import grade_documents
+from graph2.grade_documents_node import _sub_config, grade_documents
 from graph2.grade_hallucinations_chain import hallucination_grader_chain
 from graph2.graph_state2 import GraphState
 from graph2.query_route_chain import question_router_chain
@@ -24,11 +26,14 @@ from utils.log_utils import log
 MAX_GENERATION_RETRY = 2
 
 
-def grade_generation_v_documents_and_question(state):
+def grade_generation_v_documents_and_question(state, config=None):
     """
     评估生成结果是否基于文档并正确回答问题
     Args:
         state (dict): 当前图状态，包含问题、文档和生成结果
+        config: LangGraph 注入的运行配置。**必须接收并透传** —— 本函数内部有
+            两次 LLM 判定（幻觉 + 回答质量），不透传则它们的 token 不可见
+            （这与 `tracer.traced` / `grade_documents` 是同一个坑，见 ROADMAP 4.25）。
     Returns:
         str: 下一节点的名称（useful/not useful/not supported）
     """
@@ -67,16 +72,37 @@ def grade_generation_v_documents_and_question(state):
             return "not useful"
         return "not supported"
 
-    # 检查生成是否基于文档
-    score = hallucination_grader_chain.invoke({"documents": documents, "generation": generation})
-    grade = score.binary_score
+    # ---- 两次判定：**并发**执行（ROADMAP 4.25）----
+    #
+    # 原实现是**串行 + 短路**：
+    #     1) 先判「是否基于文档」；2) **只在第 1 次判 yes 时**才判「是否回答了问题」。
+    # 实测该环节 1.42s，是链路里仅次于判分的第二大头。
+    #
+    # **为什么可以并发**：两次调用的输入都能从 state 直接取到，第 2 次**不依赖第 1 次的
+    # 输出**、只依赖它的**结论** —— 所以可以提前把它发出去。
+    #
+    # **短路语义严格保持不变**：第 2 次调用总是发出，但其结果**只在第 1 次判 yes 时使用**
+    # （第 1 次判 no 时结果直接丢弃，走原 else 分支）。
+    # 代价：第 1 次判 no 时那次调用是白跑的 —— 这是**用少量浪费换 40% 延迟**，
+    # 且不改变任何判定结果。
+    _cfg = _sub_config(config)
+    with ThreadPoolExecutor(max_workers=2) as _ex:
+        _f_hall = _ex.submit(hallucination_grader_chain.invoke,
+                             {"documents": documents, "generation": generation},
+                             config=_cfg)
+        _f_ans = _ex.submit(answer_grader_chain.invoke,
+                            {"question": question, "generation": generation},
+                            config=_cfg)
+        hall_score = _f_hall.result()
+        ans_score = _f_ans.result()      # 已算好；是否使用由下面的分支决定
+
+    grade = getattr(hall_score, "binary_score", "")
 
     if grade == "yes":  # 如果生成基于文档
         log.info("---判定：生成内容基于参考文档---")
-        # 检查是否准确回答问题
+        # 检查是否准确回答问题（结果在上面已并发算出，此处直接取用）
         log.info("---评估：生成回答与问题的匹配度---")
-        score = answer_grader_chain.invoke({"question": question, "generation": generation})
-        grade = score.binary_score
+        grade = getattr(ans_score, "binary_score", "")
         if grade == "yes":  # 如果正确回答问题
             log.info("---判定：生成内容准确回答问题---")
             return "useful"  # 返回有用结果
@@ -145,11 +171,28 @@ def _traced_router(name: str, fn):
 
     为什么单独包条件边：节点包装器只能看到 state 变化，看不出「为什么走这条分支」。
     而路由决策恰恰是排查时最想知道的信息（例如「为什么走了 web_search 而不是 RAG」）。
+
+    ## [FIX 2026-10-16 / ROADMAP 4.25] 同样要透传 config
+
+    这与 `utils.tracer.traced` 是**同一个坑的第二处实例**：条件边函数内部也可能有
+    LLM 调用（`grade_generation` 的两次判定），`wrapper(state)` 只接 state
+    就会把 LangGraph 传来的 config 丢掉，那些调用的 token 同样**不可见**。
+
+    上一轮只修了节点包装器，这里补上 —— 教训是「同一个模式在两处出现，
+    修的时候要一起找」（`grep` 一下同类包装器）。
     """
 
-    def wrapper(state):
+    try:
+        _n_pos = len([
+            p for p in inspect.signature(fn).parameters.values()
+            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        ])
+    except (TypeError, ValueError):
+        _n_pos = 1
+
+    def wrapper(state, config=None):
         t0 = time.time()
-        decision = fn(state)
+        decision = fn(state, config) if _n_pos >= 2 else fn(state)
         t = tracer.current()
         if t is not None:
             info = {"decision": decision}

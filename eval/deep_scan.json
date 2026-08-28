@@ -129,7 +129,21 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/grade_documents_node.py",
-    "line": 318,
+    "line": 324,
+    "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
+  },
+  {
+    "rule": "R7",
+    "severity": "medium",
+    "file": "RAG_PROJECT/graph2/grade_documents_node.py",
+    "line": 351,
+    "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
+  },
+  {
+    "rule": "R7",
+    "severity": "medium",
+    "file": "RAG_PROJECT/graph2/graph_2.py",
+    "line": 190,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -423,7 +437,7 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 286,
+    "line": 329,
     "detail": "生产代码里的 print("
   },
   {
