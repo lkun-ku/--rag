@@ -1,11 +1,12 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
+from graph2.grade_documents_node import _sub_config
 from llm_models.all_llm import llm
 from utils.log_utils import log
 
 
-def transform_query(state):
+def transform_query(state, config=None):
     """
     优化用户问题，生成更合适的查询语句
 
@@ -42,5 +43,12 @@ def transform_query(state):
     )
 
     # 问题重写
-    better_question = question_rewriter.invoke({"question": question})  # 调用问题重写器
+    #
+    # [FIX 2026-10-16 / 代码审查] **显式传 config** —— 这是同类坑的**第三处**。
+    # 4.29.3 我当时写「全项目未显式传 config 的 LLM 调用只剩两处」，
+    # 漏了这个文件（它不在我当时 grep 的 `chain.invoke(` 命中里，
+    # 因为变量名叫 `question_rewriter`）。教训升级：
+    # **grep 要按「调用形状」而非具体变量名**（`\.invoke\(` + 人工过一遍）。
+    better_question = question_rewriter.invoke({"question": question},
+                                               config=_sub_config(config))  # 调用问题重写器
     return {"documents": documents, "question": better_question, "transform_count": transform_count+1}  # 返回更新状态

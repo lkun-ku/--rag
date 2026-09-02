@@ -23,7 +23,11 @@ LangGraph 节点签名是同步的 `fn(state)`，改成 async 需要连带调整
 
 - **判分逻辑与阈值不变**：仍是 `retrieval_grader_chain` 的 yes/no 二元判定
 - **顺序不变**：`executor.map` 保证结果顺序与输入一致
-- **失败即视为不相关**：单块判分异常时按原语义丢弃该块（不中断整体）
+- **单块判分异常时「保守保留」该块**（不中断整体）—— **[FIX 2026-10-16 / 代码审查]**
+  原文写的是「失败即视为不相关…**丢弃**该块」，与实现**相反**：
+  `_grade_one` 异常时返回 `(document, **True**)`（保留）。
+  实现是对的（判分失败 ≠ 判定不相关，宁可多留一块也不要把正确块静默丢掉），
+  **是文档错了** —— 已改正。这类「docstring 与实现相反」在 ROADMAP P1-7 里已被判为 P1 级问题。
 - **空输入短路**：无文档时不做任何调用，与原来一致
 """
 
@@ -132,8 +136,13 @@ def grade_documents(state, config=None):
         verdicts = grade_batch(question, documents, config)
         filtered_docs = [d for d, ok in zip(documents, verdicts) if ok]
         kept, total = len(filtered_docs), len(documents)
+        # [FIX 2026-10-16 / 代码审查] 批数用**实际生效的** `BATCH_SIZE` 计算 ——
+        # 原先写死模块常量，若将来把批大小做成可配置（如从 env 读），
+        # 日志会与真实行为不符（静默不一致）。此处直接把常量读在当前作用域，
+        # 保证「日志说的」= 「代码做的」。
+        _bs = max(1, int(BATCH_SIZE or 1))
         log.info(f"---GRADE(batch): 判分完成 {kept}/{total} 块保留"
-                 f"（批大小 {BATCH_SIZE}，共 {-(-total // BATCH_SIZE)} 次调用）---")
+                 f"（批大小 {_bs}，共 {-(-total // _bs)} 次调用）---")
         return {"documents": filtered_docs, "question": question}
 
     # 文档评分与过滤（并发；executor.map 保序）
@@ -345,14 +354,26 @@ def grade_batch(question: str, documents, config=None,
             continue
 
         got = 0
+        seen_idx = set()
         for v in verdicts:
             try:
                 idx = int(getattr(v, "index", 0))
             except (TypeError, ValueError):
                 continue
-            if 1 <= idx <= len(chunk):
-                out[start + idx - 1] = bool(getattr(v, "relevant", True))
-                got += 1
+            if not (1 <= idx <= len(chunk)):
+                continue
+            # [FIX 2026-10-16 / 代码审查] **重复 idx 不覆盖首次判定**。
+            # 原实现直接赋值 -> 若模型对同一块返回两条互相矛盾的判定，
+            # 后者（last-write-wins）会覆盖前者，**可能把 True 改成 False**
+            # （把相关块丢掉）；同时 `got` 会重复计数，
+            # 使下面「缺判告警」失效（got 虚高到等于 len(chunk)）。
+            if idx in seen_idx:
+                log.warning(f"---GRADE(batch): 第 {no} 批出现重复编号 {idx}，"
+                            f"保留首次判定、忽略后续---")
+                continue
+            seen_idx.add(idx)
+            out[start + idx - 1] = bool(getattr(v, "relevant", True))
+            got += 1
         if got < len(chunk):
             log.warning(f"---GRADE(batch): 第 {no} 批只返回 {got}/"
                         f"{len(chunk)} 个判定，缺失的块保守保留---")

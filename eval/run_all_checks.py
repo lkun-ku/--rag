@@ -50,6 +50,11 @@ CHECKS = [
     ("模块边界", "eval/module_tests.py", "quick", "66 个模块级边界用例"),
     ("表格处理", "eval/verify_rowspan.py", "quick", "rowspan/colspan/合并单元格 + 配置边界"),
     ("表格孪生去重", "eval/test_flat_twin.py", "quick", "is_flat_twin 三维判据（正负例均取自真实样本）"),
+    # [FIX 2026-10-16 / 代码审查] 这两个脚本此前**没有注册** —— 写了测试但回归里不跑，
+    # 等于「有测试等于没测试」（review 的 Standards 轴 A4 发现）。
+    ("批量判分契约", "eval/test_grade_batch.py", "quick", "grade_batch 结构/语义/容错/并发顺序"),
+    ("审查修复回归", "eval/test_review_fixes.py", "quick", "代码审查发现的修复"),
+    ("documents 类型一致", "eval/test_web_search_docs_type.py", "quick", "web_search 返回 list（与其它节点一致）"),
     ("判分 token 埋点", "eval/test_grade_callback.py", "quick", "grade_documents 的 config 透传（含 tracer 包装链路）"),
     ("门禁告警集合", "eval/test_gate_precision.py", "quick", "context_precision 只作监控、不参与告警（保留硬门禁）"),
     ("引用校验", "eval/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),

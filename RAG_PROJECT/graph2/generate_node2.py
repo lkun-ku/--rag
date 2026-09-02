@@ -1,6 +1,7 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
+from graph2.grade_documents_node import _sub_config
 from llm_models.all_llm import llm
 from utils.citation import build_citation_meta, format_context, validate_citations
 
@@ -65,7 +66,7 @@ def format_docs(docs):
     return '[1] ' + docs.page_content
 
 
-def generate(state):
+def generate(state, config=None):
     """
     生成回答
     Args:
@@ -89,7 +90,20 @@ def generate(state):
     )
 
     # RAG生成过程
-    generation = rag_chain.invoke({"context": format_docs(documents), "question": question})  # 调用RAG链生成回答
+    #
+    # [FIX 2026-10-16 / ROADMAP 4.29] **显式传 config**，不要依赖 contextvar 隐式继承。
+    #
+    # 实测（`eval/_probe_contextvar_threadpool.py`，三条对照）：
+    #     A. 无线程池 + 不传 config -> token=11   （contextvar 继承，能统计）
+    #     B. 线程池   + 不传 config -> token=0    （**线程池内失效**）
+    #     C. 线程池   + 显式传 config -> token=22 （显式传递有效）
+    #
+    # 本节点当前是**串行**执行的，所以靠 A 那条路径侥幸能统计到；
+    # 但一旦有人为了提速把它改成并发（线程池），token 会**静默归零** ——
+    # 正是 `grade_documents` 首版踩过的坑（判分用了线程池 -> 统计不到 -> 4.22 才发现）。
+    # 显式传递把这个隐式依赖消掉。
+    generation = rag_chain.invoke({"context": format_docs(documents), "question": question},
+                                  config=_sub_config(config))  # 调用RAG链生成回答
 
     # [ROADMAP 2.1 ⑤] 构造「编号 -> 原文块」映射，供调用方渲染溯源信息。
     # 引用编号的**合法性校验**不在这里做 —— 它属于流程控制（越界要触发熔断重试），

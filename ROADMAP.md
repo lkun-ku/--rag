@@ -5485,3 +5485,211 @@ return {"documents": web_results, "question": question}      # 单个，不是�
 > 这条注释把意图写对了（「只作监控」），代码却做成了判定项 ——
 > 两者并存了不知多久，直到那个 0.0004 的边界把它暴露出来。
 
+---
+
+## 4.29 揭开 4.25.4 的「未定论」：**contextvar 在线程池内失效**（2026-10-16）
+
+### 4.29.1 结论先说
+
+**4.25.4 那个「token 该 +897 却没变」不是矛盾** ——
+`grade_generation` 的两次判定（当时**串行执行**）**本来就被统计了**，
+它靠的是 **LangChain 的 contextvar 隐式继承**，而不是显式传 config。
+**是我的预期错了**（我误以为 4.24 时它们没被统计）。
+
+### 4.29.2 根因：contextvar 不跨线程（三条对照实测）
+
+`eval/_probe_contextvar_threadpool.py`：
+
+| 场景 | token | 说明 |
+|---|---|---|
+| A. 无线程池 + 不传 config | **11** | contextvar 继承生效 |
+| B. 线程池 + 不传 config | **0** | **线程池内失效** |
+| C. 线程池 + 显式传 config | **22** | 显式传递有效 |
+
+**它一次性解释了全部现象**：
+
+| 调用点 | 显式传 config | 线程池 | token 统计 |
+|---|---|---|---|
+| `route_question` | ❌ | ❌ | ✅（走 A 路径） |
+| `generate` | ❌ | ❌ | ✅（走 A 路径） |
+| `grade_documents` 首版判分 | ❌ | ✅ | ❌（**B 路径**，4.22 才发现） |
+| `grade_batch` / `grade_generation` | ✅ | ✅ | ✅（C 路径，4.23/4.25 修对） |
+
+### 4.29.3 系统性排查（grep 全部同类）
+
+4.25.1 的教训是「同类模式要 grep 全」，本轮照做 —— 全项目 `graph2/` 里
+**未显式传 config 的 LLM 调用只剩两处**：
+
+```
+generate_node2.py:92   rag_chain.invoke({...})
+graph_2.py:158         question_router_chain.invoke({...})
+```
+
+它们**现在能工作**（串行、靠 contextvar），但**一旦有人为提速改成并发，
+token 会静默归零** —— 正是判分首版踩过的那个坑。
+
+### 4.29.4 修法：把隐式依赖改为显式传递
+
+* `generate(state, config=None)` -> `rag_chain.invoke(..., config=_sub_config(config))`
+* `route_question(state, config=None)` -> `question_router_chain.invoke(...,
+  config=_sub_config(config))`
+
+**零行为变化**：端到端 token 实测 **31,465 -> 31,465（完全不变）** ——
+改的是「依赖哪条路径拿到 config」，不是「是否传 config」。
+
+### 4.29.5 验证
+
+* **探针**：三条对照（A/B/C），假设成立
+* **端到端**：token 不变、答案正确、耗时 4.2s
+* **回归**：`run_all_checks` 判定项 **7/7 通过**
+
+> **一条可复用的判断（写给后续所有并发改造）**：
+> **凡是在「线程池 / 异步任务」里调 LangChain Runnable，都必须显式传 config**，
+> 否则 callbacks（token 统计、tracer、监控）会**静默失效**。
+> 这类失效**不报错、不影响答案**，只是让监控数字凭空少一块 ——
+> 属于最难发现的一类问题（4.22 那次就是靠「成本对不上直觉」才挖出来的）。
+>
+> 反过来说：`route_question` / `generate` 那两处之所以**长期没被发现**，
+> 正是因为它们**串行执行、侥幸能统计到** —— 隐式依赖的特点就是
+> **「今天能跑，明天换个调度方式就静默坏掉」**。
+
+---
+
+## 4.30 P3-6 关闭：语料已无「与主题无关的文档」（2026-10-16 核查）
+
+P3-6 记的是**旧语料**的问题：`tech_report_0tfhhamx.md`（「表面能改性」，半导体内容）
+会被「配置文件」类问题召回 —— 既是检索噪声源（P0-1 的诱因之一），也污染答案。
+
+**核查方式**：直接列新语料的全部文件（18 个）。
+
+```
+hnsw_anns_paper.pdf.md                59 块     milvus_index_spec.docx.md            30 块
+milvus_architecture.pptx.md            8 块     milvus_product_intro.pptx.md         10 块
+milvus_capability_matrix.xlsx.md       8 块     milvus_product_overview.md           17 块
+milvus_cli_reference.md              102 块     milvus_spec_summary.xlsx.md          13 块
+milvus_deployment_requirements...     12 块     milvus_troubleshooting.md            30 块
+milvus_faq.md                         46 块     milvus_vectordb_paper.pdf.md         72 块
+milvus_glossary.md                    52 块     milvus_vs_alternatives.md            10 块
+milvus_hybrid_search_whitepaper...    16 块     rag_failure_modes_paper.pdf.md       26 块
+scanned_performance_faq.pdf.md         6 块     vector_db_benchmark.xlsx.md           6 块
+```
+
+**结论**：**全部 18 个文件都与 Milvus / RAG / 向量检索相关**，
+旧语料的问题文件**已不在新语料中** —— **P3-6 随数据重置自然关闭** ✅
+
+> **一条方法论**：P3-6 属于「**问题随数据消失**」而非「代码修好」。
+> 这类项**必须重新核查才能关闭** —— 否则它会一直挂在待办列表里，
+> 让人误以为还有活要干（本会话已经遇到过它的反面：ROADMAP 里的 P0-5/P0-6
+> 其实是更早就修好了，只是状态没同步，我一开始还准备重做一遍）。
+
+---
+
+## 4.31 代码审查（Standards + Spec 双轴）+ 系统性 bug 筛查（2026-10-16）
+
+用 `code-review` 的流程，对本轮改动（基点 `afa5c6c`，**23 文件 / +3720 行**）
+做了两轴**并行**审查，外加「常见 bug 模式」专项筛查。
+**发现 8 个真问题，全部已修**；其中 **3 个是我自己这几轮引入的**。
+
+### 4.31.1 Standards 轴（5 项）
+
+| # | 问题 | 修法 |
+|---|---|---|
+| **A1** | `tracer.py` 的 `except: self._usage = False` **静默降级**（不记 log）—— 这是 4.22 挖了半天的「成本不可见」的**第二条隐形路径**（langchain 一变，token 静默归零） | 加 `log.warning`（含版本提示） |
+| **A2** | `grade_documents_node` 的**模块 docstring 与实现相反**（写「失败即丢弃」，实为「保守保留」） | 改 docstring（**实现是对的**） |
+| **A3** | `traced` / `_traced_router` 靠**参数个数**判 config 透传 —— `def fn(state, *, config=None)` 会被静默丢弃、token 归零 | 改为**同时识别仅关键字形态** |
+| **A4** | `test_grade_batch.py` **未注册进 `run_all_checks`**（写了测试但回归不跑 = 有测试等于没测试） | 注册（见 4.31.3） |
+| A5 | 注释里的经验值（`workers=8`、`BATCH_SIZE=8`）无实测支撑 | 标注为经验值（**未改数值**，仅诚实化） |
+
+### 4.31.2 Spec 轴 + bug 筛查（3 个真 bug）
+
+| # | 问题 | 严重度 | 归属 |
+|---|---|---|---|
+| **B1** | **`graph_2.py` 无条件 `.result()`** —— 第 1 次判 no 时，若 `answer_grader` 抛错会**炸掉整个节点**（短路版根本不会调用它）→ **违反 4.25「不改变任何判定结果」的承诺** | **高** | 我在 4.25 引入 |
+| **B2** | **`transform_query_node.py` 也未显式传 config** —— 4.29.3 说「只剩两处」是**错的**，同类坑**第三次**遗漏 | 中 | 长期潜伏 |
+| **B3** | `grade_batch` 的**重复 idx 无校验** —— last-write-wins 可把 True 改 False（**丢掉相关块**），且 `got` 重复计数使「缺判告警」失效 | 中 | 我在 4.23 引入 |
+
+**B1 的修法**（本轮最值得记的一处）：把第 2 次调用的 `.result()` **移到 `with` 块外按需取**，
+并单独兜异常（失败按 `not useful` 处理，不炸节点）—— **恢复了短路语义**。
+
+**B2 的教训升级**：4.29.3 我 grep 的是 `chain.invoke(`，而 `transform_query_node` 里
+变量名叫 `question_rewriter` → 漏了。**grep 要按「调用形状」（`\.invoke\(`）而非具体变量名。**
+
+### 4.31.3 顺带修的两处
+
+* **`_WARN_ELIGIBLE` 在生成层循环里没被查**（4.28 引入的集合只落实了一半）→
+  「改集合对生成层不生效」；
+* `grade_batch` 的日志用**模块常量**算批数 → 若将来把批大小做成可配置，日志会与行为不符。
+
+### 4.31.4 新增测试与回归
+
+`eval/test_review_fixes.py`（**10 条**，每条对应一个发现）+
+把两个漏注册的测试接进 `run_all_checks`。
+
+**回归**：判定项 **9/9 通过**（新增「批量判分契约 10/10」「审查修复回归 10/10」）。
+
+> **本轮审查的价值**：8 个发现里 **3 个是我自己这几轮引入的**，
+> 2 个是**长期潜伏**（A1 静默降级、A2 文档与实现相反）。
+> 共同点是 —— **都不报错、都不影响答案**，只是让行为与文档/承诺悄悄偏离。
+> 这正是最难靠手感发现的一类：它们不会让测试变红，只会让**你以为的事**和
+> **实际发生的事**慢慢分家。
+>
+> **另一条**：这次审查本身也是「同类模式要 grep 全」的第三次应用 ——
+> 前两次（`tracer.traced`、`_traced_router`）我都只改了眼前的，
+> 这次靠**专项筛查**才把 `transform_query_node` 和 B1 挖出来。
+
+---
+
+## 4.32 消除 `documents` 类型不一致（4.27.4 记录的待修项，2026-10-16 修复）
+
+### 4.32.1 问题
+
+`graph2/web_search_node.py` 返回**单个 `Document`**，而**其它所有节点返回
+`List[Document]`**。任何假设「documents 是 list」的代码，在**走了 web_search 的路径上
+都会崩**：
+
+```
+TypeError: object of type 'Document' has no len()
+```
+
+**已确认的受害点**（4.31 的代码审查扫出来的）：
+
+```
+eval/fullchain_audit.py       （4.27 首版就是这么崩的）
+eval/verify_e2e.py
+eval/_probe_real_tokens.py
+eval/diag_grade_retention.py
+eval/verify_final_k_ab.py
+```
+
+### 4.32.2 为什么「记录了却一直没修」
+
+4.27.4 写的是「**影响面未评估，改它要先 grep 所有消费点**」——
+这个顾虑是对的：当时不知道有没有下游**依赖**「单个 Document」这个形状。
+
+**本轮把它查清了**：唯一的下游是 `generate`，而它**本来就防御了两种情况**
+（`documents if isinstance(documents, list) else [documents]`）——
+**所以改成 list 对它是零影响，而所有「假设 list」的代码都能因此工作。**
+
+> 这就是「先评估再改」的价值：如果 4.27 当场拍脑袋改，虽然有 90% 概率没错，
+> 但那次改动**没有依据**；现在改，依据是「消费点已查清 + 下游已防御」。
+
+### 4.32.3 修法与验证（TDD）
+
+`web_search_node.py`：把返回值包成 `[Document(...)]`。
+
+`eval/test_web_search_docs_type.py`（**7 条**）：
+
+| 契约 | 内容 |
+|---|---|
+| **C1** | 返回的是 list、长度 1、`len()`/迭代不再抛异常 |
+| **C2** | 语义不变：`metadata` 的 `source=web` / `filename` / `title` **三个标记都保留**（P0-9 的溯源依赖它们） |
+| **C3** | 回归保护：`generate` 仍保留 `isinstance` 兼容判断 |
+
+**Red**：C1/C2 明确失败 → **Green 7/7 通过**。已接入 `run_all_checks`。
+
+**回归**：判定项 **10/10 通过**。
+
+> **一处值得记的边界**：本次测试**不依赖真实的 Tavily 搜索**（本环境 key 是
+> placeholder、必然失败），只验证**返回值的形状与标记** ——
+> 这样测试在任何环境都能跑，且不会因为网络问题假红。
+

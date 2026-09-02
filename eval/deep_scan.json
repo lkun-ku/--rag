@@ -17,7 +17,7 @@
     "rule": "R2",
     "severity": "high",
     "file": "RAG_PROJECT/utils/tracer.py",
-    "line": 206,
+    "line": 232,
     "detail": "`except Exception: pass` —— 静默吞异常，无任何日志"
   },
   {
@@ -129,21 +129,21 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/grade_documents_node.py",
-    "line": 324,
+    "line": 333,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/grade_documents_node.py",
-    "line": 351,
+    "line": 361,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 190,
+    "line": 216,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -157,28 +157,21 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/utils/tracer.py",
-    "line": 72,
+    "line": 100,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/utils/tracer.py",
-    "line": 89,
+    "line": 141,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/utils/tracer.py",
-    "line": 130,
-    "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
-  },
-  {
-    "rule": "R7",
-    "severity": "medium",
-    "file": "RAG_PROJECT/utils/tracer.py",
-    "line": 190,
+    "line": 211,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -437,7 +430,7 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 329,
+    "line": 360,
     "detail": "生产代码里的 print("
   },
   {

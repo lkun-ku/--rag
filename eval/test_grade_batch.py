@@ -150,8 +150,21 @@ try:
     out_many = grade_batch(Q, MANY)
     check("多批：返回长度恒等于输入块数", len(out_many), len(MANY))
     check("多批：元素类型都是 bool", all(isinstance(x, bool) for x in out_many), True)
+    # [FIX 2026-10-16 / 二次筛查] 这里原先断言「前 4 块判定与单批**完全相等**」——
+    # 那是**把 LLM 抖动当断言**：两次独立调用本文件自己的 docstring 就说过
+    # 「一致率只作报告、不作断言」，C4 却违反了它，会因合理分歧**假红**。
+    #
+    # 改成：**只做确定性断言**（元素必须是 bool —— 这条与 LLM 无关），
+    # 再加一条**宽松的一致性观察**（允许分歧，但要求「大方向一致」：
+    # 明显相关的块（前 2 个）在两批里都不应为 False）。
+    # 真正的顺序正确性由 `eval/test_review_fixes.py` 里的**桩测试**保证
+    # （那里用固定返回值的假链，没有 LLM 抖动）。
+    check("多批：元素都在 {True, False} 内", set(out_many) <= {True, False}, True)
+    if out is not None and len(out_many) >= 2:
+        check("多批：前 2 块（明显相关）未被判为 False", out_many[0] and out_many[1], True)
     if out is not None:
-        check("多批：前 4 块判定与单批一致（顺序正确）", out_many[:4], out)
+        same = sum(1 for a, b in zip(out_many[:4], out[:4]) if a == b)
+        print("     与单批的一致性（**仅报告，不作断言**）: %d/4" % same)
     print("     多批返回: %s" % out_many)
 except Exception as e:  # noqa: BLE001
     print("  [**FAIL**] 多批调用抛异常: %s: %s" % (type(e).__name__, e))

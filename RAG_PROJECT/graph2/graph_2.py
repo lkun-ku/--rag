@@ -72,7 +72,7 @@ def grade_generation_v_documents_and_question(state, config=None):
             return "not useful"
         return "not supported"
 
-    # ---- 两次判定：**并发**执行（ROADMAP 4.25）----
+    # ---- 两次判定：**并发**执行（ROADMAP 4.25 / 4.31）----
     #
     # 原实现是**串行 + 短路**：
     #     1) 先判「是否基于文档」；2) **只在第 1 次判 yes 时**才判「是否回答了问题」。
@@ -83,8 +83,18 @@ def grade_generation_v_documents_and_question(state, config=None):
     #
     # **短路语义严格保持不变**：第 2 次调用总是发出，但其结果**只在第 1 次判 yes 时使用**
     # （第 1 次判 no 时结果直接丢弃，走原 else 分支）。
-    # 代价：第 1 次判 no 时那次调用是白跑的 —— 这是**用少量浪费换 40% 延迟**，
-    # 且不改变任何判定结果。
+    # 代价：第 1 次判 no 时那次调用是白跑的 —— 用少量浪费换延迟，**不改变判定结果**。
+    #
+    # `.result()` 的取用时机也是正确性的一部分：
+    #   * 第 1 次在 `with` 内取（它总是需要）；
+    #   * 第 2 次**出了 `with` 块再按需取**，并单独兜异常。若在 `with` 内无条件取，
+    #     第 1 次判 no 时（原实现根本不会调用 answer_grader）它一旦抛错，
+    #     异常会冒出来**炸掉整个节点** —— 那就改变了判定结果。
+    #
+    # > **[二次筛查纠正 2026-10-16] 这里必须保留 `_cfg = _sub_config(config)`。**
+    # > 上一轮改这段注释/取值时机时**把它删掉了**，却留下两处 `config=_cfg`，
+    # > 于是**任何走到这里的正常请求都会抛 `NameError`**（P0）。
+    # > 它**没被回归抓到**，因为回归里没有「完整工作流」这一层覆盖（见 4.33）。
     _cfg = _sub_config(config)
     with ThreadPoolExecutor(max_workers=2) as _ex:
         _f_hall = _ex.submit(hallucination_grader_chain.invoke,
@@ -94,7 +104,6 @@ def grade_generation_v_documents_and_question(state, config=None):
                             {"question": question, "generation": generation},
                             config=_cfg)
         hall_score = _f_hall.result()
-        ans_score = _f_ans.result()      # 已算好；是否使用由下面的分支决定
 
     grade = getattr(hall_score, "binary_score", "")
 
@@ -102,7 +111,15 @@ def grade_generation_v_documents_and_question(state, config=None):
         log.info("---判定：生成内容基于参考文档---")
         # 检查是否准确回答问题（结果在上面已并发算出，此处直接取用）
         log.info("---评估：生成回答与问题的匹配度---")
-        grade = getattr(ans_score, "binary_score", "")
+        try:
+            ans_score = _f_ans.result()
+            grade = getattr(ans_score, "binary_score", "")
+        except Exception as e:  # noqa: BLE001
+            # 第 2 次判定失败 -> **按 not useful 处理**（保守：无法确认回答了问题，
+            # 让上游走 transform_query / 收尾，而不是抛异常中断整次问答）。
+            log.warning(f"---判定：回答质量判定失败，按 not useful 处理: "
+                        f"{type(e).__name__}: {str(e)[:80]}---")
+            return "not useful"
         if grade == "yes":  # 如果正确回答问题
             log.info("---判定：生成内容准确回答问题---")
             return "useful"  # 返回有用结果
@@ -144,18 +161,24 @@ def decide_to_generate(state):
         return "generate"  # 返回回答生成节点
 
 
-def route_question(state):
+def route_question(state, config=None):
     """
     路由问题到网络搜索或RAG流程
     Args:
         state (dict): 当前图状态，包含用户问题
+        config: LangGraph 注入的运行配置。**[FIX 2026-10-16 / ROADMAP 4.29] 显式接收并
+            透传** —— 本函数有一次 LLM 调用（路由判定），不要依赖 contextvar 隐式继承：
+            实测（`eval/_probe_contextvar_threadpool.py`）显示 contextvar 在**线程池内失效**
+            （无线程池时 token=11，线程池内不传 config 时 token=0）。
+            本函数当前串行执行、侥幸能统计到，但一旦并发化就会**静默归零**。
 
     Returns:
         str: 下一节点的名称（web_search或vectorstore）
     """
     log.info("---ROUTE QUESTION---")  # 阶段标识
     question = state["question"]  # 获取用户问题
-    source = question_router_chain.invoke({"question": question})  # 调用问题路由器
+    source = question_router_chain.invoke({"question": question},
+                                          config=_sub_config(config))  # 调用问题路由器
 
     # 根据路由结果决定下一个节点
     if source.datasource == "web_search":
@@ -182,17 +205,26 @@ def _traced_router(name: str, fn):
     修的时候要一起找」（`grep` 一下同类包装器）。
     """
 
+    # [FIX 2026-10-16 / 代码审查] 与 `utils.tracer.traced` 同步：**也要识别仅关键字
+    # config**（`def fn(state, *, config=None)`），否则那种签名会被静默丢 config。
     try:
-        _n_pos = len([
-            p for p in inspect.signature(fn).parameters.values()
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        ])
+        _params = list(inspect.signature(fn).parameters.values())
+        _n_pos = len([p for p in _params
+                      if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+        _kwonly_cfg = any(
+            p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params
+        )
     except (TypeError, ValueError):
-        _n_pos = 1
+        _n_pos, _kwonly_cfg = 1, False
 
     def wrapper(state, config=None):
         t0 = time.time()
-        decision = fn(state, config) if _n_pos >= 2 else fn(state)
+        if _n_pos >= 2:
+            decision = fn(state, config)
+        elif _kwonly_cfg:
+            decision = fn(state, config=config)
+        else:
+            decision = fn(state)
         t = tracer.current()
         if t is not None:
             info = {"decision": decision}

@@ -76,20 +76,35 @@ print("重建后的内容覆盖核对（旧块消失 -> 内容是否仍在新集
 print("=" * 104)
 print("  备份: %s" % bk.name)
 
-# 取新集合的所有正文（按集合分别建索引，避免跨集合误判）
-new_by_coll = {}
+# 取新集合的所有正文 —— **按 (集合, filename) 建索引**。
+#
+# [FIX 2026-10-16 / 二次筛查] 原先这里是「每个集合拼一个大 blob」，
+# 于是**跨文件也能匹配上**：只要片段在**同一集合的任意文件**里出现过就算「覆盖」——
+# 这让「未丢内容」这个结论**接近恒真**（同集合的不同文档本就常有相同短语，
+# 尤其表格列名、术语、产品名）。另外「无长词的块」原先直接计 OK，同样是虚增。
+#
+# 现在：**优先在同一文件的**新块里找；找不到该文件时退回集合级，
+# 但**单独计数**（`via_coll`），便于判断结论有多可信。
+new_by_file = {}      # (coll, filename) -> blob
+new_by_coll = {}      # coll -> blob（仅作回退）
 for coll in COLLECTIONS:
-    rows = client.query(collection_name=coll, filter="", output_fields=["text"], limit=8000)
+    rows = client.query(collection_name=coll, filter="",
+                        output_fields=["filename", "text"], limit=8000)
+    per_file = {}
+    for r in rows:
+        fn = r.get("filename") or "?"
+        per_file.setdefault(fn, []).append(norm(r.get("text") or ""))
+    new_by_file.update({(coll, fn): "\n".join(v) for fn, v in per_file.items()})
     texts = [norm(r.get("text") or "") for r in rows]
     new_by_coll[coll] = {"n": len(texts), "blob": "\n".join(texts)}
-    print("  %-32s 新集合 %5d 块 / %8d 字符" % (coll, len(texts), len(new_by_coll[coll]["blob"])))
+    print("  %-32s 新集合 %5d 块 / %3d 文件" % (coll, len(texts), len(per_file)))
 
 print()
 print("  %-32s %10s %10s %10s %s" % ("集合", "旧块", "消失块", "覆盖OK", "说明"))
 print("  " + "-" * 96)
 
 all_lost = []
-tot_old = tot_gone = tot_ok = 0
+tot_old = tot_gone = tot_ok = tot_via_coll = tot_undec = 0
 for coll in COLLECTIONS:
     items = old["collections"].get(coll, {}).get("items", [])
     blob = new_by_coll[coll]["blob"]
@@ -101,13 +116,22 @@ for coll in COLLECTIONS:
             continue
         gone.append(it)
     ok = 0
+    via_coll = 0
+    undec = 0
     lost = []
     for it in gone:
         frs = fragments(it.get("text") or "")
         if not frs:
-            ok += 1
+            # [FIX] 原先此处 `ok += 1`（虚增覆盖数）。无长词 -> **无法判定**。
+            undec += 1
             continue
-        hit = sum(1 for f in frs if f in blob)
+        fn = it.get("filename") or "?"
+        same_file = new_by_file.get((coll, fn))
+        if same_file:
+            hit = sum(1 for f in frs if f in same_file)      # 同文件（严格）
+        else:
+            hit = sum(1 for f in frs if f in blob)           # 回退集合级（宽松）
+            via_coll += 1
         cov = hit / len(frs)
         if cov >= COVER_OK:
             ok += 1
@@ -115,6 +139,8 @@ for coll in COLLECTIONS:
             lost.append({"filename": it.get("filename"), "title": it.get("title"),
                          "coverage": round(cov, 3), "n_frag": len(frs),
                          "head": norm(it.get("text") or "")[:120]})
+    tot_via_coll += via_coll
+    tot_undec += undec
     tot_old += len(items); tot_gone += len(gone); tot_ok += ok
     if lost:
         all_lost.extend(lost)
@@ -124,6 +150,13 @@ for coll in COLLECTIONS:
 
 print("  " + "-" * 96)
 print("  %-32s %10d %10d %10d" % ("合计", tot_old, tot_gone, tot_ok))
+print()
+print("  **口径可信度**（[FIX 2026-10-16 / 二次筛查] 新增 —— 用于判断结论有多可信）:")
+print("     同文件内匹配上的      : %d（**严格**，是「未丢内容」的强证据）"
+      % max(tot_ok - tot_via_coll, 0))
+print("     回退到集合级匹配的    : %d（**宽松**，同集合其它文件里出现过就算，可能虚高）"
+      % tot_via_coll)
+print("     无法判定（无长词）的  : %d（**原先被直接计为 OK，是虚增**）" % tot_undec)
 print()
 print("  含义：'消失块'=%d，其中 %d 块（%.1f%%）的内容在新集合里覆盖率 >= %.2f"
       % (tot_gone, tot_ok, (tot_ok / max(tot_gone, 1)) * 100, COVER_OK))

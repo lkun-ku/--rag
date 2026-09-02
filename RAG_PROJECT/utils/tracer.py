@@ -63,13 +63,24 @@ class Tracer:
     # ---- token 统计 ----
     @property
     def usage(self):
-        """惰性构造：langchain_core 未提供该回调时退化为 None（不阻断主流程）。"""
+        """惰性构造：langchain_core 未提供该回调时退化为 None（不阻断主流程）。
+
+        [FIX 2026-10-16 / 代码审查] **失败必须留痕**。原实现只写了
+        `self._usage = False` 就默默退化为「没有统计」—— 那正是本轮 4.22
+        挖了半天的「成本不可见」的**第二条隐形路径**：langchain 一升级、
+        这个 import 一变，token 就**静默归零**，而监控里看不出任何异常。
+        现在补一条 warning（项目纪律：不得静默降级）。
+        """
         if self._usage is None:
             try:
                 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
                 self._usage = UsageMetadataCallbackHandler()
-            except Exception:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
+                log.warning(
+                    "tracer: UsageMetadataCallbackHandler 不可用（%s: %s）—— "
+                    "**本次 trace 不会有 token 统计**，成本监控会缺失，"
+                    "请检查 langchain_core 版本。", type(e).__name__, str(e)[:80])
                 self._usage = False  # 标记为不可用
         return self._usage or None
 
@@ -179,21 +190,36 @@ def traced(name: str):
     """
 
     def deco(fn):
-        # 签名判定：本项目多数节点仍是 `fn(state)`（retrieve / generate /
-        # web_search / transform_query），**统一多传一个参数会直接 TypeError**。
-        # 所以只对「声明了第二个位置参数」的节点透传 config，兼容两种签名。
+        # 签名判定：本项目多数节点仍是 `fn(state)`（retrieve / web_search），
+        # **统一多传一个参数会直接 TypeError**。所以按签名决定怎么调。
+        #
+        # [FIX 2026-10-16 / 代码审查] 首版只看「**位置参数**个数」——
+        # 于是 `def fn(state, *, config=None)`（仅关键字 config）会被判成
+        # 「不接受 config」，**静默丢弃、token 归零、且无任何告警**。
+        # 那正是本轮在修的「静默断链」，判据却是启发式 —— 现在改为
+        # **同时识别仅关键字形态**，三种签名都覆盖：
+        #     fn(state)                     -> 直接调
+        #     fn(state, config)             -> 位置传
+        #     fn(state, *, config=None)     -> 关键字传
         try:
-            _n_pos = len([
-                p for p in inspect.signature(fn).parameters.values()
-                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-            ])
-        except (TypeError, ValueError):      # 内建/无签名可读时按 1 处理（保守）
-            _n_pos = 1
+            _params = list(inspect.signature(fn).parameters.values())
+            _n_pos = len([p for p in _params
+                          if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+            _kwonly_cfg = any(
+                p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params
+            )
+        except (TypeError, ValueError):      # 内建/无签名可读时按「只接 state」处理
+            _n_pos, _kwonly_cfg = 1, False
 
         def wrapper(state, config=None):
             t = _CURRENT.get()
             t0 = time.time()
-            out = fn(state, config) if _n_pos >= 2 else fn(state)
+            if _n_pos >= 2:
+                out = fn(state, config)
+            elif _kwonly_cfg:
+                out = fn(state, config=config)
+            else:
+                out = fn(state)
             if t is not None:
                 info: Dict[str, Any] = {}
                 try:

@@ -370,7 +370,11 @@ def gate(scores: Dict[str, Optional[float]],
         if v < th["fail"]:
             reasons.append(f"{name}: {v:.4f} < 硬门禁 {th['fail']}")
             failed = True
-        elif v < th["warn"]:
+        elif v < th["warn"] and name in _WARN_ELIGIBLE:
+            # [FIX 2026-10-16 / 代码审查] 原先这里**不查 `_WARN_ELIGIBLE`** ——
+            # 于是那个集合里虽然列了 faithfulness / answer_relevancy，
+            # 把它们**摘出去也无效**（「改集合对生成层不生效」）。
+            # 这是 4.28 引入的新集合没在两个循环里都落实所致。
             reasons.append(f"{name}: {v:.4f} 处于告警区间 [{th['fail']}, {th['warn']})")
             warned = True
 
