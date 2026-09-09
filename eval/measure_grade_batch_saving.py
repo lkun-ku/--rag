@@ -146,10 +146,25 @@ print("  换算到单题（本批 %d 道）：逐块 %.0f token/题 -> 批量 %.
           (a_tot - b_tot) / max(len(rows), 1)))
 
 (HERE / "measure_grade_batch_saving.json").write_text(json.dumps(
-    {"batch_size": BATCH_SIZE, "rows": rows, "totals": tot,
+    {"batch_size": BATCH_SIZE,
+     # [FIX 2026-10-16 / 二次筛查] **必须记录本次实际跑了哪些题**。
+     #
+     # 原因：`SAVING_QIDS` 的默认值是 **3 题**，而落盘的证据（4.23 的
+     # 「省 40% / 一致率 92.6%」）来自**6 题 215 块**。若不记 QIDS，
+     # 任何人重跑一次（用默认值）都会**静默用 3 题的结果覆盖 6 题的证据** ——
+     # 而 ROADMAP 里引用的数字会与 JSON 对不上，且无从察觉。
+     # 记下 QIDS 后，「这条结论基于几道题」变成可核查的事实。
+     "qids": QIDS,
+     "n_cases": len(rows),
+     "n_blocks": tot["all"],
+     "rows": rows, "totals": tot,
      "consistent_rate": round(tot["same"] / max(tot["all"], 1), 4),
      "token_ratio": round(b_tot / max(a_tot, 1), 4),
      "call_ratio": round(tot["b_calls"] / max(tot["a_calls"], 1), 4)},
     ensure_ascii=False, indent=2), encoding="utf-8")
+print()
+print("  **本次证据覆盖**：%d 题（%s）/ %d 块" % (len(rows), ",".join(QIDS), tot["all"]))
+print("  （ROADMAP 4.23 的「省 40%% / 一致率 92.6%%」来自 **6 题 / 215 块** ——")
+print("   若本次题数不同，JSON 已记录 QIDS，可用于判断能否直接对比。）")
 print()
 print("  证据 -> eval/measure_grade_batch_saving.json")

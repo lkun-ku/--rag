@@ -1,29 +1,36 @@
-"""探针：LangChain 的 config 靠 **contextvar** 传递，而**线程池不继承 contextvar**。
+"""探针：LangChain 的 config 是否靠 **contextvar** 传递，而**线程池不继承它**？
 
-## 要验证的假设（它解释了一连串现象）
+## ⚠️ 这是**第二版** —— 首版的 B 组对照不成立（二次筛查发现）
 
-| 调用点 | 是否显式传 config | 是否用线程池 | token 是否统计到 |
-|---|---|---|---|
-| `route_question` | ❌ 没传 | ❌ 无线程池 | ✅ **统计到了** |
-| `generate` | ❌ 没传 | ❌ 无线程池 | ✅ **统计到了** |
-| `grade_documents`（首版） | ❌ 没传 | ✅ **有线程池** | ❌ **统计不到** |
-| `grade_generation`（4.24 前） | ❌ 没传 | ❌ 串行 | ✅ 统计到了（所以 4.25 的 token 没变**不是矛盾**） |
+首版的 B 组是这样写的：
 
-**假设**：LangChain 的 `Runnable.invoke(..., config=None)` 会从 **contextvar**
-取「当前 config」；而**线程池里的工作线程没有那个 contextvar**（Python 的
-`contextvars` 不会自动跨线程传播），所以线程池内的调用拿不到 callbacks。
+    uB = UsageMetadataCallbackHandler()
+    def _work_no_config(_i):
+        chain.invoke({"dummy": 1})          # 想测「线程池内不传 config」
+    with cf.ThreadPoolExecutor(max_workers=2) as ex:
+        list(ex.map(_work_no_config, range(2)))
+    print(tokens_of(uB))                    # -> 0
 
-**若成立**，则：
-1. 4.25.4 那个「token 该 +897 却没变」的疑问**有答案了** —— 4.24 时它们**本来就被统计**
-   （串行、无线程池），并非漏统计；
-2. `generate_node2.py` / `graph_2.py` 里那两处「没传 config 也能工作」是**隐式依赖** ——
-   一旦将来改成并发就会**静默失效**，应当改为**显式传递**。
+**问题**：`uB` **从来没有被注册到任何调用**（没有一处 `config={"callbacks": [uB]}`），
+所以 `token=0` 是**必然结果**，与「contextvar 是否跨线程」**毫无关系**。
+**-> 首版结论（「contextvar 在线程池内失效」）没有证据。**
 
-## 探针设计（三条对照，缺一不可）
+## 本版的三条对照（这次真的成立）
 
-    A. 无线程池 + 不传 config  -> 期望 **能**统计（contextvar 继承）
-    B. 线程池   + 不传 config  -> 期望 **不能**统计（contextvar 不跨线程）
-    C. 线程池   + 显式传 config -> 期望 **能**统计（这就是我们的修法）
+关键在于：**必须先让「当前上下文」里带上 callbacks**，再观察池内调用能否继承它。
+用一层**外层 Runnable**（带 config）包住线程池，就能构造出这个状态：
+
+    A. 无线程池 + 内层不传 config  -> 期望 **> 0**（contextvar 继承生效）
+    B. 线程池   + 内层不传 config  -> 期望 **0**（若假设成立：池内拿不到外层 contextvar）
+    C. 线程池   + 内层显式传 config -> 期望 **> 0**（显式传递有效 —— 我们的修法）
+
+**A 与 B 的唯一差别是「在不在线程池里」**，C 用来证明「显式传能救回来」。
+
+## 如果 B 也 > 0 会怎样
+
+那说明「contextvar 会随线程复制」（某些 LangChain/anyio 版本会主动复制上下文），
+**4.29 的「线程池内失效」就是错的** —— 那么当初判分首版统计不到 token 的原因
+**另有其他**，需要重新定位（不能沿用旧结论）。
 """
 from __future__ import annotations
 
@@ -49,60 +56,76 @@ def tokens_of(u) -> int:
     return sum(int(v.get("total_tokens", 0) or 0) for v in m.values())
 
 
-chain = RunnableLambda(lambda _x: llm.invoke(PROMPT))
+# 内层链：**自己不带 config** —— 它能否统计到，完全取决于「当前上下文里有没有 callbacks」
+inner_chain = RunnableLambda(lambda _x: llm.invoke(PROMPT))
 
 print("=" * 100)
-print("探针：contextvar 在线程池内是否失效")
+print("探针（第二版）：contextvar 在线程池内是否失效")
 print("=" * 100)
+print()
 
-# A. 无线程池，不传 config
+# ---- A：无线程池，内层不传 config（外层 Runnable 带 config）------------------
 uA = UsageMetadataCallbackHandler()
-try:
-    chain.invoke({"dummy": 1}, config={"callbacks": [uA]})
-except Exception as e:  # noqa: BLE001
-    print("  [A] 调用失败: %s: %s" % (type(e).__name__, e))
-print("  [A] 无线程池 + 不传 config -> token=%d" % tokens_of(uA))
+outer_A = RunnableLambda(lambda _x: inner_chain.invoke({"d": 1}))
+outer_A.invoke({"d": 1}, config={"callbacks": [uA]})
+a = tokens_of(uA)
+print("  [A] 无线程池 + 内层不传 config -> token=%d  %s" % (
+    a, "✅（继承生效）" if a > 0 else "❌（连主线程都继承不了，说明另有问题）"))
 
-# B. 线程池，不传 config（**关键对照**）
+# ---- B：线程池内，内层不传 config（**同一个外层上下文**）---------------------
 uB = UsageMetadataCallbackHandler()
 
 
 def _work_no_config(_i):
-    # 注意：这里**不传** config，依赖 contextvar 继承
-    chain.invoke({"dummy": 1})
+    inner_chain.invoke({"d": 1})        # 故意不传 config
     return 1
 
 
-with cf.ThreadPoolExecutor(max_workers=2) as ex:
-    list(ex.map(_work_no_config, range(2)))
-print("  [B] 线程池   + 不传 config -> token=%d" % tokens_of(uB))
+def _run_pool(_x):
+    with cf.ThreadPoolExecutor(max_workers=2) as ex:
+        list(ex.map(_work_no_config, range(2)))
+    return 1
 
-# C. 线程池，显式传 config（我们的修法）
+
+outer_B = RunnableLambda(_run_pool)
+outer_B.invoke({"d": 1}, config={"callbacks": [uB]})
+b = tokens_of(uB)
+print("  [B] 线程池   + 内层不传 config -> token=%d  %s" % (
+    b, "✅（池内拿不到，假设成立）" if b == 0 else "⚠️（池内也能拿到 —— 假设不成立）"))
+
+# ---- C：线程池内，显式传 config ---------------------------------------------
 uC = UsageMetadataCallbackHandler()
 CFG = {"callbacks": [uC]}
 
 
 def _work_with_config(_i):
-    chain.invoke({"dummy": 1}, config=CFG)
+    inner_chain.invoke({"d": 1}, config=CFG)   # 显式传
     return 1
 
 
-with cf.ThreadPoolExecutor(max_workers=2) as ex:
-    list(ex.map(_work_with_config, range(2)))
-print("  [C] 线程池   + 显式传 config -> token=%d" % tokens_of(uC))
+def _run_pool_c(_x):
+    with cf.ThreadPoolExecutor(max_workers=2) as ex:
+        list(ex.map(_work_with_config, range(2)))
+    return 1
+
+
+RunnableLambda(_run_pool_c).invoke({"d": 1})
+c = tokens_of(uC)
+print("  [C] 线程池   + 显式传 config -> token=%d  %s" % (
+    c, "✅（显式传递有效）" if c > 0 else "❌（显式传也不行？）"))
 
 print()
 print("=" * 100)
 print("判读")
 print("=" * 100)
-a, b, c = tokens_of(uA), tokens_of(uB), tokens_of(uC)
 print("  A=%d  B=%d  C=%d" % (a, b, c))
 print()
-print("  预期: A>0（contextvar 继承）、B==0（线程池丢失）、C>0（显式传递有效）")
 if a > 0 and b == 0 and c > 0:
     print("  -> **假设成立**：contextvar 在线程池内失效，必须显式传 config。")
+    print("     4.29 的结论**有了证据**（首版没有，本版补上）。")
 elif a > 0 and b > 0:
-    print("  -> B 也有 token：说明该版本 LangChain 会把 contextvar 复制到线程 ——")
-    print("     那么判分首版统计不到的原因**另有其他**，需重新定位。")
+    print("  -> **假设不成立**：B 也拿到了 token，说明该版本会把上下文带进线程。")
+    print("     那么 4.29 的结论（以及它指导的改动）需要**重新论证** ——")
+    print("     判分首版统计不到 token 的原因另有其他（例如当时压根没透传 config）。")
 else:
-    print("  -> 结果与预期不符，需要进一步排查（不要据此下结论）。")
+    print("  -> 结果不符合任一预期（A 都没拿到），**先别下结论**，需查环境。")

@@ -55,6 +55,11 @@ CHECKS = [
     ("批量判分契约", "eval/test_grade_batch.py", "quick", "grade_batch 结构/语义/容错/并发顺序"),
     ("审查修复回归", "eval/test_review_fixes.py", "quick", "代码审查发现的修复"),
     ("documents 类型一致", "eval/test_web_search_docs_type.py", "quick", "web_search 返回 list（与其它节点一致）"),
+    # [FIX 2026-10-16 / 二次筛查] **这一层此前完全缺失** —— 回归里所有项要么只走检索层
+    # （run_eval），要么只测单个函数（test_*.py），**没有任何一项端到端跑图**。
+    # 于是「grade_generation 里 `_cfg` 未定义」这种**只有走完整链路才触发**的 P0
+    # 能安然通过 10/10 的回归。本项补上这层覆盖（跑 1 题，约 5s）。
+    ("完整工作流冒烟", "eval/test_pipeline_smoke.py", "quick", "端到端跑图（补上缺失的那层覆盖）"),
     ("判分 token 埋点", "eval/test_grade_callback.py", "quick", "grade_documents 的 config 透传（含 tracer 包装链路）"),
     ("门禁告警集合", "eval/test_gate_precision.py", "quick", "context_precision 只作监控、不参与告警（保留硬门禁）"),
     ("引用校验", "eval/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),

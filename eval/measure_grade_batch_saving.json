@@ -1,5 +1,15 @@
 {
   "batch_size": 8,
+  "qids": [
+    "n001",
+    "n003",
+    "n005",
+    "n022",
+    "n026",
+    "n027"
+  ],
+  "n_cases": 6,
+  "n_blocks": 215,
   "rows": [
     {
       "id": "n001",
@@ -15,7 +25,7 @@
         false,
         true,
         false,
-        false,
+        true,
         false,
         false,
         false,
@@ -80,7 +90,7 @@
         false,
         true
       ],
-      "same": 31,
+      "same": 30,
       "a_in": 30709,
       "a_out": 1188,
       "b_in": 19536,
@@ -131,8 +141,8 @@
       "b_verdicts": [
         false,
         false,
-        false,
-        false,
+        true,
+        true,
         false,
         false,
         true,
@@ -299,7 +309,7 @@
         false,
         false,
         false,
-        false
+        true
       ],
       "b_verdicts": [
         true,
@@ -339,7 +349,7 @@
         false,
         false
       ],
-      "same": 35,
+      "same": 34,
       "a_in": 28175,
       "a_out": 1188,
       "b_in": 17198,
@@ -529,10 +539,10 @@
     "b_out": 3475,
     "a_calls": 215,
     "b_calls": 30,
-    "same": 199,
+    "same": 197,
     "all": 215
   },
-  "consistent_rate": 0.9256,
+  "consistent_rate": 0.9163,
   "token_ratio": 0.6024,
   "call_ratio": 0.1395
 }

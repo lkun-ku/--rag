@@ -5639,6 +5639,93 @@ scanned_performance_faq.pdf.md         6 块     vector_db_benchmark.xlsx.md    
 
 ---
 
+## 4.33 二次筛查（Standards/Spec 之外的两个盲区）+ 一个 P0（2026-10-16）
+
+第一轮审查只覆盖「本轮改动」，两个盲区未深挖：**并发/状态一致性**、**测试脚本自身正确性**。
+这轮专攻这两块，结果如下。
+
+### 4.33.1 🔴 P0：`_cfg` 未定义（已修并验证）
+
+`graph_2.py:101/104` 两处 `config=_cfg`，而 **`_cfg` 全项目无定义**
+（grep 只命中使用）→ **任何走到该分支的正常请求都抛 `NameError`**。
+**这是 4.31 修 B1 时引入的**（那次 `old_str` 含 `_cfg = _sub_config(config)`，`new_str` 漏了它）。
+
+**为什么回归 10/10 全绿也没抓到** —— 比 bug 本身更重要：
+
+```
+run_eval.py      只走**检索层**（检索器直调，不跑工作流）
+test_*.py        只测**单个函数**
+run_all_checks   串联上述，但**没有任何一项端到端跑图**
+```
+
+**→ 「图能不能跑通」从来没被回归覆盖过。**
+
+**修法**：恢复 `_cfg = _sub_config(config)` + 清理上一轮遗留的重复注释块。
+**新增 `eval/test_pipeline_smoke.py`**（跑 1 题走完整工作流：不抛异常 / generation 非空 /
+步骤齐全 / 不回退 web_search），并**接入 `run_all_checks`**。
+
+**验证**（Milvus + LLM 就绪后）：**7/7 通过**，答案正确。
+
+### 4.33.2 二次筛查的其余发现
+
+**并发/状态一致性轴**（结论：基本合规，2 处低危）
+
+* `out` 只由主线程写（子线程只 return 元组）→ 无竞态；
+* 三处线程池**互不嵌套**（批量/逐块互斥）→ 无死锁；
+* 低危：`_batch_chain` 是无锁 check-then-act（最多构造两次，等价无害）；
+* 低危：`route_question` 在 datasource 非两值时**隐式 return None** → 映射表无 None，会抛路由错误。
+
+**测试脚本正确性轴**（**8 项，其中 4 项「高」**）
+
+| 严重度 | 脚本 | 问题 |
+|---|---|---|
+| **高** | `_probe_contextvar_threadpool.py` | **三条对照全不成立**（A 实际显式传了 config；**B 的 handler 从未注册**）→ 4.29 结论**无证据** |
+| **高** | `revise_golden.py` | 把「重建后消失的 golden」**直接删掉** → **任何重建丢内容的 bug 都会被自动「修订」掉**（自我证成） |
+| **高** | `compare_perk_after_grade.py` | **未统计判分异常数**（而 `_grade_one` 异常返回 `True`）→ 「多保留的 golden」可能只是判分失败被保守保留 |
+| **高** | `measure_grade_batch_saving.py` | 默认 `SAVING_QIDS` 是 **3 题**、落盘证据是 **6 题**且不记 QIDS → 重跑会**静默覆盖**证据 |
+| 中 | `verify_rebuild_coverage.py` | 子串匹配近恒真（跨文件也算覆盖） |
+| 中 | `measure_flat_twin.py` | **组级定阈值、元素级使用** |
+| 中 | `fullchain_audit.py` | 对照行是**硬编码常数** |
+| 中 | `test_grade_batch.py` | C4 把 LLM 抖动当断言 |
+
+### 4.33.3 已修（本轮）
+
+* **⑤** `verify_rebuild_coverage.py`：改为**按 (集合, filename) 建索引**（严格），
+  回退集合级时**单独计数**，无长词的块改计「**无法判定**」（不再虚增 OK），
+  并新增「**口径可信度**」段把三档分开列 —— 让读者能自己判断「未丢内容」有多硬；
+* **⑧** `test_grade_batch.py` C4：改为**仅确定性断言**，一致性只报告，
+  顺序正确性交给**桩测试**（`test_review_fixes.py`）；
+* **②** `_probe_contextvar_threadpool.py`：**重写对照**（见 4.33.4）。
+
+### 4.33.4 ② 的重做与结论：**4.29 的假设这次有了证据**
+
+首版 B 组的 `uB` 从未注册到任何调用 → `token=0` 是**必然结果**，与「contextvar」无关。
+第二版用**外层 Runnable 带 config 包住线程池**，构造出「当前上下文有 callbacks」的状态：
+
+| 组 | 设置 | token | 结论 |
+|---|---|---|---|
+| **A** | 无线程池 + 内层不传 config | **11** | contextvar 继承生效 |
+| **B** | 线程池 + 内层不传 config | **0** | **池内拿不到**（假设成立） |
+| **C** | 线程池 + 显式传 config | **22** | 显式传递有效 |
+
+**数字自洽**（11 = 1 次调用、22 = 2 次）→ **4.29 的结论成立**，只是首版**没有证据**、本版补上。
+
+### 4.33.5 环境记录（本次踩到的两个外部依赖问题）
+
+1. **LLM key 失效**：原 key 请求 **120s 超时**（报 `Timeout` 而非 401，因此一开始误判成网络问题）；
+   换 key 后 **1.7s** 正常。`.env` 的 `OPENAI_API_KEY` 已更新。
+   **教训**：`Timeout` 不一定是网络问题 —— 服务端也可能因 key/额度问题不返回。
+2. **Docker Desktop 守护进程停止**：导致 Milvus 不可达。
+   注意 `docker start` 失败时若用 `Out-Null` **吞掉错误**，会**误以为在启动中**
+   （我第一次等了 225s 白等）。**排障时不要吞 docker 命令的输出。**
+
+### 4.33.6 仍未做（需 LLM，**已具备条件**）
+
+* **③** `compare_perk_after_grade.py` 补「判分异常数」统计 → 重跑验证「12/36 采纳」是否受影响；
+* **④** `measure_grade_batch_saving.py` 记录 QIDS → 重跑恢复 6 题证据；
+* **⑥** `measure_flat_twin.py`（组级/元素级）；
+* **⑦** `fullchain_audit.py`（硬编码对照行）。
+
 ## 4.32 消除 `documents` 类型不一致（4.27.4 记录的待修项，2026-10-16 修复）
 
 ### 4.32.1 问题
