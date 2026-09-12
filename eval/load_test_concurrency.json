@@ -1,0 +1,81 @@
+{
+  "levels": [
+    8
+  ],
+  "results": [
+    {
+      "C": 8,
+      "wall": 9.3,
+      "min": 7.2,
+      "max": 9.3,
+      "n_ok": 8,
+      "n": 8,
+      "rows": [
+        {
+          "idx": 0,
+          "sec": 8.7,
+          "ok": true,
+          "n_gen": 15,
+          "head": "9,575.69 [2][3]",
+          "err": null
+        },
+        {
+          "idx": 1,
+          "sec": 8.7,
+          "ok": true,
+          "n_gen": 11,
+          "head": "17.1 [1][2]",
+          "err": null
+        },
+        {
+          "idx": 2,
+          "sec": 8.3,
+          "ok": true,
+          "n_gen": 10,
+          "head": "93.57% [3]",
+          "err": null
+        },
+        {
+          "idx": 3,
+          "sec": 8.6,
+          "ok": true,
+          "n_gen": 8,
+          "head": "1131 [1]",
+          "err": null
+        },
+        {
+          "idx": 4,
+          "sec": 7.2,
+          "ok": true,
+          "n_gen": 10,
+          "head": "知识库中未找到依据。",
+          "err": null
+        },
+        {
+          "idx": 5,
+          "sec": 8.7,
+          "ok": true,
+          "n_gen": 155,
+          "head": "在 Cohere Medium 1M-768D 静态向量检索场景下，Milvus-16c64g-sq4u-fp16-fo",
+          "err": null
+        },
+        {
+          "idx": 6,
+          "sec": 9.3,
+          "ok": true,
+          "n_gen": 399,
+          "head": "静态向量检索场景下，召回率超过 91% 的配置有：Milvus-16c64g-sq4u-fp16-force_merge",
+          "err": null
+        },
+        {
+          "idx": 7,
+          "sec": 8.2,
+          "ok": true,
+          "n_gen": 47,
+          "head": "FLOAT_VECTOR 字段支持的度量类型为 COSINE、L2、IP [1][2][6]。",
+          "err": null
+        }
+      ]
+    }
+  ]
+}

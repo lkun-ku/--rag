@@ -185,14 +185,50 @@ n_zero = sum(1 for r in n if r["n_kept"] == 0)
 print()
 print("  %-22s %-16s %-16s %s" % ("口径", "库外拒答率", "库外走网络搜索", "库内拒答率"))
 print("  " + "-" * 96)
-print("  %-22s %-16s %-16s %s" % (
-    "refusal_audit（跳过判分）",
-    "100% (10/10)", "—（不经路由）", "9.4% (3/32)"))
+
+# [FIX 2026-10-16 / 二次筛查] **对照行不再硬编码**。
+#
+# 原先这里写死了 `"100% (10/10)"` / `"—（不经路由）"` / `"9.4% (3/32)"` ——
+# 那是 4.27 那次运行的数字。硬编码的后果是：**对照会永远"看起来正常"**，
+# 即使 `refusal_audit.py` 的结果早已变化（语料换了、判分改了、题换了）。
+# 那正是「拿旧数字当基准」的经典陷阱（本项目在 4.13 已经吃过一次：
+# 拿上一条 trace 当本次对照，得出 266% 的假偏差）。
+#
+# 现在：**优先从 `refusal_audit.json` 读实际值**；读不到就显式标注「未找到」，
+# 而不是伪造一个看起来合理的数字。
+_ref_path = HERE / "refusal_audit.json"
+_ref_in = _ref_out = None
+if _ref_path.exists():
+    try:
+        _d = json.loads(_ref_path.read_text(encoding="utf-8"))
+        _ref_out = _d.get("out_of_scope", {})
+        _ref_in = _d.get("in_scope", {})
+    except Exception:  # noqa: BLE001
+        _ref_out = _ref_in = None
+
+if _ref_out and _ref_in and _ref_out.get("n"):
+    _ro_rate = "%.1f%% (%d/%d)" % (100 * _ref_out["rate"], _ref_out["refused"],
+                                   _ref_out["n"])
+    _ri_rate = "%.1f%% (%d/%d)" % (100 * _ref_in["rate"], _ref_in["refused"],
+                                   _ref_in["n"])
+    _note = "（读自 refusal_audit.json，本次运行于 %s）" % _d.get("stamp", "未知时间") \
+        if isinstance(_d, dict) and _d.get("stamp") else "（读自 refusal_audit.json）"
+    print("  %-22s %-16s %-16s %s" % ("refusal_audit（跳过判分）", _ro_rate,
+                                      "—（不经路由）", _ri_rate))
+    print("  %s" % _note)
+else:
+    print("  %-22s %-16s %-16s %s" % (
+        "refusal_audit（跳过判分）", "**未找到 refusal_audit.json**",
+        "—（不经路由）", "**无法对照**"))
+
 print("  %-22s %-16s %-16s %s" % (
     "**全链路（本脚本）**",
     "%.1f%% (%d/%d)" % (100 * o_ref / max(len(o), 1), o_ref, len(o)),
     "%.1f%% (%d/%d)" % (100 * o_web / max(len(o), 1), o_web, len(o)),
     "%.1f%% (%d/%d)" % (100 * n_ref / max(len(n), 1), n_ref, len(n))))
+print()
+print("  注：**两组口径不同**（本脚本走完整链路含判分/路由/联网；refusal_audit 跳过判分"
+      "直接给全量块），所以差异本身不是\"对错\"，而是\"两种问法\"。")
 print()
 print("  库内题中「判分后 0 块」的: %d/%d（这些会走 transform_query / web_search）"
       % (n_zero, len(n)))

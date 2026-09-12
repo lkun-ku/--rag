@@ -143,7 +143,7 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 216,
+    "line": 217,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -430,7 +430,7 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 360,
+    "line": 361,
     "detail": "生产代码里的 print("
   },
   {

@@ -156,7 +156,34 @@ print()
 print("  **判读**：覆盖率 >= 0.99 的组才是「扁平孪生」的强候选；")
 print("          低于此值说明扁平文本并不含全部结构化值（可能被截断或是另一张表）。")
 
-(HERE / "measure_flat_twin.json").write_text(
-    json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "measure_flat_twin.json").write_text(json.dumps(
+    {
+        "measurement_granularity": "group",     # 见下方说明
+        "groups": out,
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+
 print()
-print("  证据 -> eval/measure_flat_twin.json")
+print("=" * 112)
+print("  **粒度限制（[FIX 2026-10-16 / 二次筛查] 必须显式标注）**")
+print("=" * 112)
+print("  本脚本的阈值是**组级**测量的：按 `(filename, title)` 把块聚合成一组再算")
+print("  「正向覆盖 / 反向覆盖 / 长度比」。而生产里的 `is_flat_twin(flat_text,")
+print("  table_chunks)` 是**元素级**的（同一个表格元素的扁平文本 + 它自己的结构化块）。")
+print()
+print("  **两者不等价**，原因：")
+print("    * 库里**不保留元素级关联**（入库时没有写入元素 id 一类的字段），")
+print("      所以**无法**从现有数据还原「哪个扁平块对应哪几个结构化块」；")
+print("    * 同一 `(filename,title)` 下若有多组元素，组级统计是它们的**汇总**，")
+print("      与「单个元素」的分布可以差很远（4.17.5 记录过：组级与元素级曾给出")
+print("      4 组不同的判定）。")
+print()
+print("  **所以这些阈值是「近似上界」，不是元素级真值。**")
+print("  元素级的精确验证在**生产路径**上做：`eval/verify_flat_twin_pipeline.py` 的")
+print("  B 段（真实 md 文件跑解析，配对天然正确）—— 那里验证了「未丢内容」。")
+print()
+print("  **若要元素级阈值**，正确做法是**在解析流程里插桩**：")
+print("  在 `markdown_parser.merge_documents` 调用 `is_flat_twin` 的位置，")
+print("  把 `(扁平文本, 结构化块)` 实际长度对输出到日志，再离线统计 ——")
+print("  那才是与生产完全同源的口径。**本轮未做**（改动侵入解析主流程，风险不对等）。")
+print()
+print("  证据 -> eval/measure_flat_twin.json（结构含 measurement_granularity 字段）")
