@@ -1,5 +1,23 @@
 # RAG 企业知识库项目 · 技术实现详解
 
+> ## ⚠️ 时效提示（2026-10-17 核对）
+>
+> **本文最后更新于 2026-10-08（阶段一之前）**，以下内容已过时：
+>
+> | 本文中的说法 | 当前实际 | 权威出处 |
+> |---|---|---|
+> | 嵌入 `bge-small-zh-v1.5`（512 维） | **`bge-large-zh-v1.5`（1024 维）** | ROADMAP 阶段一 |
+> | 语料 7 个 Markdown / 约 102 块 | **18 文件 / 523 块 / 3 集合** | ROADMAP 4.7 |
+> | `graph2` 的「7 节点 / 9 边」 | 已增 `web_search`、判分并发等改动 | ROADMAP 4.25 |
+> | 无评测体系 | **33 脚本 / 10,113 行** | ROADMAP 4.36 |
+>
+> **仍然成立的部分**（推理与机制类）：为什么 HNSW 而非 FLAT、为什么用 `expr` 而非
+> `filter`、`score_threshold` 为何无效、RRF 为何不直接相加分数、分级切片策略、
+> jieba 中文分词的必要性 —— 这些**机制层面的解释没有变**。
+>
+> **→ 建议用法：当「概念词典」查机制；所有数字以
+> [`ROADMAP.md`](ROADMAP.md) 为准。** 见 [`docs/DOC_INDEX.md`](docs/DOC_INDEX.md)。
+
 > 本文按 9 个维度结构化梳理项目的技术实现，全部结论基于源码阅读 + 真实环境实测
 > （Milvus 3.0.1 + DeepSeek + BGE-small-zh + Tavily；依赖已于 2026-10-08 全量更新至当时最新）。
 > 概览与目录职责见 [`PROJECT_DESCRIPTION.md`](PROJECT_DESCRIPTION.md)；

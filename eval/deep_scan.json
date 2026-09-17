@@ -436,13 +436,6 @@
   {
     "rule": "R10",
     "severity": "low",
-    "file": "RAG_PROJECT/main.py",
-    "line": 9,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
     "file": "RAG_PROJECT/utils/log_utils.py",
     "line": 52,
     "detail": "生产代码里的 print("

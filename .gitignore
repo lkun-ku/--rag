@@ -94,3 +94,20 @@ scratch/
 
 # ---- 提交信息临时文件（git commit -F 用）----
 .git-commit-msg.txt
+
+# ---- 临时产物：评测/调试的输出文件（2026-10-17 补）----
+# 教训：此前只「删文件」不加规则，下次 git add -A 又会把它们提交进来 ——
+# 治标不治本。这些是**运行产物**，不是源码或证据（证据应写进 ROADMAP 或 eval/*.json）。
+*.err
+rac*.txt
+th.txt
+# eval/ 下的一次性分析输出（内容已摘入 ROADMAP 的才可忽略）
+eval/citation_audit.txt
+eval/content_survey.txt
+eval/ingest_audit_new.txt
+eval/nan_check.txt
+eval/new_corpus_audit.txt
+
+# ---- 运行日志（入库过程产物，2026-10-17 补）----
+*.log
+!requirements*.txt
