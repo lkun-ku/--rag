@@ -267,7 +267,7 @@ def ask_stream(req: AskRequest,
     为什么值得流式：完整链路实测可达 42s（含 multi-round 的判分与改写），
     用户等待期间能看到「正在检索 / 正在判分 / 正在生成」比空等体验好得多。
     """
-    # [FIX 2026-10-11 · 严重] SSE 分支**不能用** `tenant_scope()`（见 gen() 内注释），
+    # [FIX  · 严重] SSE 分支**不能用** `tenant_scope()`（见 gen() 内注释），
     # 改用 `set_tenant`。
     from tools.retriever_tools import set_tenant
 
@@ -280,7 +280,7 @@ def ask_stream(req: AskRequest,
         config = {"callbacks": t.callbacks} if t.callbacks else None
         final: Dict[str, Any] = {}
 
-        # [FIX 2026-10-11 · 严重回归] **不能用 `tenant_scope()` 的 token-reset**。
+        # [FIX  · 严重回归] **不能用 `tenant_scope()` 的 token-reset**。
         #
         # 根因：SSE 的 `gen()` 是**生成器**，由 FastAPI 在**另一个上下文**
         # （AnyIO worker thread）里迭代；而 `ContextVar.reset(token)` 要求
@@ -305,7 +305,7 @@ def ask_stream(req: AskRequest,
 
             answer = final.get("generation", "") or ""
 
-            # [FIX 2026-10-11 / P1-2] **落盘 trace**。
+            # [FIX / P1-2] **落盘 trace**。
             # 原先 SSE 分支起了 tracer 却从不 save —— 结果是**走 SSE 的请求在
             # logs/trace.jsonl 里完全不存在**。而 SSE 是前端的默认路径，
             # 恰恰是最需要可观测的那条：它耗时最长（实测可达 42s），
@@ -360,7 +360,7 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
             detail="未知源 %r；可用: %s" % (key, [s.get("name") for s in DOC_SOURCES]),
         )
     if not src.get("enabled", True):
-        # [FIX 2026-10-11 / P1-3] 原先对 `enabled: False` 的源**也返回 200 + ok=True**：
+        # [FIX / P1-3] 原先对 `enabled: False` 的源**也返回 200 + ok=True**：
         # `write_milvus.main()` 内部会再过滤一次 `enabled`，于是 stats 是空列表，
         # 但 HTTP 仍报成功 —— 调用方会**误以为已经入库**（这类「假成功」最难排查）。
         # 这里显式拒绝并说明原因。

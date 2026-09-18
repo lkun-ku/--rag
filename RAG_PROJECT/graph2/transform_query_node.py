@@ -44,7 +44,7 @@ def transform_query(state, config=None):
 
     # 问题重写
     #
-    # [FIX 2026-10-16 / 代码审查] **显式传 config** —— 这是同类坑的**第三处**。
+    # [FIX / 代码审查] **显式传 config** —— 这是同类坑的**第三处**。
     # 4.29.3 我当时写「全项目未显式传 config 的 LLM 调用只剩两处」，
     # 漏了这个文件（它不在我当时 grep 的 `chain.invoke(` 命中里，
     # 因为变量名叫 `question_rewriter`）。教训升级：

@@ -48,7 +48,7 @@ def build_parser(parser_type: str):
     所有返回的解析函数签名统一为 `fn(file_path) -> List[Document]`，
     且都保证产出与原生 Markdown 路径同构的块。
 
-    [FIX 2026-10-10 / P1-4] PDF 的 OCR 开关此前**在入库链路上不可达** ——
+    [FIX / P1-4] PDF 的 OCR 开关此前**在入库链路上不可达** ——
         `PDFParser()` 无参构造 -> `ocr_fallback=False`，而 `PDFParser.to_markdown`
         的 `use_ocr` 也没有任何入口能传进来。结果是 ROADMAP 2.3 实现的
         「按文本层判定扫描件 -> 走带页码的整页 OCR」这条路径**从未在正式入库时生效过**

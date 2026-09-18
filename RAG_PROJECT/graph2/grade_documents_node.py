@@ -1,6 +1,6 @@
 """文档相关性判分节点（CRAG 的 filtering 环节）。
 
-[UPGRADE 2026-10-10 / ROADMAP 3.1.3] 由**串行**改为**并发**判分。
+[UPGRADE  / ROADMAP 3.1.3] 由**串行**改为**并发**判分。
 
 ## 为什么要改
 
@@ -23,7 +23,7 @@ LangGraph 节点签名是同步的 `fn(state)`，改成 async 需要连带调整
 
 - **判分逻辑与阈值不变**：仍是 `retrieval_grader_chain` 的 yes/no 二元判定
 - **顺序不变**：`executor.map` 保证结果顺序与输入一致
-- **单块判分异常时「保守保留」该块**（不中断整体）—— **[FIX 2026-10-16 / 代码审查]**
+- **单块判分异常时「保守保留」该块**（不中断整体）—— **[FIX / 代码审查]**
   原文写的是「失败即视为不相关…**丢弃**该块」，与实现**相反**：
   `_grade_one` 异常时返回 `(document, **True**)`（保留）。
   实现是对的（判分失败 ≠ 判定不相关，宁可多留一块也不要把正确块静默丢掉），
@@ -50,7 +50,7 @@ MAX_GRADE_WORKERS = 8
 def _sub_config(config):
     """从 LangGraph 传来的 config 里取出**判分链需要的那部分**。
 
-    [FIX 2026-10-16 / ROADMAP 4.20.7] 为什么需要这个：
+    [FIX / ROADMAP 4.20.7] 为什么需要这个：
 
     判分是**最大**的 LLM 调用方（`FINAL_K=36` 时 36 次/题，占调用次数约 90%），
     但它的 token **不被 `run_with_trace` 的 tracer 统计** —— 因为节点内部手动
@@ -115,7 +115,7 @@ def grade_documents(state, config=None):
     Args:
         state (dict): 当前图状态，包含问题与检索结果。
         config: LangGraph 注入的运行配置（含 callbacks / metadata）。
-            **[FIX 2026-10-16] 必须接收并透传** —— 判分是最大的 LLM 调用方，
+            **[FIX] 必须接收并透传** —— 判分是最大的 LLM 调用方，
             不透传则它的 token 消耗在生产监控里不可见（见 `_grade_one`）。
 
     Returns:
@@ -136,7 +136,7 @@ def grade_documents(state, config=None):
         verdicts = grade_batch(question, documents, config)
         filtered_docs = [d for d, ok in zip(documents, verdicts) if ok]
         kept, total = len(filtered_docs), len(documents)
-        # [FIX 2026-10-16 / 代码审查] 批数用**实际生效的** `BATCH_SIZE` 计算 ——
+        # [FIX / 代码审查] 批数用**实际生效的** `BATCH_SIZE` 计算 ——
         # 原先写死模块常量，若将来把批大小做成可配置（如从 env 读），
         # 日志会与真实行为不符（静默不一致）。此处直接把常量读在当前作用域，
         # 保证「日志说的」= 「代码做的」。
@@ -246,7 +246,7 @@ BATCH_SIZE = 8
 
 # 是否在生产链路里启用批量判分。
 #
-# [启用 2026-10-16 / ROADMAP 4.23] 由 `eval/measure_grade_batch_saving.py` 实测后开启：
+# [启用  / ROADMAP 4.23] 由 `eval/measure_grade_batch_saving.py` 实测后开启：
 #
 #   规模: 6 题 / 215 块（对比同一批块的「逐块判分」与「批量判分」）
 #
@@ -362,7 +362,7 @@ def grade_batch(question: str, documents, config=None,
                 continue
             if not (1 <= idx <= len(chunk)):
                 continue
-            # [FIX 2026-10-16 / 代码审查] **重复 idx 不覆盖首次判定**。
+            # [FIX / 代码审查] **重复 idx 不覆盖首次判定**。
             # 原实现直接赋值 -> 若模型对同一块返回两条互相矛盾的判定，
             # 后者（last-write-wins）会覆盖前者，**可能把 True 改成 False**
             # （把相关块丢掉）；同时 `got` 会重复计数，

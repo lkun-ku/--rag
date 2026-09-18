@@ -43,7 +43,7 @@ from utils.log_utils import log
 
 # 单集合召回条数。
 #
-# [采纳 2026-10-15 / ROADMAP 4.13] 由 6 提到 8，`FINAL_K` 同步由 18 到 24。
+# [采纳  / ROADMAP 4.13] 由 6 提到 8，`FINAL_K` 同步由 18 到 24。
 # 依据是**两次独立测量**：
 #   * 6 道稳定题的端到端 A/B（`eval/verify_final_k_ab.py`）：判分后召回
 #     0.5833 -> 0.7083（+21%）、拒答 1 -> 0、tokens 1.25x、耗时 1.12x
@@ -52,7 +52,7 @@ from utils.log_utils import log
 #     context_recall **0.7492 -> 0.7993（+6.7%）**、**6 题提升 / 0 题下降**、
 #     hit_rate 持平（0.9375）、平均块数 17.9 -> 23.9。
 #
-# [采纳 2026-10-16 / ROADMAP 4.20.5] 再由 8 提到 12，`FINAL_K` 由 24 到 36。
+# [采纳  / ROADMAP 4.20.5] 再由 8 提到 12，`FINAL_K` 由 24 到 36。
 # 依据是**判分后的端到端对比**（`eval/compare_perk_after_grade.py`，
 # 30 道 golden 题 × 3154 次真实判分，复用生产的 `_grade_one`）：
 #
@@ -121,7 +121,7 @@ RRF_K = 60
 # 12 是平衡点。它恰好等于 2 × PER_COLLECTION_K —— 每路预取 2 倍于最终配额，
 # 保证 RRF 融合后仍有足够候选填满 k，同时不引入过多噪声参与排序。
 #
-# [FIX 2026-10-16 / ROADMAP 4.20.5] `PER_COLLECTION_K` 提到 12 后，本值**必须同步**
+# [FIX / ROADMAP 4.20.5] `PER_COLLECTION_K` 提到 12 后，本值**必须同步**
 # —— 它原本的规则就是「2 × PER_COLLECTION_K」（那时是 2 × 6 = 12）。
 # 不改的后果**已在实测中显形**：`compare_perk_recall.py` 里 `16/48` 档的
 # 返回块数 min=41 < 48 —— 说明 `fetch_k=12` 成了瓶颈，**配额被静默削掉**
@@ -272,7 +272,7 @@ def _build_multi_retriever(only_collections: Optional[set] = None,
         per_k: 覆盖「每集合取几块」。None 表示用模块常量 `PER_COLLECTION_K`。
         final_k: 覆盖「最终交给下游几块」。None 表示用模块常量 `FINAL_K`。
 
-    **为什么需要 per_k / final_k 这两个可覆盖参数**（[FIX 2026-10-15]）：
+    **为什么需要 per_k / final_k 这两个可覆盖参数**（[FIX]）：
 
     `MultiCollectionRetriever` 的 `per_collection_k` / `final_k` 是 **pydantic 字段**，
     其默认值在**类定义时**求值并固定。而本函数原先**不传**这两个参数 ——
@@ -442,7 +442,7 @@ def retriever_tool(query: str) -> str:
     Milvus 文档 + 论文 + 手册。描述不符会让 create_agent（rag_agent.py）判定
     「工具与问题无关」而直接拒答、不发起检索（实测会回答「我唯一能用的工具是半导体检索器」）。
 
-    [UPGRADE 2026-10-09 / ROADMAP 2.1] 为什么从 `create_retriever_tool` 改为自定义 tool：
+    [UPGRADE  / ROADMAP 2.1] 为什么从 `create_retriever_tool` 改为自定义 tool：
         引用溯源要求上下文中每个块**带编号**（`[1] xxx`），且编号必须与 documents 下标
         严格对应，供下游校验层反查原文。而 graph1 的上下文在 `generate` 节点里已是
         拼接好的字符串（块边界丢失），只能在工具层编号。

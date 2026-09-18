@@ -24,7 +24,7 @@ structured_llm_router = llm.with_structured_output(RouteQuery, method=LLM_STRUCT
 
 # 提示词模板
 #
-# [UPGRADE 2026-10-10 / ROADMAP 3.1] 原 prompt 写的是「向量知识库包含与半导体材料，
+# [UPGRADE  / ROADMAP 3.1] 原 prompt 写的是「向量知识库包含与半导体材料，
 # 芯片制造，光刻技术相关的文档」，而 datas/ 下的**实际语料是** Milvus 向量数据库文档、
 # 版面分析论文、产品手册与性能测试数据。描述与实际语料不符的后果是**致命**的：
 #

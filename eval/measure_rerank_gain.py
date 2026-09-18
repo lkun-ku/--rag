@@ -44,7 +44,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
-# [FIX 2026-10-16] **本脚本不能设 HF_HUB_OFFLINE=1**（其它 eval 脚本为了不联网都设了，
+# [FIX] **本脚本不能设 HF_HUB_OFFLINE=1**（其它 eval 脚本为了不联网都设了，
 # 但 reranker 首次运行需要下载 ~2.3GB 权重）。这里允许联网，并默认走**国内镜像**
 # （huggingface.co 在本网络不可达，hf-mirror.com 实测 2.3s 可连）。
 os.environ.setdefault("HF_HUB_OFFLINE", "0")

@@ -23,7 +23,7 @@ DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
 
 # ---- 向量库：可用 .env 覆盖 ----
-# [FIX 2026-10-11 / 深度扫描 R9] 默认值原为 `http://<old-ip>:19530`（一个**公网 IP**）——
+# [FIX / 深度扫描 R9] 默认值原为 `http://<old-ip>:19530`（一个**公网 IP**）——
 # 那是迁移前的遗留写法。隐患：`.env` 缺失时**不会「连不上」**，而是静默去连一台外部
 # 服务器 —— 既可能读到别人的数据，也让报错方向完全被误导（以为是本地 Milvus 的问题）。
 # 改为本地地址，与 `.env.example` 保持一致。（本机 `.env` 已显式配置，故实际零影响。）
@@ -169,7 +169,7 @@ KB_TENANTS_JSON = os.getenv('KB_TENANTS')
 def _parse_tenants(raw: str) -> dict:
     """解析 KB_TENANTS；格式错误时抛出**带上下文**的错误。
 
-    [FIX 2026-10-11 / P0-4] 原先是一行裸的 `json.loads(...)`，无任何保护。
+    [FIX / P0-4] 原先是一行裸的 `json.loads(...)`，无任何保护。
     实测设 `KB_TENANTS='{acme: [milvus_docs]}'`（键忘加引号）会让本模块
     **在 import 期**抛 `json.decoder.JSONDecodeError`，而 `env_utils` 是全项目的
     基础依赖（retriever / api / graph / eval 全部 import 它）——
@@ -214,7 +214,7 @@ LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
 # 而 function_calling 依赖 tool_choice，因此默认关闭。
 LLM_DISABLE_THINKING = os.getenv('LLM_DISABLE_THINKING', '1') not in ('0', 'false', 'False')
 
-# [FIX 2026-10-11 / P0-7] 上方这两个配置项曾**被整段复制了一遍**（含注释），
+# [FIX / P0-7] 上方这两个配置项曾**被整段复制了一遍**（含注释），
 # 由阶段二首个提交 e8c506d 引入。两份取值相同故当时无功能差异，但
 # `LLM_STRUCTURED_METHOD` / `LLM_DISABLE_THINKING` 被 all_llm.py、grader_chain.py、
 # query_route_chain.py 同时读取 —— **改一处忘另一处就会静默行为漂移**，故删除重复的一份。

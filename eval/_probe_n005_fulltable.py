@@ -121,7 +121,7 @@ from graph2.generate_node2 import generate  # noqa: E402
 print("=" * 104)
 print("A. 完整表（模拟父块策略）")
 print("=" * 104)
-err_a = err_b = False      # [FIX 2026-10-17] 三态判读需要它们
+err_a = err_b = False      # [FIX] 三态判读需要它们
 try:
     # 直接用生产节点 —— 它内部走同一个 rag_chain，且已处理「单个/多个 documents」
     st = {"question": Q,
@@ -164,7 +164,7 @@ print()
 print("=" * 104)
 print("判读")
 print("=" * 104)
-# [FIX 2026-10-17] **三态判读** —— 首版把「调用失败」与「答不对」混为一谈，
+# [FIX] **三态判读** —— 首版把「调用失败」与「答不对」混为一谈，
 # 于是 LLM 超时时会输出「假设不成立」这种**没有依据的结论**。
 # 这是测量脚本的经典错误（本项目在 4.13 吃过同类：拿旧 trace 当对照）。
 if err_a or err_b:

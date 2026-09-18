@@ -150,7 +150,7 @@ try:
     out_many = grade_batch(Q, MANY)
     check("多批：返回长度恒等于输入块数", len(out_many), len(MANY))
     check("多批：元素类型都是 bool", all(isinstance(x, bool) for x in out_many), True)
-    # [FIX 2026-10-16 / 二次筛查] 这里原先断言「前 4 块判定与单批**完全相等**」——
+    # [FIX / 二次筛查] 这里原先断言「前 4 块判定与单批**完全相等**」——
     # 那是**把 LLM 抖动当断言**：两次独立调用本文件自己的 docstring 就说过
     # 「一致率只作报告、不作断言」，C4 却违反了它，会因合理分歧**假红**。
     #

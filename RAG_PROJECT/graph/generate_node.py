@@ -19,7 +19,7 @@ def generate(state):
     返回:
         dict: 包含重述问题的更新后状态
 
-    [UPGRADE 2026-10-09 / ROADMAP 2.1] 与 graph2 共用同一套引用规范：
+    [UPGRADE  / ROADMAP 2.1] 与 graph2 共用同一套引用规范：
 
     - **prompt 复用** `graph2.generate_node2.CITE_PROMPT`。两个工作流若各写一份，
       日后极易漂移成不同行为；共用一份定义可杜绝这种不一致。

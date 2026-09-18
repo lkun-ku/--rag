@@ -112,7 +112,7 @@ def main() -> int:
         cid = c["id"]
         states = [rounds[r][cid] for r in range(args.rounds)]
         refusals = [s["refused"] for s in states]
-        # [修正 2026-10-11] 用 **集合** 而非 tuple 比较引用编号。
+        # [修正 ] 用 **集合** 而非 tuple 比较引用编号。
         # `parse_citations` 是「保序去重」的，而顺序在不同轮之间会变
         # （实测 n025 `[15,12]` vs `[12,15]`、n026 `[3,12,6,15]` vs `[3,12,15,6]`）——
         # 顺序不影响引用是否正确，用 tuple 比会把这类**假抖动**算成 critical。

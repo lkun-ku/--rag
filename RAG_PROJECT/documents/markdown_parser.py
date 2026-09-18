@@ -5,14 +5,14 @@ import tempfile
 from typing import List
 from langchain_experimental.text_splitter import SemanticChunker
 
-# [UPGRADE 2026-10-09] 改用本地 bge_embedding：分块语义须与入库向量同源（路线图坑①）
+# [UPGRADE ] 改用本地 bge_embedding：分块语义须与入库向量同源（路线图坑①）
 from llm_models.embeddings_model import bge_embedding
 from utils.env_utils import MD_DIR
 from utils.log_utils import log
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_core.documents import Document
 
-# [UPGRADE 2026-10-09 / ROADMAP 2.4] 表格结构保护与表格感知切分
+# [UPGRADE  / ROADMAP 2.4] 表格结构保护与表格感知切分
 from documents.table_handler import (
     DEFAULT_MAX_ROWS,
     has_restorable_table,
@@ -23,7 +23,7 @@ from documents.table_handler import (
 # 转换后最少应有多少字符。低于此值几乎可以断定「转换失败」或「文件为空」，
 # 此时**显式报错**（不静默返回空内容 —— 那会伪装成「文档本来就没内容」，见 ROADMAP 1.3.6）。
 #
-# [FIX 2026-10-11 / P1-5] 原先 `pdf_parser` 与 `office_parser` **各定义了一份**
+# [FIX / P1-5] 原先 `pdf_parser` 与 `office_parser` **各定义了一份**
 # 同名同义的常量，但取值不同（100 vs 50）—— 于是**同类文件会得出不同结论**：
 # 一份转换后只剩 60 字符的文档，走 PDF 路径会报错、走 Office 路径却放行。
 #
@@ -115,7 +115,7 @@ class MarkdownParser:
 
     # 单个块的 **page_content 字节上限**（Milvus 的 text 是 VARCHAR(6000)，按字节计）。
     #
-    # [FIX 2026-10-10] 此前**没有任何针对正文的字节约束**，换真实语料后立刻暴露：
+    # [FIX] 此前**没有任何针对正文的字节约束**，换真实语料后立刻暴露：
     #     papers  源 175 块只写入  88（87 块被拒）
     #     manuals 源  97 块只写入  63（34 块被拒）
     #     报错全部是 MilvusException code=1100 length of varchar field text exceeds max length
@@ -206,7 +206,7 @@ class MarkdownParser:
         return new_docs
         
     def parse_markdown(self, md_file: str) -> List[Document]:
-        # [UPGRADE 2026-10-09] 由 UnstructuredMarkdownLoader 换成 UTF8MarkdownLoader：
+        # [UPGRADE ] 由 UnstructuredMarkdownLoader 换成 UTF8MarkdownLoader：
         # 前者会让 unstructured 自动猜测文件编码，实测把 PDF 转出的 Markdown 误判成
         # hp_roman8，把 U+2013 等非 ASCII 字符解成乱码（详见 UTF8MarkdownLoader 说明）。
         loader = UTF8MarkdownLoader(
@@ -264,7 +264,7 @@ class MarkdownParser:
           * **结构块不参与合并，也不作为合并目标** —— 表格 / 幻灯片块带固定的结构与行范围
             语义（「表格：X（第 N-M 行）」「幻灯片 N：…」），被拼接后会失效。
           * **只并入前一块，不向后找**；找不到可并入的对象时**原样保留**。
-            [修正 2026-10-11 / P1-7] docstring 原先写的是「若它是该文件首块，则并入后一块」——
+            [修正  / P1-7] docstring 原先写的是「若它是该文件首块，则并入后一块」——
             与实现**相反**，而且那正是早期版本踩过的坑：后一块此时**还没被 append 进 out**，
             跳过它（`i += 2`）会让它**永远不出现在结果里**（实测把 pptx 的 3 个块吞成 1 个）。
             只往前合并则天然无此风险 —— 被合并者必然已安全落在 `out` 中。
@@ -357,14 +357,14 @@ class MarkdownParser:
 
             # [ROADMAP 2.4] 表格：恢复结构 + 表格感知切分，产出一份独立的结构化块。
             #
-            # [FIX 2026-10-15 / ROADMAP 4.17] 原先这里**不** continue（注释写
+            # [FIX / ROADMAP 4.17] 原先这里**不** continue（注释写
             # 「以保证父标题的累积内容与改造前完全一致，块边界不变」），于是表格的
             # **扁平文本**（`page_content`）还会走下面的合并逻辑、被拼进**父标题块**：
             #
             #     parent.page_content = parent.page_content + ' ' + document.page_content
             #
             # 结果同一张表**以两种形态同时入库**（结构化块 + 父块里的扁平文本）。
-            # 2.4 当时判断这是「少量重复，可接受」，但实测（2026-10-15）「少量」不成立：
+            # 2.4 当时判断这是「少量重复，可接受」，但实测「少量」不成立：
             #   * 库里 528 块中 **236 块（44.7%）** 落在「同 filename+title」组里；
             #   * 且**直接损害指标** —— n005 的 4 个 golden 里有 2 个是扁平版，
             #     `recall` 因此从 1.00 掉到 0.50（见 4.15 / 4.16）。
@@ -472,7 +472,7 @@ class MarkdownParser:
         chunk_documents = self._merge_short_chunks(chunk_documents)
         log.info(f'合并超短块后的长度: {len(chunk_documents)}')
 
-        # [FIX 2026-10-10] 字节上限兜底（见 MAX_CONTENT_BYTES 的说明）。
+        # [FIX] 字节上限兜底（见 MAX_CONTENT_BYTES 的说明）。
         n_before = len(chunk_documents)
         chunk_documents = self._enforce_byte_limit(chunk_documents)
         if len(chunk_documents) != n_before:

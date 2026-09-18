@@ -52,7 +52,7 @@ DEFAULT_MAX_ROWS = 30
 # 单块**字节数**上限。Milvus schema 的 text 字段是 VARCHAR(6000)（按**字节**计），
 # 超长会导致整批写入失败（实测报 `MilvusException code=1100`）。
 #
-# [FIX 2026-10-10 / P0-5] 原先这里是 `DEFAULT_MAX_CHARS = 4000`（**字符**），
+# [FIX / P0-5] 原先这里是 `DEFAULT_MAX_CHARS = 4000`（**字符**），
 # 与 Milvus 的字节约束不一致 —— 中文 3 字节/字，4000 字符 ≈ 12000 字节，
 # 是上限的 2 倍。换真实语料后立刻暴露：
 #     milvus_capability_matrix.xlsx 的一个表块做完行切后仍有 **20184 字节**（3.4 倍上限）
@@ -164,7 +164,7 @@ class _TableHTMLParser(HTMLParser):
                 self._row.append(value)
             if rowspan > 1:
                 for offset in range(span):
-                    # [FIX 2026-10-11 / P0-2] 这里必须存 **rowspan**，不是 rowspan-1。
+                    # [FIX / P0-2] 这里必须存 **rowspan**，不是 rowspan-1。
                     #
                     # 计数在 `</tr>` 里递减（每过一行 -1），所以「还能延续几行」必须在
                     # **本行结束时**仍 > 0：
@@ -253,7 +253,7 @@ def build_table_chunks(html: str,
         Milvus 的 text 是 VARCHAR(6000) 且**按字节**计。行数不多但单元格很长
         （如整段说明文字）的表仍会超限，并导致**整批写入失败**。
 
-    [FIX 2026-10-10] 防御 `max_rows <= 0` 导致的死循环（P0-6）：
+    [FIX] 防御 `max_rows <= 0` 导致的死循环（P0-6）：
         原实现里 `end = min(start + max_rows, len(body))`，当 max_rows<=0 时
         `end <= start`，随后 `start = end` 不前进 -> 无限循环。
     """
@@ -294,7 +294,7 @@ def build_table_chunks(html: str,
 #   2. 其 `text_as_html` 被 `restore_table_documents()` 重建为**结构化 Markdown 块**。
 #
 # 当前实现**两份都入库**（`markdown_parser` 的注释写「少量重复，可接受」）。
-# 实测（2026-10-15）**「少量」不成立**：库里 528 块中有 **236 块（44.7%）**
+# 实测**「少量」不成立**：库里 528 块中有 **236 块（44.7%）**
 # 落在「同 filename+title」组里，且**直接损害指标** —— n005 的 4 个 golden 中
 # 有 2 个是扁平版，`recall` 因此从 1.00 掉到 0.50（详见 ROADMAP 4.15 / 4.16）。
 #
@@ -437,7 +437,7 @@ def restore_table_documents(doc: Document,
         return []
 
     out: List[Document] = []
-    # [FIX 2026-10-11 / P1-8] 原先用 `enumerate(chunks, 1)`，但那个序号 `i` **从未被使用**。
+    # [FIX / P1-8] 原先用 `enumerate(chunks, 1)`，但那个序号 `i` **从未被使用**。
     for text in chunks:
         meta = dict(doc.metadata)
         meta.pop('text_as_html', None)   # schema 无此字段；且已还原进正文，无需再存
@@ -446,7 +446,7 @@ def restore_table_documents(doc: Document,
         if table_name and not meta.get('title'):
             meta['title'] = table_name
         out.append(Document(page_content=text, metadata=meta))
-    # [FIX 2026-10-11 / P1-8] 原先这里是 `total = len(chunks)` + `if total > 1: pass` ——
+    # [FIX / P1-8] 原先这里是 `total = len(chunks)` + `if total > 1: pass` ——
     # 一个**空分支**（注释写「分片信息只用于日志」却没有任何日志语句，`total` 也只被它用到）。
     # 改为真的记一条：分片信息对排查「跨行统计类问题为何不稳定」有用
     # （见 4.8.6 的高频抖动题 与 P0-1 的 n005）。

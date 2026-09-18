@@ -29,7 +29,7 @@ from typing import List
 
 from langchain_core.documents import Document
 
-# [FIX 2026-10-11 / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（值不变），
+# [FIX / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（值不变），
 # 与 pdf_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
 from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
 from utils.log_utils import log

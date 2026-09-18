@@ -18,7 +18,7 @@
 （RRF 的 `1/(k+rank)` 让「两路都中等」的块压过「单路极强」的块）都不好，
 12 是平衡点。
 
-> [说明 2026-10-11 / P2-2] 本 docstring 原先写「fetch_k=50（修复值）」——
+> [说明  / P2-2] 本 docstring 原先写「fetch_k=50（修复值）」——
 > 那是**中间版本**的值（最终扫描定为 12）；题数也仍写 57（旧语料，现为 32）。
 > 两处均已更正。**实际生效值以 `tools/retriever_tools.py` 为准**，脚本里不再写死。
 
@@ -126,7 +126,7 @@ print("=" * 104)
 print("  最佳 recall : fetch_k=%s -> %.4f（hit_rate %.4f，平均 %.1f 块，耗时 %.0fs）" % (
     best["fetch_k"] if best["fetch_k"] else "默认",
     best["recall"], best["hit_rate"], best["avg_blocks"], best["sec"]))
-# [FIX 2026-10-11 / P2-2] 不再写死「当前值 50」—— 直接从生产配置读，
+# [FIX / P2-2] 不再写死「当前值 50」—— 直接从生产配置读，
 # 避免下次改了 FETCH_K_PER_ROUTE 又忘了改这里（这正是原先脱节的成因）。
 _cur = next((r["recall"] for r in rows if r["fetch_k"] == FETCH_K_PER_ROUTE), None)
 print("  当前值 %-4s: recall %s" % (

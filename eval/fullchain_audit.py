@@ -88,7 +88,7 @@ if LIMIT_OUT:
 def _as_list(docs):
     """把 `documents` 统一成 list。
 
-    **[实测发现 2026-10-16]** `web_search` 节点返回的是**单个 `Document`**
+    **[实测发现 ]** `web_search` 节点返回的是**单个 `Document`**
     （见 `graph2/web_search_node.py`：`web_results = Document(page_content=...)`
     然后 `return {"documents": web_results, ...}`），而**其它节点都返回列表**。
     于是任何假设「documents 是 list」的下游代码都会在**走了 web_search 的路径**上崩：
@@ -186,7 +186,7 @@ print()
 print("  %-22s %-16s %-16s %s" % ("口径", "库外拒答率", "库外走网络搜索", "库内拒答率"))
 print("  " + "-" * 96)
 
-# [FIX 2026-10-16 / 二次筛查] **对照行不再硬编码**。
+# [FIX / 二次筛查] **对照行不再硬编码**。
 #
 # 原先这里写死了 `"100% (10/10)"` / `"—（不经路由）"` / `"9.4% (3/32)"` ——
 # 那是 4.27 那次运行的数字。硬编码的后果是：**对照会永远"看起来正常"**，

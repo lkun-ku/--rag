@@ -2,7 +2,7 @@
 
 ## 为什么必须走 SDK 而不是裸 socket（测量口径的教训）
 
-[2026-10-15] 排查 A/B 全超时的时候，我用 `socket.create_connection(('api.deepseek.com', 443))`
+[] 排查 A/B 全超时的时候，我用 `socket.create_connection(('api.deepseek.com', 443))`
 直连测，得出「端点不可达」的结论。**但这个口径是错的**：
 
 * 裸 socket = **直连**，不考虑任何代理；

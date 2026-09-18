@@ -1,8 +1,8 @@
 # RAG 企业知识库项目 · 技术实现详解
 
-> ## ⚠️ 时效提示（2026-10-17 核对）
+> ## ⚠️ 时效提示（ 核对）
 >
-> **本文最后更新于 2026-10-08（阶段一之前）**，以下内容已过时：
+> **本文最后更新（阶段一之前）**，以下内容已过时：
 >
 > | 本文中的说法 | 当前实际 | 权威出处 |
 > |---|---|---|
@@ -19,7 +19,7 @@
 > [`ROADMAP.md`](ROADMAP.md) 为准。** 见 [`docs/DOC_INDEX.md`](docs/DOC_INDEX.md)。
 
 > 本文按 9 个维度结构化梳理项目的技术实现，全部结论基于源码阅读 + 真实环境实测
-> （Milvus 3.0.1 + DeepSeek + BGE-small-zh + Tavily；依赖已于 2026-10-08 全量更新至当时最新）。
+> （Milvus 3.0.1 + DeepSeek + BGE-small-zh + Tavily；依赖已于  全量更新至当时最新）。
 > 概览与目录职责见 [`PROJECT_DESCRIPTION.md`](PROJECT_DESCRIPTION.md)；
 > 升级过程见 [`UPGRADE_NOTES.md`](UPGRADE_NOTES.md)。
 
@@ -236,7 +236,7 @@ schema.add_field(
 | 客户端 SDK | `pymilvus` | 3.0.2 | 建表、建索引、schema 原生访问 |
 | LangChain 适配器 | `langchain-milvus` | 0.4.0 | 把 Milvus 包装成 `VectorStore` |
 
-### 4.2 部署形态（实测环境，2026-10-08 更新）
+### 4.2 部署形态（实测环境，更新）
 
 Windows 11 → WSL2 → Docker Desktop 29.8.1：
 
@@ -248,7 +248,7 @@ attu                zilliz/attu                  端口 3000（图形界面）
 ```
 
 > Milvus **没有 Windows 原生版**，通过 Docker + WSL2 运行 Linux 镜像。
-> 2026-10-08 由 v2.6.25 升级到 v3.0.1（跨大版本），实测 2.6 的数据可被 3.0.1 直接读取，无需重新导入。
+>  由 v2.6.25 升级到 v3.0.1（跨大版本），实测 2.6 的数据可被 3.0.1 直接读取，无需重新导入。
 > 客户端（`pymilvus`）是纯 Python，Windows 原生可用。另有纯 Python 的
 > **Milvus Lite**（嵌入式，无需服务），但不支持 Function 形式 reranker、hybrid 稳定性也差，
 > 只能验证「能否跑通」，验证不了「跑得好不好」。

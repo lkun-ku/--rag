@@ -70,7 +70,7 @@ print("=" * 104)
 print("A 段 · 元素级：is_flat_twin() 对库里 15 组的判定，与独立测得的反向覆盖率对照")
 print("=" * 104)
 
-# [FIX 2026-10-16 / 二次筛查] 兼容 `measure_flat_twin.json` 的**两种结构**：
+# [FIX / 二次筛查] 兼容 `measure_flat_twin.json` 的**两种结构**：
 #   旧：顶层直接是 list
 #   新：{"measurement_granularity": "group", "groups": [...]}  <- 显式标注了粒度限制
 # 后者是因为二次筛查发现「**组级定阈值、元素级使用**」的口径错配，
@@ -97,7 +97,7 @@ print("  %-34s %-6s %-8s %-10s %-10s %s" % (
     "filename", "块数", "反向cov", "期望", "实际", "说明"))
 print("  " + "-" * 100)
 n_pure = n_mixed = n_skipped = 0
-n_agree = 0      # [FIX 2026-10-16] A 段改为「观察」后用于统计一致率
+n_agree = 0      # [FIX] A 段改为「观察」后用于统计一致率
 for (fn, ti), ts in groups.items():
     st = [t for t in ts if is_structured(t)]
     fl = [t for t in ts if not is_structured(t)]
@@ -129,7 +129,7 @@ for (fn, ti), ts in groups.items():
         n_mixed += 1
     got = is_flat_twin(fl[0], st)
 
-    # [FIX 2026-10-16 / 二次筛查] **这里不再做硬断言**。
+    # [FIX / 二次筛查] **这里不再做硬断言**。
     #
     # 这段的期望值来自 `measure_flat_twin.json` 的**组级**反向覆盖率
     # （按 (filename,title) 聚合算出），而 `is_flat_twin` 是**元素级**判定。

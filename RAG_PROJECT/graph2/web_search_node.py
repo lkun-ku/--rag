@@ -40,14 +40,14 @@ def web_search(state):
         web_results = results
     else:
         web_results = "\n".join([d["content"] for d in results])  # 合并搜索结果
-    # [FIX 2026-10-11 / P0-9] 必须标记「来源是网络搜索」，不能只建成裸 Document。
+    # [FIX / P0-9] 必须标记「来源是网络搜索」，不能只建成裸 Document。
     #
     # 原因：这条分支的结果会与知识库检索结果走**同一条**编号化路径
     # （`format_context` -> `[1][2]...`，见 generate_node2），并被
     # `build_citation_meta` 渲染成溯源条目。若不标记，用户在溯源里看到的是一个
     # 「知识库文档」样式的条目（带 filename/title），**实际内容却来自网页** ——
     # 比"没有溯源"更容易误导。
-    # [FIX 2026-10-16 / ROADMAP 4.32] **必须包成 list**，与其它所有节点保持一致。
+    # [FIX / ROADMAP 4.32] **必须包成 list**，与其它所有节点保持一致。
     #
     # 原实现返回**单个 `Document`**，而 `retrieve` / `grade_documents` 等节点返回
     # `List[Document]`。这个类型不一致是**潜在的雷**：任何假设「documents 是 list」

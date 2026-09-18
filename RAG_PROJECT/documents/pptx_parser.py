@@ -39,7 +39,7 @@ from typing import List
 
 from langchain_core.documents import Document
 
-# [FIX 2026-10-11 / P1-1] 表格处理复用通用实现，避免「两套规则」
+# [FIX / P1-1] 表格处理复用通用实现，避免「两套规则」
 # （table_handler 不 import pptx_parser，无循环依赖）
 from documents.table_handler import clean_cell, grid_to_markdown
 from utils.log_utils import log
@@ -55,7 +55,7 @@ _DGM_URI = 'http://schemas.openxmlformats.org/drawingml/2006/diagram'
 # 单页字符数低于该值且该页含图片/SmartArt 时，说明内容主要在「图里」，
 # 属于标记该页为「提取不充分」的阈值（暂只记日志，不触发额外处理）。
 #
-# [说明 2026-10-11 / P1-5] 本阈值**刻意不与** `markdown_parser.MIN_MARKDOWN_CHARS`
+# [说明  / P1-5] 本阈值**刻意不与** `markdown_parser.MIN_MARKDOWN_CHARS`
 # 统一 —— 两者语义不同：
 #   * MIN_MARKDOWN_CHARS：**整份文件**转换结果过少 -> **报错**（转换失败 / 文件为空）
 #   * SPARSE_PAGE_CHARS ：**单页**内容稀疏      -> **日志警告**（该页内容可能在图里）
@@ -127,7 +127,7 @@ class PPTParser:
     def _table_to_markdown(shape, table_name: str = '') -> str:
         """PPT 原生表格 -> Markdown（逐格读，避免合并单元格错位）。
 
-        [FIX 2026-10-11 / P1-1] 改为**复用 `table_handler` 的通用实现**，修掉两处不一致：
+        [FIX / P1-1] 改为**复用 `table_handler` 的通用实现**，修掉两处不一致：
 
           1. **缺清洗**：原先直接取 `c.text`，于是 `NaN`（markitdown 对空单元格的写法）
              与 `1200.0`（整数被写成浮点）会**原样入库** —— 而通用表格路径
@@ -225,7 +225,7 @@ class PPTParser:
         try:
             shapes = self._sort_by_position(list(self._iter_shapes(slide.shapes)))
         except Exception as e:  # noqa: BLE001
-            # [FIX 2026-10-11 / 深度扫描 R7] 原先静默置空 —— 后果是**整页内容变空**却没有任何
+            # [FIX / 深度扫描 R7] 原先静默置空 —— 后果是**整页内容变空**却没有任何
             # 痕迹（解析"成功"、块数为 0），排查时无从下手。降级本身是合理的（不该中断
             # 整份文档），但必须留痕。
             shapes = []
@@ -259,7 +259,7 @@ class PPTParser:
                             blocks.append('图片文字：' + t)
                     continue
             except Exception as e:  # noqa: BLE001
-                # [FIX 2026-10-11 / P1-6] 原先这里是 `pass` —— **静默吞掉**形状类型判断异常，
+                # [FIX / P1-6] 原先这里是 `pass` —— **静默吞掉**形状类型判断异常，
                 # 与本项目「不得静默降级」的约定不符（同文件其它处至少返回空值）。
                 # 后果：`shape_type` 取不到时**无迹可寻** —— 该形状会被当作普通文本处理
                 # 或直接丢弃，排查时看不到任何线索。

@@ -308,7 +308,7 @@ THRESHOLDS = {
 
 # 哪些指标参与「**告警**」（warn）—— 不在集合里的只参与**硬门禁**（fail）。
 #
-# [FIX 2026-10-16 / ROADMAP 4.28] `context_precision` 移出告警集合。
+# [FIX / ROADMAP 4.28] `context_precision` 移出告警集合。
 #
 # 上面那段注释本来就写着它「**只作监控**…**不作为主要门禁**」，
 # 但 `gate()` 的循环里**把它和另两项一起判定**了 —— **代码与自己的注释不一致**。
@@ -371,7 +371,7 @@ def gate(scores: Dict[str, Optional[float]],
             reasons.append(f"{name}: {v:.4f} < 硬门禁 {th['fail']}")
             failed = True
         elif v < th["warn"] and name in _WARN_ELIGIBLE:
-            # [FIX 2026-10-16 / 代码审查] 原先这里**不查 `_WARN_ELIGIBLE`** ——
+            # [FIX / 代码审查] 原先这里**不查 `_WARN_ELIGIBLE`** ——
             # 于是那个集合里虽然列了 faithfulness / answer_relevancy，
             # 把它们**摘出去也无效**（「改集合对生成层不生效」）。
             # 这是 4.28 引入的新集合没在两个循环里都落实所致。
@@ -381,7 +381,7 @@ def gate(scores: Dict[str, Optional[float]],
     if failed:
         return "FAIL", reasons
     if llm_skipped:
-        # [FIX 2026-10-15] 「生成层缺失」有两种原因，必须区分 —— 原先一律写成
+        # [FIX] 「生成层缺失」有两种原因，必须区分 —— 原先一律写成
         # 「LLM 不可用导致」，实测误导过：我跑 `run_eval.py`（**没传 --with-generation**）
         # 时看到这句，第一反应是「LLM 挂了」，于是去查端点，浪费了排查时间。
         #   * gen_requested=True  -> LLM 探活失败（余额/网络/服务故障）

@@ -102,7 +102,7 @@ def validate_citations(answer: str, n_docs: int, start: int = 1,
         {"cites": [...], "invalid": [...], "quoted": [...], "valid": bool,
          "is_refusal": bool}
 
-    `quoted` 与 `invalid` 的区别（**[FIX 2026-10-11 / P0-3]**）：
+    `quoted` 与 `invalid` 的区别（**[FIX / P0-3]**）：
 
         越界编号分两类，处理方式必须不同：
           * **quoted**：该编号**确实存在于被检索块的原文里** —— 例如 `papers`
@@ -169,7 +169,7 @@ def build_citation_meta(docs: Sequence[Document], cites: Sequence[int],
                 # 这里透传正文首行，便于前端展示「引用的是哪张表的哪一段」。
                 "title": d.metadata.get("title", ""),
                 "chars": len(d.page_content),
-                # [FIX 2026-10-11 / P0-9] 该来源是否来自**网络搜索**而非知识库。
+                # [FIX / P0-9] 该来源是否来自**网络搜索**而非知识库。
                 # 不区分的话，网页内容会被当成知识库文档展示给用户。
                 "from_web": d.metadata.get("source") == "web",
             })

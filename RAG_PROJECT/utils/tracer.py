@@ -65,7 +65,7 @@ class Tracer:
     def usage(self):
         """惰性构造：langchain_core 未提供该回调时退化为 None（不阻断主流程）。
 
-        [FIX 2026-10-16 / 代码审查] **失败必须留痕**。原实现只写了
+        [FIX / 代码审查] **失败必须留痕**。原实现只写了
         `self._usage = False` 就默默退化为「没有统计」—— 那正是本轮 4.22
         挖了半天的「成本不可见」的**第二条隐形路径**：langchain 一升级、
         这个 import 一变，token 就**静默归零**，而监控里看不出任何异常。
@@ -160,7 +160,7 @@ def current() -> Optional[Tracer]:
     return _CURRENT.get()
 
 
-# [删除 2026-10-11 / P1-9] 这里原先有个 `mark(node, **info)` 辅助函数，
+# [删除  / P1-9] 这里原先有个 `mark(node, **info)` 辅助函数，
 # **全项目没有任何调用方** —— 它是个「通用打点 API」，但实际打点由
 # `graph2._traced_router` 包装条件边后直接调 `t.step()` 完成。
 # 留着它只会造成「两套打点方式」，而文档还指着它（见下），属于误导。
@@ -173,7 +173,7 @@ def traced(name: str):
     更细的语义（**路由决策、判分结论**）由 `graph2._traced_router` 包装条件边后
     直接调 `tracer.current().step()` 补充 —— 这样无需改动任何节点实现文件。
 
-    ## [FIX 2026-10-16 / ROADMAP 4.20.7] 必须把 `config` 透传给被包装的节点
+    ## [FIX / ROADMAP 4.20.7] 必须把 `config` 透传给被包装的节点
 
     原先 `wrapper(state)` 只接 state，**把 LangGraph 传下来的 config 丢掉了**。
     后果是一条静默的链路断裂：
@@ -193,7 +193,7 @@ def traced(name: str):
         # 签名判定：本项目多数节点仍是 `fn(state)`（retrieve / web_search），
         # **统一多传一个参数会直接 TypeError**。所以按签名决定怎么调。
         #
-        # [FIX 2026-10-16 / 代码审查] 首版只看「**位置参数**个数」——
+        # [FIX / 代码审查] 首版只看「**位置参数**个数」——
         # 于是 `def fn(state, *, config=None)`（仅关键字 config）会被判成
         # 「不接受 config」，**静默丢弃、token 归零、且无任何告警**。
         # 那正是本轮在修的「静默断链」，判据却是启发式 —— 现在改为

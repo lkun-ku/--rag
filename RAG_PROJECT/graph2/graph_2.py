@@ -91,7 +91,7 @@ def grade_generation_v_documents_and_question(state, config=None):
     #     第 1 次判 no 时（原实现根本不会调用 answer_grader）它一旦抛错，
     #     异常会冒出来**炸掉整个节点** —— 那就改变了判定结果。
     #
-    # > **[二次筛查纠正 2026-10-16] 这里必须保留 `_cfg = _sub_config(config)`。**
+    # > **[二次筛查纠正 ] 这里必须保留 `_cfg = _sub_config(config)`。**
     # > 上一轮改这段注释/取值时机时**把它删掉了**，却留下两处 `config=_cfg`，
     # > 于是**任何走到这里的正常请求都会抛 `NameError`**（P0）。
     # > 它**没被回归抓到**，因为回归里没有「完整工作流」这一层覆盖（见 4.33）。
@@ -166,7 +166,7 @@ def route_question(state, config=None):
     路由问题到网络搜索或RAG流程
     Args:
         state (dict): 当前图状态，包含用户问题
-        config: LangGraph 注入的运行配置。**[FIX 2026-10-16 / ROADMAP 4.29] 显式接收并
+        config: LangGraph 注入的运行配置。**[FIX / ROADMAP 4.29] 显式接收并
             透传** —— 本函数有一次 LLM 调用（路由判定），不要依赖 contextvar 隐式继承：
             实测（`eval/_probe_contextvar_threadpool.py`）显示 contextvar 在**线程池内失效**
             （无线程池时 token=11，线程池内不传 config 时 token=0）。
@@ -195,7 +195,7 @@ def _traced_router(name: str, fn):
     为什么单独包条件边：节点包装器只能看到 state 变化，看不出「为什么走这条分支」。
     而路由决策恰恰是排查时最想知道的信息（例如「为什么走了 web_search 而不是 RAG」）。
 
-    ## [FIX 2026-10-16 / ROADMAP 4.25] 同样要透传 config
+    ## [FIX / ROADMAP 4.25] 同样要透传 config
 
     这与 `utils.tracer.traced` 是**同一个坑的第二处实例**：条件边函数内部也可能有
     LLM 调用（`grade_generation` 的两次判定），`wrapper(state)` 只接 state
@@ -205,7 +205,7 @@ def _traced_router(name: str, fn):
     修的时候要一起找」（`grep` 一下同类包装器）。
     """
 
-    # [FIX 2026-10-16 / 代码审查] 与 `utils.tracer.traced` 同步：**也要识别仅关键字
+    # [FIX / 代码审查] 与 `utils.tracer.traced` 同步：**也要识别仅关键字
     # config**（`def fn(state, *, config=None)`），否则那种签名会被静默丢 config。
     try:
         _params = list(inspect.signature(fn).parameters.values())

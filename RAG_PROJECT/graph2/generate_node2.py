@@ -5,7 +5,7 @@ from graph2.grade_documents_node import _sub_config
 from llm_models.all_llm import llm
 from utils.citation import build_citation_meta, format_context, validate_citations
 
-# [UPGRADE 2026-10-09 / ROADMAP 2.1] 强约束引用 prompt。
+# [UPGRADE  / ROADMAP 2.1] 强约束引用 prompt。
 #
 # 与原 prompt（「你是一个问答任务助手…如果不知道答案，请直接说明」）的区别：
 #   1. 每个事实性句子**必须**标注来源编号 -> 答案可核验
@@ -15,7 +15,7 @@ from utils.citation import build_citation_meta, format_context, validate_citatio
 #
 # 实测（ROADMAP 2.1.1）：引用标注率 100%（两种 prompt 各跑 2 次、编号一致），
 # 拒答行为正确，且 LLM_TEMPERATURE=0 保证跨次稳定。
-# [TRY & REVERT 2026-10-11 / P0-1] 曾加过两条约束（「标注前回看该编号对应的块」+
+# [TRY & REVERT  / P0-1] 曾加过两条约束（「标注前回看该编号对应的块」+
 # 「同一资料被切成多块时要选真正含数据的那一块」），试图修 P0-1 的「引用指错块」。
 # **实测后回退，原因是「无法证明有效」**：
 #
@@ -91,7 +91,7 @@ def generate(state, config=None):
 
     # RAG生成过程
     #
-    # [FIX 2026-10-16 / ROADMAP 4.29] **显式传 config**，不要依赖 contextvar 隐式继承。
+    # [FIX / ROADMAP 4.29] **显式传 config**，不要依赖 contextvar 隐式继承。
     #
     # 实测（`eval/_probe_contextvar_threadpool.py`，三条对照）：
     #     A. 无线程池 + 不传 config -> token=11   （contextvar 继承，能统计）

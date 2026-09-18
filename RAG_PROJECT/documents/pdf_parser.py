@@ -27,7 +27,7 @@ from typing import List
 
 from langchain_core.documents import Document
 
-# [FIX 2026-10-11 / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（原为本地 100），
+# [FIX / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（原为本地 100），
 # 与 office_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
 from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
 from utils.log_utils import log
@@ -93,7 +93,7 @@ class PDFParser:
         Args:
             use_ocr: 是否让 pymupdf4llm 对页面中的图片区域做 OCR。
 
-        [UPGRADE 2026-10-09] 为什么必须**显式**指定 use_ocr：
+        [UPGRADE ] 为什么必须**显式**指定 use_ocr：
             实测发现 pymupdf4llm 会根据「环境里是否装了 OCR 后端」自行决定行为，
             装上 `rapidocr_onnxruntime` 之后，同一份 layout-parser-paper.pdf 的结果
             从 44,017 字符变成 45,673 字符（+3.8%），耗时 6.9s -> 19.4s。

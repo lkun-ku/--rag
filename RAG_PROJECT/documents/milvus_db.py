@@ -167,7 +167,7 @@ class MilvusVectorSave:
     def add_documents(self, datas: List[Document]):
         """把新的 document 保存到 Milvus 中
 
-        [UPGRADE 2026-10-07] 写入后显式 flush。
+        [UPGRADE ] 写入后显式 flush。
         实测（真实 Milvus 2.6.25）：langchain-milvus 的 add_documents 只把数据写进
         WAL，不会立刻 flush，此时 get_collection_stats 返回 0、检索报
         "nq [0] is invalid"（因为查到的是空集合）。显式 flush 后 row_count

@@ -31,7 +31,7 @@ P = pathlib.Path(__file__).parent / "golden_dataset.jsonl"
 lines = [l for l in P.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 NOTE = (
-    "跨行比较 + 取最小（**2026-10-17 修正**）：原标 83.52% 取的是"
+    "跨行比较 + 取最小（** 修正**）：原标 83.52% 取的是"
     "「静态向量检索 / 0% 过滤」那一行，**不是全表最低**。"
     "按「全表 85 条召回率记录取最小」的口径，真实最低是 "
     "「带过滤向量检索 / 98% 过滤」下的 61.35%（TurboPuffer）。"
@@ -46,7 +46,7 @@ for l in lines:
         old = d.get("answer")
         d["answer"] = "TurboPuffer，61.35%"
         d["note"] = NOTE
-        d["answer_fixed_at"] = "2026-10-17"
+        d["answer_fixed_at"] = ""
         d["answer_old"] = old
         n += 1
         print("修正 n005:")

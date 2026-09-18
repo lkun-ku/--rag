@@ -147,7 +147,7 @@ print("  换算到单题（本批 %d 道）：逐块 %.0f token/题 -> 批量 %.
 
 (HERE / "measure_grade_batch_saving.json").write_text(json.dumps(
     {"batch_size": BATCH_SIZE,
-     # [FIX 2026-10-16 / 二次筛查] **必须记录本次实际跑了哪些题**。
+     # [FIX / 二次筛查] **必须记录本次实际跑了哪些题**。
      #
      # 原因：`SAVING_QIDS` 的默认值是 **3 题**，而落盘的证据（4.23 的
      # 「省 40% / 一致率 92.6%」）来自**6 题 215 块**。若不记 QIDS，
