@@ -1,5 +1,5 @@
 {
-  "backup": "backup_20261015_220359.json",
+  "backup": "backup.json",
   "collections": {
     "kb_milvus_bge_large_1024": {
       "n": 249

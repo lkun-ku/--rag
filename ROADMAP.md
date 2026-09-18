@@ -4587,7 +4587,7 @@ cli_reference 块数**变多**正是「父块不再被塞入表格文本」的�
 ### 4.18.1 执行链路（全部留痕）
 
 1. **备份**（`eval/backup_collections.py`）：三集合 528 块 + golden 32 题 ->
-   `eval/_backup_collections/backup_20261015_220359.json`（0.6 MB，含每块 `chunk_id`）
+   `eval/_backup_collections/backup.json`（0.6 MB，含每块 `chunk_id`）
 2. **重建**：`python -m documents.write_milvus` —— `recreate=True` 本就是它的**默认值**，
    **不需要** `purge_milvus.py` 那种「停容器 + 清数据目录」的做法。耗时约 15 分钟，**失败项 0**
 3. **内容覆盖核对**（`eval/verify_rebuild_coverage.py`）
