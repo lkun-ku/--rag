@@ -1,5 +1,5 @@
 {
-  "model": "<local-user>\\.cache\\modelscope\\models\\BAAI--bge-reranker-v2-m3\\snapshots\\master",
+  "model": "<local modelscope cache>/BAAI--bge-reranker-v2-m3/snapshots/master",
   "topk": 12,
   "n_cases": 8,
   "rows": [

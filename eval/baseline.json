@@ -1,19 +1,16 @@
 {
-  "verdict": "INCONCLUSIVE",
-  "reasons": [
-    "context_precision: 0.0496 处于告警区间 [0.03, 0.05)",
-    "生成层指标缺失（faithfulness, answer_relevancy）—— 本次未启用生成层评测（未传 --with-generation），**不得据此判定质量回退**"
-  ],
+  "verdict": "PASS",
+  "reasons": [],
   "scores": {
     "context_recall": 0.86640625,
     "hit_rate": 0.9375,
     "context_precision": 0.049553571428571426,
-    "faithfulness": null,
-    "answer_relevancy": null
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.875
   },
   "cases": 32,
-  "elapsed_sec": 21.0,
-  "with_generation": false,
+  "elapsed_sec": 96.6,
+  "with_generation": true,
   "llm_available": true,
   "collections": [
     "kb_milvus_bge_large_1024",

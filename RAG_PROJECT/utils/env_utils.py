@@ -23,7 +23,7 @@ DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')
 
 # ---- 向量库：可用 .env 覆盖 ----
-# [FIX / 深度扫描 R9] 默认值原为 `http://<old-ip>:19530`（一个**公网 IP**）——
+# [FIX / 深度扫描 R9] 默认值原为 `<旧公网 IP>`（一个**公网 IP**）——
 # 那是迁移前的遗留写法。隐患：`.env` 缺失时**不会「连不上」**，而是静默去连一台外部
 # 服务器 —— 既可能读到别人的数据，也让报错方向完全被误导（以为是本地 Milvus 的问题）。
 # 改为本地地址，与 `.env.example` 保持一致。（本机 `.env` 已显式配置，故实际零影响。）

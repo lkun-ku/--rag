@@ -63,6 +63,13 @@ c*.err
 #   history.jsonl       历史趋势（用于区分「抖动」与「持续回退」）
 # 只有缓存属于运行态产物（换模型/换语料即失效，体积随时间增长），排除。
 eval/cache.jsonl
+
+# ---- 公开仓库不发布的本地证据/备份 ----
+# 迁移前旧代码快照：含 .idea/workspace.xml、__pycache__，仅本地回滚用。
+_source_snapshot_before_upgrade.zip
+# 集合重建前的备份：source 字段含本机绝对路径，仅本地保留。
+eval/_backup_collections/
+
 lite.log
 lite.err
 local_milvus.db/

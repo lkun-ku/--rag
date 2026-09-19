@@ -1,861 +1,585 @@
-# RAG 企业知识库项目 · 详细说明
+# 项目架构说明
 
-> 本文档是对代码的完整梳理：架构、数据流、模块职责、关键原理、配置与已知限制。
-> 描述均基于源码实际阅读 + 真实 Milvus 2.6.25 / DeepSeek / Tavily 环境下的实测。
-> 升级细节见 [`UPGRADE_NOTES.md`](UPGRADE_NOTES.md)，验证结果见 [`迁移验证报告.md`](迁移验证报告.md)。
-
----
-
-## ⚠️ 修订说明—— 本文若干数字已过时
-
-本文写于**阶段一之前**，其后项目经历了三个阶段改造 + 数据重置 + 复核优化。
-**以下字段已过时**，请以标注的当前值为准（**依据见 ROADMAP.md**）：
-
-| 本文中的旧值 | **当前实际值** | 出处 |
-|---|---|---|
-| 业务代码 **1692 行 / 38 文件** | **6,090 行 / 47 文件** | 含 API、多租户、表格处理 |
-| 语料 **7 个 Markdown / 约 102 块** | **18 文件 / 523 块 / 3 集合** | 数据重置（4.7） |
-| 嵌入 **bge-small-zh-v1.5（512 维）** | **bge-large-zh-v1.5（1024 维）** | 阶段一 |
-| 无评测体系 | **33 脚本 / 10,113 行**（**超过业务代码**） | `eval/` |
-| 无服务化 | **FastAPI + SSE + 多租户**（438 行） | 阶段三 |
-| `context_precision` 参与门禁 | **降级为仅监控**（它天然低） | 4.28 |
-
-**新增的关键能力**（本文未覆盖）：
-
-* **四道判分闸门 + 自纠错闭环**的实测验证（判分抖动 0 翻转、拒答率审计）；
-* **成本可观测性**（判分 token 埋点修复 —— 真实成本是可见值的 4.2 倍）；
-* **批量判分**（省 40% token / 86% 调用）+ **批间并发**（判分阶段降 74%）；
-* **质量门禁**：recall 0.8664 · hit_rate 0.9375 · faithfulness 0.9062（**PASS**）；
-* **回归门禁 13/13**（含 API+SSE、多租户联动）。
-
-**配套文档**：
-* [`ROADMAP.md`](ROADMAP.md) —— **主文档**，6,000+ 行，所有改造与**实测证据**；
-* [`docs/RESUME_PROJECT.md`](docs/RESUME_PROJECT.md) —— 简历用项目描述（含 5 项核心亮点）；
-* [`eval/`](eval/) —— 33 个评测/验证脚本。
-
-> **为什么保留旧值而不直接改掉**：本文记录了**阶段一之前的真实状态**，
-> 是「改造前后对比」的基线。**直接改写会让证据链断裂** ——
-> 这也是本项目一贯的做法（如 `measure_grade_batch_saving.json` 记录 QIDS、
-> `golden` 修正保留 `answer_old`）。
+> 本文只描述**当前代码**：系统由什么组成、数据怎么流、关键设计为什么这么做。
+> 迭代过程与实测证据见 [`ROADMAP.md`](ROADMAP.md)；对外简历口径见
+> [`docs/RESUME_PROJECT.md`](docs/RESUME_PROJECT.md)；入口与快速开始见 [`README.md`](README.md)。
 
 ---
 
-## 一、项目概览
+## 一、概览
 
 ### 1.1 它是什么
 
-一个**企业知识库检索问答系统**（RAG）。把企业内部 Markdown 文档切分、向量化后存入向量库；
-用户提问时先检索相关片段，再让大模型基于这些片段生成答案，并通过一系列判分节点**自检与纠错**。
+一个**面向技术资料的可溯源 RAG 问答系统**（对外定位：TechDocs Copilot）：
 
-它不是"能跑通就行"的 Demo，有明确工程考量：
-
-| 考量 | 体现在哪 |
-|---|---|
-| 混合检索 | 稠密向量（语义）+ BM25 稀疏（关键词）双路召回，RRF 融合 |
-| 中文分词 | Milvus 服务端启用 jieba 分析器，否则中文 BM25 失效 |
-| 检索准确 | 表达式过滤（`expr`）排除纯标题块，只保留正文 |
-| 答案可信 | 四道判分闸门：问题路由 / 文档相关性 / 答案幻觉 / 问题匹配度 |
-| 自纠错 | 检索不到就改写问题重试，生成不合格就重新生成，且有熔断防死循环 |
-| 会话记忆 | LangGraph 检查点（SqliteSaver）持久化，支持多轮与跨重启 |
-| 双通道 | 知识库检索 + 网络搜索，由路由器自动选择 |
+* 把 Markdown / PDF / Office 文档解析、切片、向量化，按语义域写入 **3 个 Milvus 集合**；
+* 用户提问后，先做**问题路由**，再做**跨集合混合检索**（稠密 + BM25，两阶段 RRF）；
+* 检索结果经过**文档相关性判分**，再生成带 `[n]` 引用编号的答案；
+* 生成后做**确定性引用校验** + **幻觉判分** + **问题匹配度判分**，不合格则自纠错重试；
+* 通过 FastAPI + SSE 提供同步/流式问答，支持集合级多租户隔离；
+* 配套 `eval/` 评测、门禁、探针与回归入口，所有关键结论都有实测数字。
 
 ### 1.2 规模
 
-| 项 | 数量 |
+| 项 | 当前值 |
 |---|---|
-| 业务代码 | **1692 行**（38 个 `.py`，含空 `__init__.py`） |
-| 核心工作流 | 3 个入口（CRAG 完整版 / 简化 ReAct / 标准 Agent） |
-| 判分链 | 4 个 |
-| 语料 | 7 个 Markdown，689 行，43 KB |
-| 检索单元 | 入库后约 102 块 |
-| 依赖 | 31 个精确 pin |
+| 业务代码 | **5,176 行 / 45 个 `.py`** |
+| 评测与验证代码 | **8,867 行 / 71 个 `.py`** |
+| 根目录 `scripts/` | **970 行 / 4 个 `.py`** |
+| 语料 | **18 文件 / 523 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
+| golden 集 | 32 题 |
 
-代码量分布（不含空文件）：
+> 523 是当前 Milvus 三个集合的 `row_count` 合计（257 + 179 + 87，已实测）；
+> `eval/chunk_index.json` 的 496 是历史快照，不代表当前行数。
+
+业务代码分布：
 
 | 目录 | 行数 | 职责 |
-|---|---|---|
-| `graph2/` | 563 | CRAG 完整工作流（核心） |
-| `documents/` | 383 | 解析、建表入库、批量写入 |
-| `graph/` | 280 | 简化版 ReAct 工作流 |
-| `utils/` | 176 | 配置、日志、检查点工厂、打印 |
-| `tools/` | 155 | 检索器与工具封装（含 1 个 WIP 文件） |
-| `agent/` | 67 | LangChain 1.x 标准 Agent |
-| `llm_models/` | 40 | LLM 与嵌入模型 |
+|---|---:|---|
+| `documents/` | 2,065 | 解析、表格、建表、入库 |
+| `graph2/` | 1,106 | CRAG 主工作流（核心） |
+| `utils/` | 634 | 配置、日志、引用、轨迹、检查点 |
+| `tools/` | 391 | 跨集合混合检索 |
+| `api/` | 356 | FastAPI + SSE |
+| `scripts/`（包内） | 271 | 轨迹查看、检索试验 |
+| `graph/` | 239 | 简化 ReAct 工作流 |
+| `agent/` | 59 | 1.x 标准 Agent |
+| `llm_models/` | 55 | LLM 与本地嵌入 |
 
 ### 1.3 技术栈
 
 | 层 | 选型 |
 |---|---|
-| 编排 | LangChain 1.4.3 / LangGraph 1.2.14 |
-| 向量库 | Milvus 3.0.1 + langchain-milvus 0.4.0 + pymilvus 3.0.2 |
-| 嵌入 | BAAI/bge-small-zh-v1.5（512 维，本地 CPU） |
+| 编排 | LangChain 1.4.3 / LangGraph 1.2.14 / langchain-core 1.6.7 |
+| 向量库 | Milvus 3.0.1（服务端）+ langchain-milvus 0.4.0 + pymilvus 3.0.2 |
+| 嵌入 | `BAAI/bge-large-zh-v1.5`，**1024 维**，本地 CPU，L2 归一化 |
 | 生成 | DeepSeek `deepseek-flash`（OpenAI 兼容协议） |
-| 网络搜索 | Tavily |
-| 文档解析 | Unstructured 0.27.10（`strategy='fast'`） |
-| 结构化输出 | Pydantic v2 + `with_structured_output(method='function_calling')` |
-| 会话记忆 | langgraph-checkpoint-sqlite 3.1.1 |
-| 日志 | loguru |
-| 环境 | Python 3.12.7（Windows / Linux 均可） |
+| 文档解析 | unstructured 0.27.16 / pymupdf4llm 1.28.2 / markitdown 0.1.8 |
+| 结构化输出 | Pydantic v2 + `with_structured_output(method="function_calling")` |
+| 服务化 | FastAPI 0.143.0 + uvicorn 0.54.0，SSE 流式 |
+| 会话记忆 | `langgraph-checkpoint-sqlite` 3.1.1（仅 `graph1` / `agent`） |
+| 日志与追踪 | loguru + 自建 `utils/tracer.py` |
+| 环境 | Python 3.12.7（Windows / Linux） |
 
 ---
 
-## 二、目录结构与逐文件职责
+## 二、目录结构与职责
 
 ```
-RAG_PROJECT/                ← Python 包根
+RAG_PROJECT/
 ├── agent/
-│   ├── rag_agent.py            67  create_agent + SqliteSaver 检查点
-│   └── __init__.py              0
+│   ├── __init__.py
+│   └── rag_agent.py              create_agent + SqliteSaver 的标准 Agent
+├── api/                          （无 __init__.py，按 PYTHONPATH 导入）
+│   ├── main.py                   FastAPI：/ /health /ask /ask/stream /ingest
+│   └── run.py                    服务启动脚本
 ├── documents/
-│   ├── markdown_parser.py     124  解析 + 标题合并 + 切片
-│   ├── milvus_db.py           152  Milvus schema 建表 + 向量库封装
-│   ├── write_milvus.py        107  多进程批量入库管道
-│   └── __init__.py              0
+│   ├── __init__.py
+│   ├── markdown_parser.py        元素解析 + 标题合并 + 分级切片
+│   ├── pdf_parser.py             PDF → Markdown（pymupdf4llm，可选 OCR）
+│   ├── office_parser.py          docx / xlsx → Markdown；pptx 优先 PPTXParser
+│   ├── pptx_parser.py            PPTX 逐页结构化提取（备注/SmartArt/图表）
+│   ├── table_handler.py          表格结构恢复 + 行切 + 表头注入
+│   ├── milvus_db.py              集合 schema、索引、写入、维度自检
+│   └── write_milvus.py           多源多进程入库管线
 ├── graph/
-│   ├── graph1.py             154  StateGraph 构图 + create_graph 工厂 + main 入口
-│   ├── graph_state1.py        17  AgentState / Grade
-│   ├── agent_node.py          25  模型 + 工具绑定节点
-│   ├── generate_node.py       37  RAG 生成节点
-│   ├── rewrite_node.py        36  问题改写节点
-│   ├── get_human_message.py   11  取出最后一条用户消息
-│   └── __init__.py              0
-├── graph2/                CRAG 完整工作流（核心）
-│   ├── graph_2.py            207  构图（7 节点/9 边）+ 熔断 + 工厂 + 入口
-│   ├── graph_state2.py        22  GraphState 与 4 个判分用Pydantic 模型
-│   ├── query_route_chain.py   48  路由器：向量库 or 网络搜索
-│   ├── retriever_node.py      18  向量库检索节点
-│   ├── web_search_node.py     45  Tavily 检索节点
-│   ├── grade_documents_node.py 32  文档相关性闸门 + 是否改写问题的决策
-│   ├── transform_query_node.py 46  信息不足时改写问题
-│   ├── generate_node2.py      44  RAG 生成 + 幻觉检查 + 答案判分
-│   ├── grader_chain.py        33  文档相关性判分器
-│   ├── grade_hallucinations_chain.py 34  幻觉判分器
-│   ├── grade_answer_chain.py  34  答案匹配度判分器
-│   └── __init__.py              0
+│   ├── __init__.py
+│   ├── graph1.py                 简化 ReAct 工作流（4 显式节点 + 2 条件边）
+│   ├── graph_state1.py
+│   ├── agent_node.py
+│   ├── generate_node.py
+│   ├── rewrite_node.py
+│   ├── get_human_message.py
+│   └── graph_rag1-2.png          工作流示意图
+├── graph2/
+│   ├── __init__.py
+│   ├── graph_2.py                CRAG 主工作流 + 熔断 + run_with_trace
+│   ├── graph_state2.py           GraphState + 判分用 Pydantic 模型
+│   ├── query_route_chain.py      问题路由（查库 / 联网）
+│   ├── retriever_node.py         跨集合检索节点
+│   ├── web_search_node.py        Tavily 检索节点
+│   ├── grade_documents_node.py   文档相关性判分（支持批量）
+│   ├── transform_query_node.py   问题改写
+│   ├── generate_node2.py         生成 + 引用 + 同表切片合并
+│   ├── grader_chain.py           文档相关性判分器
+│   ├── grade_hallucinations_chain.py
+│   └── grade_answer_chain.py
 ├── llm_models/
-│   ├── all_llm.py             25  ChatOpenAI + Tavily 工具（配置驱动）
-│   ├── embeddings_model.py    15  BGE-small-zh（512 维，CPU）
-│   └── __init__.py              0
+│   ├── __init__.py
+│   ├── all_llm.py                 ChatOpenAI（配置驱动）+ Tavily 工具
+│   └── embeddings_model.py        本地 BGE 嵌入
 ├── tools/
-│   ├── retriever_tools.py     59  Milvus 检索器 + 工具封装
-│   ├── text_search.py         96  ⚠️ WIP 实验文件，非生产代码（见 8.3）
-│   └── __init__.py              0
+│   ├── __init__.py
+│   └── retriever_tools.py         跨集合混合检索 + 编号上下文 + 租户作用域
 ├── utils/
-│   ├── env_utils.py           65  全部配置（密钥/服务/路径/LLM/检索）
-│   ├── log_utils.py           60  loguru 日志封装
-│   ├── checkpointer.py        29  SqliteSaver 工厂
-│   ├── print_utils.py         22  流式事件去重打印
-│   └── __init__.py              0
+│   ├── __init__.py
+│   ├── env_utils.py               主要配置与 DOC_SOURCES / TENANTS
+│   ├── citation.py                引用解析、校验、拒答识别
+│   ├── tracer.py                  节点/边级轨迹与 token 统计
+│   ├── checkpointer.py            SqliteSaver 工厂
+│   ├── log_utils.py
+│   └── print_utils.py
+├── scripts/                      （无 __init__.py）
+│   ├── show_trace.py              查看 logs/trace.jsonl
+│   └── try_search.py
 ├── datas/
-│   ├── md/                    7 个 Markdown 语料
-│   ├── output/               187 个 PDF 解析产物（非 Milvus 数据，见 8.4）
-│   └── layout-parser-paper.pdf
-├── main.py                    16  ⚠️ PyCharm 模板残留，无真实入口
-├── draw_png.py                12  导出工作流 mermaid 图
-└── logs/                          日志目录
-
-工作区根另有：requirements*.txt、UPGRADE_NOTES.md、迁移验证报告.md、
-scripts/（验证脚本）、.env / .env.example、.gitignore
+│   ├── CORPUS_MANIFEST.md         语料来源与清洗记录
+│   ├── md/                        6 个 Markdown 语料
+│   ├── pdf/                       5 个 PDF 语料
+│   └── office/                    7 个 Office 语料
+├── models/                       本地嵌入模型（gitignored，可重建）
+├── logs/                         运行轨迹（gitignored）
+├── graph_rag1.png                工作流示意图
+└── graph_rag2.png
 ```
+
+> `__init__.py` 为 0 字节；`api/` 与 `scripts/` 没有该文件（按 `PYTHONPATH=RAG_PROJECT`
+> 以命名空间包导入）。`.idea/`、`__pycache__/`、`.venv/` 等本地/生成物未列出。
+
+工作区根另有：`eval/`（评测与回归）、`scripts/`（模型下载 / Milvus 探测 / 迁移验证）、
+`docs/`、`scratch/`（临时验证，未入库）、`.venv/`、`requirements*.txt`、`.env.example`、
+`pyrightconfig.json`、本地保留的迁移前快照（不随公开仓库发布）。
 
 ---
 
-## 三、数据流全景
+## 三、数据流
 
-### 3.1 入库链路（一次性）
+### 3.1 入库链路
 
 ```
-datas/md/*.md（7 个文件，689 行）
-      │
-      │ ① UnstructuredMarkdownLoader(mode='elements', strategy='fast')
-      │    产出「原子元素」：Title / NarrativeText / ListItem / Table ...
-      │    每元素带 metadata：category、element_id、parent_id、
-      │                          filename、filetype、category_depth ...
-      ▼
-   元素列表
-      │
-      │ ② merge_title_content()      ← 项目自研的核心技巧
-      │    · 顶层正文块（NarrativeText 且无 parent_id）→ 直接保留，补 title
-      │    · Title 元素 → 作为「父文档」存入 parent_dict，并记录自身标题
-      │    · 子元素（ListItem/Table 等）→ 内容拼进父文档，
-      │      父文档 category 改为 'content'
-      │    效果：标题与正文合并成「A -> B -> 正文」的面包屑结构
-      ▼
-   合并后的 Document[]
-      │
-      │ ③ SemanticChunker(breakpoint_threshold_type='percentile')
-      │    仅对 > 5000 字符的块做二次语义切分
-      │    （分级策略：小块直接放行，省embedding 成本）
-      ▼
-   chunk 列表（本次 102 块）
-      │
-      │ ④ _ensure_required_fields()
-      │    补齐 schema 必需但 unstructured 未必产出的字段：
-      │    category / source / filename / filetype / title / category_depth
-      ▼
-   就绪的 Document[]
-      │
-      │ ⑤ 嵌入：bge_embedding.embed_documents() → 512 维稠密向量
-      │    BM25 内置函数在服务端把 text 转成稀疏向量
-      ▼
-   Milvus 集合
+DOC_SOURCES（utils/env_utils.py，一源一集合）
+├─ milvus_docs : datas/md/*.md        → MarkdownParser → kb_milvus_bge_large_1024
+├─ papers      : datas/pdf/*.pdf      → PDFParser      → kb_papers_bge_large_1024
+└─ manuals     : datas/office/*       → OfficeParser   → kb_manuals_bge_large_1024
+   （notes/.txt 源默认关闭：需先人工整理为 Markdown）
+        │
+        ▼
+① 解析：Unstructured elements / pymupdf4llm / markitdown / PPTX 提取
+② 标题合并：merge_title_content() → “A -> B -> 正文”面包屑
+③ 表格处理：text_as_html 恢复结构 → 按行切分 + 每块重复表头
+④ 短块合并：< 50 字符碎片并入同文件相邻正文块
+⑤ 语义切分：仅对 > 5000 字符的块用 SemanticChunker 二次切分
+⑥ 字段兜底：category / source / filename / filetype / title / category_depth
+⑦ 嵌入：bge-large-zh-v1.5 → 1024 维归一化向量
+⑧ 写入：按源写入各自集合；失败显式记录，不静默丢弃
 ```
 
-**集合 schema**（`documents/milvus_db.py`，实测已在 Milvus 2.6.25 建成）：
-
-实际共 **10 个字段**（下表最后一行是 3 个字段合并展示），实测输出：
-`id`(INT64) / `text`(VARCHAR, analyzer=on) / `category` / `source` / `filename` /
-`filetype` / `title` / `category_depth`(INT64) / `sparse`(SPARSE_FLOAT_VECTOR) /
-`dense`(FLOAT_VECTOR, dim=512)
+**集合 schema（10 个字段）**：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `id` | INT64 | 自增主键 |
-| `text` | VARCHAR(6000) | 块正文，`enable_analyzer=true`，`analyzer_params={"tokenizer":"jieba","filter":["cnalphanumonly"]}` |
-| `dense` | FLOAT_VECTOR(512) | 稠密向量，HNSW（`M=16`, `efConstruction=64`），度量 IP |
-| `sparse` | SPARSE_FLOAT_VECTOR | BM25 稀疏向量，SPARSE_INVERTED_INDEX（`k1=1.2`, `b=0.75`） |
-| `category` | VARCHAR(500) | `content` 表示正文块，`Title` 表示纯标题块 |
-| `title` | VARCHAR(1000) | 标题面包屑（由 merge 阶段生成） |
+| `text` | VARCHAR(6000) | 块正文；`enable_analyzer=true` + jieba |
+| `dense` | FLOAT_VECTOR(1024) | HNSW（M=16 / efConstruction=64），IP 度量 |
+| `sparse` | SPARSE_FLOAT_VECTOR | BM25（k1=1.2 / b=0.75），倒排索引 |
+| `category` | VARCHAR(1000) | `content` 为正文块，其余为标题/噪声 |
+| `title` | VARCHAR(1000) | 标题面包屑 |
 | `category_depth` | INT64 | 元素嵌套层级 |
-| `source` / `filename` / `filetype` | VARCHAR | 来源信息 |
+| `source` / `filename` / `filetype` | VARCHAR(1000) | 来源信息 |
 
-入库有两条入口：
-- `documents/write_milvus.py`：多进程批量管道（扫描目录 → 解析 → 有界队列 → 批量写入）
-- `documents/milvus_db.py` 的 `__main__`：单文件演示
+**两个关键约束**：
+
+* Milvus 的 `text` 字段按**字节**计（`VARCHAR(6000)`），中文约 3 字节/字；
+  切块按字节判定并留余量，否则整批写入会被拒；
+* 集合名只允许字母/数字/下划线；Milvus Lite 比真实服务宽松，
+  因此客户端在建表前统一校验，避免“Lite 通过、真实服务失败”。
+
+入库管线是**解析与写入分离 + 有界队列背压**；真实 Milvus 走多进程，
+Milvus Lite 因文件锁自动降级为单进程。
 
 ### 3.2 查询链路（`graph2`，CRAG 完整版）
 
 ```
 用户问题
-   │
-   ├─▶ ① route_question【闸门①问题路由】
-   │      LLM + Pydantic(RouteQuery) 判定：vectorstore or websearch
-   │      ↓
-   ├─▶ vectorstore 路径                    websearch 路径
-   │      │                                 │
-   │      ▼                                 ▼
-   │   retriever（混合检索 k=4）         Tavily 搜索
-   │      · dense 512 维 + sparse BM25      │
-   │      · RRF 融合（k=100）               │
-   │      · expr: category == "content"     │
-   │      │                                 │
-   │      ▼                                 │
-   │   grade_documents【闸门②文档相关性】    │
-   │      LLM + Pydantic(GradeDocuments)    │
-   │      │                                 │
-   │      ├─ 有相关文档 ──────────────┐      │
-   │      │                                │      │
-   │      └─ 全不相关/为空            │      │
-   │           transform_query_count<2      │      │
-   │           → transform_query（改写问题）  │      │
-   │                                     │      │
-   │                                     ▼      ▼
-   │◀─────────────────────────────────────── generate【RAG 生成 / Web 答案】
-   │                                          · 有文档 → 拼上下文 + 提示词
-   │                                          · 无文档 → 直接用网页内容
-   │                                          │
-   │                                          ▼
-   │                                    grade_generation【闸门③幻觉 + 闸门④匹配度】
-   │                                          ③ 生成内容是否基于参考文档？
-   │                                          ④ 回答是否真的回答了问题？
-   │      ┌───────────────────────────────────┼────────────────────┐
-   │      │ yes │ no（且重试未超限）           │ yes                 │ no
-   │      │      ▼                            ▼                     ▼
-   │      │  "not supported" 回到 generate  "useful"            "not useful"
-   │      │  （受 MAX_GENERATION_RETRY 熔断）    │                     │
-   │      └──────────────────► END ◄────────┘                     │
-   │                                                                │
-   │                                          "not useful" → transform_query → 重试
-   └────────────────────────────────────────────────────────────────┘
+  │
+  ├─ route_question（闸门①：查库 or 联网）
+  │
+  ├─ vectorstore 路径                        web_search 路径
+  │     │                                      │
+  │     ▼                                      ▼
+  │  retrieve（跨集合混合检索）             Tavily 搜索
+  │     │                                      │
+  │     ▼                                      │
+  │  grade_documents（闸门②：逐块相关性）       │
+  │     ├─ 有相关块 ───────────────────────┐   │
+  │     └─ 全不相关                          │   │
+  │          ├─ transform_count < 2 → transform_query（改写问题）
+  │          └─ transform_count ≥ 2 → web_search
+  │                                          ▼   ▼
+  │                                       generate
+  │                              · 同表切片合并（n005 类跨行统计）
+  │                              · 上下文编号 [1]..[n]
+  │                              · 强约束引用 prompt
+  │                                          │
+  │                                          ▼
+  │                              grade_generation（闸门③④）
+  │                              · 先做确定性引用校验
+  │                              · 拒答 → useful（不重试）
+  │                              · 越界引用 → not supported（重试）
+  │                              · 幻觉 + 匹配度并发判分
+  │                                          │
+  │                        useful → END      │
+  │                        not supported → generate（受熔断）
+  │                        not useful → transform_query
+  └──────────────────────────────────────────┘
 ```
 
-**拓扑结构**：`graph2` 共 **7 节点 / 9 边**（`__start__`、`retrieve`、`web_search`、
-`grade_documents`、`transform_query`、`generate`、`__end__`），
-与升级前导出的 `graph_rag2.png` 完全一致。
+**拓扑**：5 个显式节点（`retrieve` / `web_search` / `grade_documents` /
+`transform_query` / `generate`）+ `START` / `END`；3 处条件边。
 
-**四道闸门的作用**：
+**四道闸门**：
 
-| 闸门 | 位置 | 判别对象 | 不通过时 |
+| 闸门 | 位置 | 判断什么 | 不通过时 |
 |---|---|---|---|
-| ① 问题路由 | `route_question` | 该查库还是该上网 | 走另一条通道 |
-| ② 文档相关性 | `grade_documents` | 召回文档是否切题 | 改写问题重检索（≥2 次转网络搜索） |
-| ③ 幻觉检测 | `grade_generation` | 回答是否基于检索到的文档 | 重新生成（受熔断保护） |
-| ④匹配度 | `grade_generation` | 回答是否真的回答了问题 | 改写问题重试 |
+| ① 问题路由 | `route_question` | 该查库还是该联网 | 走另一条通道 |
+| ② 文档相关性 | `grade_documents` | 每个召回块是否切题 | 过滤掉；全空则改写或转联网 |
+| ③ 幻觉检测 | `grade_generation` | 答案是否基于检索块 | 重新生成（受熔断） |
+| ④ 问题匹配度 | `grade_generation` | 答案是否真的回答问题 | 改写问题重试 |
 
-### 3.3 查询链路（`graph1`，简化版）
+**生成层细节**：
 
-```
-START → agent ⇄ retrieve → grade_documents → generate → END
-                ↑                        │
-                └──── rewrite ◄──────────┘
-```
+* `CITE_PROMPT` 要求每个事实句标注 `[n]`，只允许使用给定资料；
+* 资料不足时固定回复 `知识库中未找到依据。`，由 `is_refusal()` 精确识别；
+* `merge_table_slices()` 在构建上下文前，把**同一张表**的多切片拼回完整表
+  （按 `(filename, title)` 分组、按行号升序、表头去重、超过 20,000 字符放弃）；
+* 引用校验先于 LLM 判分：越界编号是“幻觉引用”，拒答是“正确行为”，
+  复述原文自带的参考文献编号不算幻觉（P0-3）。
 
-没有路由、没有网络搜索、没有幻觉检测，`rewrite` 后直接回 `agent`重来。
-它的价值是**结构清晰、便于对照理解** LangGraph 的基本用法。
+### 3.3 查询链路（`graph1` / `rag_agent`）
 
-### 3.4 查询链路（`rag_agent`，1.x 标准 Agent）
+| 入口 | 构建方式 | 拓扑 | 记忆 | 特点 |
+|---|---|---|---|---|
+| `graph2` | 手写 `StateGraph` | 5 显式节点 + 3 条件边 | 无（请求级状态） | 路由 + 联网 + 四道闸门 + 熔断 |
+| `graph1` | 手写 `StateGraph` | 4 个显式节点（含 START/END 共 6 个）+ 2 处条件边（7 条分支） | SqliteSaver | ReAct 循环 + 相关性 + 改写 |
+| `rag_agent` | `create_agent()` | `model` / `tools` | SqliteSaver | LangChain 1.x 标准写法 |
 
-```
-START → model ⇄ tools → END
-```
+三者共用同一个 `retriever` / `retriever_tool`，检索配置完全一致。
 
-由 `create_agent()` 生成，内部自动处理模型↔工具循环；会话记忆交给 `checkpointer` + `thread_id`。
-这是 LangChain 1.x 官方推荐的标准写法，`graph1`/`graph2` 是手写编排的对照版本。
+### 3.4 HTTP 服务
+
+| 端点 | 说明 |
+|---|---|
+| `GET /` | 服务元信息：版本、文档入口、端点清单 |
+| `GET /health` | 分别探测 Milvus、检索器、LLM、租户配置，不把失败糊成一个 `false` |
+| `POST /ask` | 同步问答：答案 + 引用溯源；`with_trace=true` 时在响应里附带轨迹，但**不落盘** |
+| `POST /ask/stream` | SSE 流式：`event: step` 逐节点进度，`event: answer` 最终答案，异常时 `event: error` |
+| `POST /ingest` | 按 `DOC_SOURCES` 源名入库；`reset=true` 才清空集合，默认增量追加 |
+
+* 多租户：`X-Tenant-Id` 请求头；配置了 `KB_TENANTS` 时缺失返回 400，未知租户返回 403；
+* 未配置 `KB_TENANTS` 时忽略该头（单租户模式，可访问全部集合）；
+* SSE 的生成器在另一个上下文执行，租户切换用 `set + finally`，不能用 `ContextVar.reset(token)`；
+* **只有 `/ask/stream` 会把轨迹写入 `logs/trace.jsonl`**；`/ask` 只用 `run_with_trace(save=False)`；
+* `/ingest` 对未知源、`enabled=False` 的源返回 400；入库异常返回 500，不返回“假成功”。
 
 ---
 
-## 四、关键原理与技术要点
+## 四、关键设计
 
-### 4.1 混合检索（Hybrid Search）
+### 4.1 混合检索与两阶段 RRF
 
-单靠向量检索在企业知识库里有明显短板：型号、编号、人名、缩写这类**专有名词**的语义向量区分度差。
-本项目采用双路召回：
+**四种检索原语**：
 
-| 通道 | 字段 | 索引 | 擅长 |
-|---|---|---|---|
-| 稠密（语义） | `dense` 512 维 | HNSW（IP 度量） | 同义表达、自然语言提问 |
-| 稀疏（关键词） | `sparse` | SPARSE_INVERTED_INDEX（BM25） | 专有名词、型号、精确关键词 |
+| # | 方式 | 本项目用法 |
+|---|---|---|
+| 1 | 稠密向量（HNSW / IP） | 混合检索的一路 |
+| 2 | 稀疏向量（BM25 / 倒排） | 混合检索的另一路 |
+| 3 | 混合检索 + RRF 融合 | 集合内主路径 |
+| 4 | 标量过滤（`expr`） | 叠加在 1/2/3 之上 |
 
-两路结果用 **RRF（Reciprocal Rank Fusion）** 融合，参数 `k=100`。
-RRF 只看**排名**不看分数，规避了两路分数量纲不一致的问题。
+**两阶段 RRF**：
 
-**写法上有两种可选**（由 `MILVUS_RERANKER_STYLE` 控制）：
+```
+阶段一（集合内）：每个集合各做 hybrid_search
+    dense(bge-large 1024) + sparse(BM25) --RRF(k=100)--> 集合 top-12
 
-```python
-# function（默认，官方新写法，需服务端 Milvus 2.6+）
-"reranker": Function(
-    name="rrf",
-    function_type=FunctionType.RERANK,
-    input_field_names=[],                # ① RRF 不接受输入字段，必须为空
-    params={"reranker": "rrf", "k": 100} # ② params 里必须有 reranker 判别键
-)
-
-# legacy（旧写法，已 deprecated 但兼容面最广，Milvus Lite 只能用这个）
-"ranker_type": "rrf",
-"ranker_params": {"k": 100}
+阶段二（跨集合）：把各集合结果按块内容去重后再次 RRF
+    score = Σ 1/(rrf_k + rank)   （rrf_k=60）
+    --> 最终 top-36
 ```
 
-> 这两个易错点是**在真实 Milvus 2.6.25 上实测出来的**，服务端会报
-> `code=1100 unsupported rerank function: []`。两者语义一致，返回结果与距离完全相同。
+参数：
 
-### 4.2 中文分词（jieba）
+| 参数 | 值 | 说明 |
+|---|---:|---|
+| `FETCH_K_PER_ROUTE` | 24 | 每集合、每路预取条数（必须 ≥ 最终配额） |
+| `PER_COLLECTION_K` | 12 | 每集合最终保留条数 |
+| `FINAL_K` | 36 | 跨集合融合后交给下游的条数 |
+| `RRF_K` | 60 | 跨集合二次 RRF 的平滑常数 |
+| `expr` | `category == "content"` | 排除纯标题块 |
 
-BM25 依赖分词。中文不分词时，「光刻」和「光刻机」会被当成两个无关词，导致关键词检索失效。
+**为什么用 RRF 而不是分数相加**：IP 内积与 BM25 量纲不同，无法直接比较；
+RRF 只看排名，天然规避量纲问题。
+
+**查询侧的两条路径**：dense 路由客户端 `embed_query()` 编码为 1024 维；
+sparse 路把**原始 query** 交给 Milvus 服务端，用与入库相同的 jieba 分析器算 BM25。
+两端分词口径必须一致，否则关键词路会失效。
+
+**为什么不用 reranker**：bge-reranker-v2-m3 实测在本项目 8 题上**增益为 0**，
+且基线已拿到大部分可召回块，天花板有限；接入它反而会把噪声块换进来。
+详见 ROADMAP 的 reranker 专项。
+
+**HNSW vs FLAT**：FLAT 暴力遍历、召回 100% 但线性变慢；HNSW 用 `M` /
+`efConstruction` 换速度，适合百万级向量 + 毫秒延迟的企业知识库场景。
+
+### 4.2 中文 BM25
+
+BM25 依赖分词。中文不分词时，“光刻”与“光刻机”会被当成无关词。
 本项目在 **Milvus 服务端**启用 jieba：
 
 ```python
-schema.add_field(
-    field_name="text",
-    datatype=DataType.VARCHAR,
-    max_length=6000,
-    enable_analyzer=True,
-    analyzer_params={"tokenizer": "jieba", "filter": ["cnalphanumonly"]},
-)
+analyzer_params={"tokenizer": "jieba", "filter": ["cnalphanumonly"]}
 ```
 
-`cnalphanumonly` 用于过滤数字和符号，让 BM25 统计更干净。
+jieba 必须装在**服务端**，客户端安装无效；官方镜像已内置，自定义镜像需自行安装。
 
-⚠️ **jieba 必须装在 Milvus 服务端**（客户端装了没用）。官方 `milvusdb/milvus` 镜像已内置；
-自定义镜像需自行 `docker exec -it <milvus> pip install jieba`。
+### 4.3 解析、切片与表格
 
-### 4.3 结构感知切片（merge_title_content）
-
-这是本项目最有价值的一段代码（`documents/markdown_parser.py`）。
-
-朴素做法是按字符数硬切，会把标题和内容切散。这里利用 Unstructured 的
-`mode='elements'` 产出**带父子关系**的原子元素，再做合并：
-
-```
-原始 elements：                      合并后：
-  Title    "封装技术"（element_id=1）    ┌─ doc1: category='content'
-  ListItem "…芯片封装…"（parent=1）      │  "封装技术 -> …芯片封装…"
-  ListItem "…测试方法…"（parent=1）      └─ title='封装技术'
-  Title    "测试技术"（element_id=2）    ┌─ doc2: category='content'
-  ListItem "…测试流程…"（parent=2）      │  "测试技术 -> …测试流程…"
-  NarrativeText（无父节点，前言）        └─ title='测试技术'
-                                       doc3: category='NarrativeText'（顶层正文，补 title）
-```
-
-三个要点：
-1. **标题下沉**：子元素内容拼进父标题文档，形成「A -> B -> 正文」面包屑，检索时带层级语境
-2. **category 改写**：合并后文档的 category 从 `Title` 改为 `content`
-3. **过滤配合**：检索时用 `expr: category == "content"` 排除纯标题块
-
-> ⚠️ 这里踩过一个坑：顶层正文块（无父节点）走单独分支，不会被赋予 `title`，
-> 而 schema 中 `title` 非空 → 写入必然报 `DataNotMatchException`。
-> 现已由 `_ensure_required_fields()` 统一兜底。
-
-### 4.4 分级切片策略
-
-```python
-if len(d.page_content) > 5000:      # 只有大块才做二次语义切分
-    new_docs.extend(self.text_splitter.split_documents([d]))
-    continue
-new_docs.append(d)                  # 小块直接放行
-```
-
-`SemanticChunker` 需调用 embedding 做语义边界检测，成本高。
-只在块确实过大时才用，是**效果与成本的折中**。
-
-### 4.5 判分链与结构化输出
-
-四道闸门都用「大模型 + Pydantic 模型」把主观判断转成**可路由的结构化结论**：
-
-| 判分器 | Schema | 输出 |
+| 阶段 | 做什么 | 为什么 |
 |---|---|---|
-| 路由器 | `RouteQuery.datasource: Literal["vectorstore","websearch"]` | 二选一，决定走哪条通道 |
-| 文档相关性 | `GradeDocuments.binary_score: Literal["yes","no"]` | 该文档是否切题 |
-| 幻觉检测 | `GradeHallucinations.binary_score: Literal["yes","no"]` | 回答是否基于文档 |
-| 答案匹配度 | `GradeAnswer.binary_score: Literal["yes","no"]` | 回答是否回答了问题 |
+| 元素解析 | `mode="elements"`，保留 `category` / `element_id` / `parent_id` | 标题与正文的父子关系是后续合并的依据 |
+| PPTX 逐页 | 优先 `PPTXParser`（逐页一块，提取备注/SmartArt/图表/组合形状）；失败回退 markitdown | markitdown 会把多页并成 1 块且丢结构 |
+| 标题合并 | 子元素拼进父标题，`category` 改为 `content` | 检索时带层级语境，且能用 `expr` 排除纯标题块 |
+| 表格恢复 | 从 `text_as_html` 还原 Markdown 表格，加“表格：/列名：”前缀 | Unstructured 会吞掉 `|` 分隔符 |
+| 表格切分 | 超过 30 行按行切，每块重复完整表头 + 行范围 | 行边界天然对齐记录，避免一条记录跨块 |
+| 短块合并 | < 50 字符碎片并入同文件相邻正文块 | 超短块会挤占检索配额 |
+| 语义切分 | 仅 > 5000 字符的块走 `SemanticChunker` | 语义切分要调 embedding，成本高，只对大块用 |
+| 同表合并 | 生成前把同表碎片拼回完整表 | 跨行统计类问题（如“最低值”）需要看到整表 |
 
-这样 LangGraph 才能用返回值做条件边分流：
+### 4.4 引用与拒答
 
-```python
-llm.with_structured_output(GradeDocuments, method="function_calling")
+`utils/citation.py` 提供四件事：
+
+1. `format_context()`：把文档编号成 `[1] ... [2] ...`，编号与下标严格对应；
+2. `parse_citations()`：从答案提取编号（保序去重）；
+3. `validate_citations()`：区分越界引用、原文自带编号、设计内拒答；
+4. `is_refusal()` / `build_citation_meta()`：拒答识别与溯源映射。
+
+拒答文案固定为 `知识库中未找到依据。`——固定字符串让下游能精确区分
+“正确拒答”与“幻觉”，拒答不触发熔断重试。
+
+### 4.5 四道闸门与批量判分
+
+四个判分器都用“LLM + Pydantic 结构化输出”把主观判断转成可路由结论：
+
+| 判分器 | Schema | 判断什么 |
+|---|---|---|
+| `query_route_chain` | `RouteQuery.datasource` | 查库 / 联网 |
+| `grader_chain` | `GradeDocuments.binary_score` | 单个文档是否切题 |
+| `grade_hallucinations_chain` | `GradeHallucinations.binary_score` | 答案是否基于文档 |
+| `grade_answer_chain` | `GradeAnswer.binary_score` | 答案是否回答问题 |
+
+**批量判分**：`grade_documents` 默认开启 `USE_BATCH_GRADE=True`，
+一次调用判 `BATCH_SIZE=8` 块，批间最多 8 并发。实测：
+
+| 指标 | 逐块 | 批量 |
+|---|---:|---:|
+| 判分 token | 173,265 | **104,378（−40%）** |
+| 判分调用 | 215 | **30（−86%）** |
+| 端到端耗时 | 8.1s | **3.8 ~ 5.4s** |
+| 判定一致率 | — | **91.6%（197/215，18 个分歧）** |
+
+> 产物：`eval/measure_grade_batch_saving.json`。ROADMAP 4.23.3 另一次记录为
+> 199/215（92.6%），两次差 2 块，属 LLM 判定抖动；golden 块的逐块核对见该节。
+
+### 4.6 可观测性
+
+`utils/tracer.py` 用 LangChain callback 收集每次运行的：
+
+* 节点耗时与决策（路由结果、检索块数、判分保留数、引用校验结果）；
+* token 用量（按模型、输入/输出、缓存命中）；
+* 最终答案预览。
+
+轨迹追加写入 `logs/trace.jsonl`（`graph2` / HTTP 路径；`graph1` 与 `rag_agent` 不接 tracer），
+用 `scripts/show_trace.py` 查看。`graph2` 的所有节点与条件边都经过 tracer 包装，
+**只加观测、不改行为**。
+
+### 4.7 多租户
+
+`KB_TENANTS` 用 JSON 配置“租户 → 允许访问的源名列表”：
+
+```powershell
+$env:KB_TENANTS='{"acme":["milvus_docs","manuals"],"beta":["papers"]}'
 ```
 
-> ⚠️ `method` 必须显式指定。`langchain-openai` 1.x 把默认值从 `function_calling`
-> 改成了 `json_schema`，而 DeepSeek 官方 API 不支持 `json_schema`，会报
-> `This response_format type is unavailable now`。项目里共 5 处调用点，都已显式指定。
+* 隔离在**集合级**：租户只能检索授权源对应的集合；
+* 不加 schema 字段、不重建集合，零迁移成本；
+* API 层在进入检索前校验，越权快速失败；
+* 只做授权隔离，**不含身份认证**。
 
-配套的开关（`utils/env_utils.py`）：
+### 4.8 会话记忆
 
-| 配置 | 默认 | 作用 |
+`graph1` 与 `rag_agent` 用 `SqliteSaver` 持久化检查点（`checkpoints.db`），
+按 `thread_id` 隔离会话；`graph2` / HTTP 服务是**请求级状态**，不启用检查点。
+
+`SqliteSaver.setup()` 不需要手动调用，首次读写时自动建表；
+真正上生产应换 `PostgresSaver`。
+
+### 4.9 熔断与重试
+
+* `MAX_GENERATION_RETRY = 2`：`not supported → generate` 是无条件自环，
+  达到上限后改走 `not useful`（受 `transform_count` 保护），循环有界；
+* `transform_count ≥ 2`：全不相关时不再改写，转 `web_search` 降级；
+* 判分异常按保守方向处理（无法确认则走 `not useful`），不抛异常中断整次问答。
+
+### 4.10 配置
+
+主要配置集中在 `utils/env_utils.py`，从 `.env` 读取。
+例外：`PDF_OCR_FALLBACK` / `PDF_USE_OCR` 在 `documents/write_milvus.py` 读取，
+`TRACE_DIR` 在 `utils/tracer.py` 读取。
+
+| 变量 | 默认 / 推荐 | 说明 |
 |---|---|---|
-| `LLM_STRUCTURED_METHOD` | `function_calling` | 结构化输出方式；换到支持 `json_schema` 的服务商可改|
-| `LLM_DISABLE_THINKING` | `1` | DeepSeek 开启 thinking 时不支持强制 `tool_choice`，故默认关闭 |
-
-### 4.6 会话记忆（Checkpointer）
-
-```python
-# utils/checkpointer.py
-conn = sqlite3.connect(CHECKPOINT_DB, check_same_thread=False)
-saver = SqliteSaver(conn)
-saver.setup()
-```
-
-**为什么不用内存版**：官方文档指出 `MemorySaver` / `InMemorySaver` 只把检查点存在内存，
-进程重启即全部丢失，官方建议生产改用持久化实现。
-
-**选型依据**：
-- 官方把 `PostgresSaver` 定位为生产首选，`SqliteSaver` 为本地开发/小型项目
-- 本项目是**同步、轻量**的 RAG 应用，`SqliteSaver` 的 docstring 自述适用于
-  "lightweight, synchronous use cases (demos and small projects)"
-- 上生产时把 `create_checkpointer()` 换成 `PostgresSaver.from_conn_string(...)` 即可
-
-> `SqliteSaver.setup()` **不要手动调用** —— 官方 docstring 明确
-> "It is called automatically when needed and should not be called directly by the user"。
-
-### 4.7 熔断（MAX_GENERATION_RETRY）
-
-`"not supported" → generate` 是一条**无条件自环**。若模型反复产生幻觉，工作流会无限循环。
-`transform_count` 只保护了 `transform_query` 分支，管不到这里。
-
-```python
-MAX_GENERATION_RETRY = 2
-
-# 判分函数中
-generation_count = state.get("generation_count", 0)
-if generation_count >= MAX_GENERATION_RETRY:
-    return "not useful"     # 改走受 transform_count 保护的分支，循环有界
-```
-
-实测中确实观察到 web_search 与 vectorstore 之间多次振荡，
-若无此熔断就是死循环。
-
-### 4.8 数据入库的 flush 语义
-
-`langchain-milvus` 的 `add_documents` 只把数据写进 **WAL**，不主动 flush。
-实测表现为：写完立刻查 `row_count = 0`、检索报 `nq [0] is invalid`（查到空集合）。
-现已在 `MilvusVectorSave.add_documents()` 末尾显式 `client.flush(COLLECTION_NAME)`，
-失败只告警不中断（数据仍在 WAL，会被自动 flush）。
-
-### 4.9 模块结构：工厂函数 + main 入口
-
-三个工作流文件都遵循同一结构：
-
-```python
-def create_graph():
-    """构图并编译，返回已编译的图对象。"""
-    ...
-    return workflow.compile(checkpointer=checkpointer)
-
-graph = create_graph()        # 模块级导出，保持原有 import 用法不变
-
-def main():
-    ...  # 交互循环
-
-if __name__ == '__main__':
-    main()
-```
-
-依据是 LangGraph 官方《Application structure》：`langgraph.json` 的 `graphs` 入口
-既可以是「已编译的图对象」，也可以是「一个用于创建图的函数」。
-
-**改造前**这些文件在模块顶层就执行 `while True: input()`，import 即阻塞、无法复用。
-现在三个入口都可以被安全 import。
-
-### 4.10 检索器的绑定时机（易踩）
-
-`tools/retriever_tools.py` 在**模块 import 时**就执行 `as_retriever(...)`，
-此时使用的 `COLLECTION_NAME` 被固化。后果：
-
-- 运行中修改 `COLLECTION_NAME` 对已导入的检索器**无效**，需重启进程或 `importlib.reload`
-- 检索器指向不存在的集合时，检索返回空并报
-  `nq [0] is invalid, nq should be in range [1, 16384], but got 0`
-  —— 这个报错**不指向真实原因**，容易误判为数据问题
-
----
-
-## 五、配置清单
-
-所有配置集中在 `utils/env_utils.py`，从 `.env` 读取（**不要硬编码**）。
-
-### 5.1 密钥
-
-| 变量 | 必需 | 说明 |
-|---|---|---|
-| `OPENAI_API_KEY` | ✅ | 同时用于 `ChatOpenAI` 与 `OpenAIEmbeddings`。**两者在模块顶层构造**，缺失会导致 import 直接失败 |
-| `TAVILY_API_KEY` | ❌ | `web_search` 分支需要。缺失时该分支降级（工具返回错误字符串，已被优雅处理） |
-| `DEEPSEEK_API_KEY` | ❌ | 备用配置，默认已注释 |
-
-> ⚠️ `load_dotenv(override=True)` 意味着 **`.env` 优先级高于系统环境变量**。
-> 若在 `.env` 里写 `OPENAI_API_KEY=`（空值），会把你系统里已设的变量**覆盖成空**。
-> 要么填真实值，要么整行注释掉，**不要留空赋值**。
-
-### 5.2 服务与路径
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `MILVUS_URI` | `http://<old-ip>:19530` | Milvus 服务地址。**默认值已失效，必须改** |
-| `COLLECTION_NAME` | `t_collection01` | 目标集合名 |
-| `DATAS_DIR` | `<包根>/datas` | 语料目录 |
-| `CHECKPOINT_DB` | `<工作区根>/checkpoints.db` | 会话记忆持久化文件 |
-
-### 5.3 LLM 服务商
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `LLM_BASE_URL` | `https://xiaoai.plus/v1` | OpenAI 兼容端点。换服务商改这里 |
-| `LLM_MODEL` | `gpt-4o-mini` | 模型名 |
+| `OPENAI_API_KEY` | **必填** | OpenAI 兼容端点的 key（DeepSeek 也用它） |
+| `TAVILY_API_KEY` | 可选 | `web_search` 分支需要 |
+| `MILVUS_URI` | `http://127.0.0.1:19530` | Milvus 地址 |
+| `MILVUS_LITE_PATH` | 空 | 设置后走 Milvus Lite（单进程） |
+| `EMBEDDING_MODEL` | 项目内 `models/bge-large-zh-v1.5` | 缺失时退回 HF repo id |
+| `EMBEDDING_DIM` | `1024` | 必须与模型输出一致 |
+| `COLLECTION_NAME` | `kb_milvus_bge_large_1024` | 默认集合（兼容旧脚本） |
+| `KB_COLLECTION_MD/PDF/OFFICE` | 见 `DOC_SOURCES` | 每源集合名 |
+| `SRC_DIR_MD/PDF/OFFICE` | `datas/md` 等 | 每源目录 |
+| `LLM_BASE_URL` | 代码默认 `https://xiaoai.plus/v1`；DeepSeek 填 `https://api.deepseek.com` | OpenAI 兼容端点 |
+| `LLM_MODEL` | 代码默认 `gpt-4o-mini`；DeepSeek 填 `deepseek-flash` | 模型名 |
 | `LLM_TEMPERATURE` | `0` | 生成温度 |
-| `LLM_STRUCTURED_METHOD` | `function_calling` | 结构化输出方式 |
-| `LLM_DISABLE_THINKING` | `1` | 关闭 DeepSeek thinking 模式（与 `tool_choice` 冲突） |
+| `LLM_STRUCTURED_METHOD` | `function_calling` | DeepSeek 不支持 `json_schema` |
+| `LLM_DISABLE_THINKING` | `1` | thinking 与强制 `tool_choice` 冲突 |
+| `MILVUS_RERANKER_STYLE` | `function` | `function` 需 Milvus ≥ 2.6；Lite 用 `legacy` |
+| `KB_TENANTS` | 空 | 多租户 JSON；空 = 单租户 |
+| `CHECKPOINT_DB` | `checkpoints.db` | 会话记忆文件 |
+| `PDF_OCR_FALLBACK` | `0` | 扫描件走带页码 OCR（在 `write_milvus.py` 读取） |
+| `PDF_USE_OCR` | `1` | pymupdf4llm 图片 OCR 开关（在 `write_milvus.py` 读取） |
 
-**DeepSeek 配置示例**：
-```
-LLM_BASE_URL=https://api.deepseek.com
-LLM_MODEL=deepseek-flash
-LLM_TEMPERATURE=0
-```
-> DeepSeek 官方当前可用模型为 `deepseek-flash` 与 `deepseek-v4-pro`（**没有** `deepseek-chat`）。
-
-### 5.4 检索
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `MILVUS_RERANKER_STYLE` | `function` | `function`（官方新写法，需2.6+）/ `legacy`（旧写法，兼容 Lite 与旧版服务端） |
+> 另有 `DATAS_DIR` / `MODELS_DIR` / `SRC_DIR_TXT` / `KB_COLLECTION_TXT` 等路径配置，
+> 见 `env_utils.py` 的 `DOC_SOURCES`；`TRACE_DIR` 见 `utils/tracer.py`。
 
 ---
 
-## 六、运行方式
+## 五、运行方式
 
-### 6.1 准备
+### 5.1 准备
 
 ```powershell
-# 1. 激活虚拟环境
 .venv\Scripts\Activate.ps1
-
-# 2. 配置密钥与服务地址
-Copy-Item .env.example .env      # 然后填入真实值
-
-# 3. 确认 Milvus 已启动且版本 >= 2.6（若要用 function 写法）
-docker ps                # 应看到 milvus-standalone healthy
-.venv\Scripts\python.exe scripts\milvus_probe.py     # 只读探测：版本/集合/兼容性判断
+Copy-Item .env.example .env      # 填 key、Milvus 地址、LLM 端点
+.venv\Scripts\python.exe scripts\fetch_models.py
 ```
 
-> 首次使用建议先跑 `milvus_probe.py`，它会明确告诉你服务端版本、是否需要鉴权、
-> 以及当前 `reranker` 写法是否兼容。
-
-### 6.2 四个入口
+### 5.2 入库
 
 ```powershell
-# A) 批量入库（首次必做）
+# 按 DOC_SOURCES 逐源入库（真实 Milvus 多进程；Lite 自动单进程）
 .venv\Scripts\python.exe -m RAG_PROJECT.documents.write_milvus
-
-# B) 完整 CRAG 工作流（双通道 + 四道闸门 + 自纠错）
-.venv\Scripts\python.exe -m RAG_PROJECT.graph2.graph_2
-
-# C) 简化版 ReAct 工作流
-.venv\Scripts\python.exe -m RAG_PROJECT.graph.graph1
-
-# D) LangChain 1.x 标准 Agent
-.venv\Scripts\python.exe -m RAG_PROJECT.agent.rag_agent
 ```
 
-退出方式：输入 `q` / `exit` / `quit`。
-
-### 6.3 建议的 Milvus 部署方式（本地开发）
-
-```yaml
-# docker-compose.yml
-services:
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.5
-    volumes: [etcd_data:/etcd]
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379
-             -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-  minio:
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    environment: {MINIO_ACCESS_KEY: minioadmin, MINIO_SECRET_KEY: minioadmin}
-    volumes: [minio_data:/minio_data]
-    command: minio server /minio_data
-  standalone:
-    image: milvusdb/milvus:v3.0.1      # 3.0+；2.6 以上才支持 Function 形式 reranker
-    command: ["milvus", "run", "standalone"]
-    environment: {ETCD_ENDPOINTS: etcd:2379, MINIO_ADDRESS: minio:9000}
-    volumes: [milvus_data:/var/lib/milvus]
-    ports: ["19530:19530", "9091:9091"]
-    depends_on: [etcd, minio]
-volumes: {etcd_data: {}, minio_data: {}, milvus_data: {}}
-```
+### 5.3 三个 CLI 入口
 
 ```powershell
-docker compose up -d
-docker exec -it standalone pip install jieba   # 若镜像未内置
+.venv\Scripts\python.exe -m RAG_PROJECT.graph2.graph_2      # CRAG 完整链路
+.venv\Scripts\python.exe -m RAG_PROJECT.graph.graph1        # 简化 ReAct
+.venv\Scripts\python.exe -m RAG_PROJECT.agent.rag_agent      # 1.x 标准 Agent
 ```
 
-可选装 `zilliz/attu`（Milvus 图形界面，3000 端口）。
-> 若 Attu 与 Milvus 不在同一个 Docker 网络，Attu 里要填
-> `http://<milvus容器名>:19530` 而不是 `localhost:19530`（容器内 `localhost` 指向自己）。
-
-### 6.4 在 AutoDL / 云服务器上跑
-
-- Milvus 需要 **≥4GB内存**（官方最低要求，推荐 8GB+），因为要同时跑 Milvus + etcd + MinIO
-- AutoDL 容器通常**不允许** Docker 起 Milvus；可考虑用平台的**自定义服务**做端口转发
-- 项目本身在云上跑的好处：模型权重、语料都在那边，不用重复下载
-
----
-
-## 七、测试与验证
-
-### 7.1 迁移验证脚本（不碰真实服务）
+### 5.4 HTTP 服务
 
 ```powershell
-.venv\Scripts\python.exe scripts\verify_migration.py --with-embeddings
-.venv\Scripts\python.exe scripts\verify_migration.py --report 迁移验证报告.md
+.venv\Scripts\python.exe RAG_PROJECT\api\run.py
+# 或
+$env:PYTHONPATH="RAG_PROJECT"
+.venv\Scripts\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8000
 ```
 
-8 组 21 项闸门：
-
-| 闸门 | 内容 |
-|---|---|
-| G1 编译 | 38 个 `.py` 全部可编译 |
-| G2 import | AST 静态校验第三方符号（约 70 个 / 28 个文件） |
-| G3 探针 | 8 项高风险 API：标准 Agent API、Tavily、Loader、Chunker、pymilvus枚举、Milvus 适配器签名、LC核心 API、HF |
-| G4 切片 | elements metadata 键兼容性 + 切片产物统计 |
-| G5 拓扑 | 两张图**以升级前快照为基线做断言**（6节点7边 / 7节点9边） |
-| G6 向量 | `dim=512` + L2 归一化 |
-| G7 1.x写法 | `create_agent` +检查点 + 会话隔离（用假模型，不发网络请求） |
-| G8 熔断 | `MAX_GENERATION_RETRY` 的返回值序列 |
-
-### 7.2 端到端冒烟测试（连真实服务）
+### 5.5 评测
 
 ```powershell
-$env:HF_HUB_OFFLINE = "1"     # 模型已缓存时避免联网
-.venv\Scripts\python.exe scripts\e2e_smoke_test.py
+.venv\Scripts\python.exe eval\run_eval.py                 # 仅检索层（秒级）
+.venv\Scripts\python.exe eval\run_eval.py --with-generation
+.venv\Scripts\python.exe eval\run_all_checks.py --full    # 全量回归
 ```
-
-覆盖：解析 → 建表 → 写入 → 混合检索 → `expr` 过滤验证 → 清理临时集合。
-
-> 脚本会自动注入占位密钥（仅构造对象用，不发请求）。
-> 想跑真实的 LLM 链路，直接执行四个入口之一即可。
 
 ---
 
-## 八、已知限制与注意事项
+## 六、评测与门禁
 
-### 8.1 会影响使用的限制
+### 6.1 指标分层
 
-| 项 | 说明 |
-|---|---|
-| **`MILVUS_URI` 默认值已失效** | 原项目硬编码的 `http://<old-ip>:19530` 是已失效的公网地址，必须改为自己的实例 |
-| **`score_threshold` 是惰性参数** | `langchain-milvus` 与 `langchain-core` 均不消费它，一直是透传后被忽略。要启用阈值过滤需改 `search_type='similarity_score_threshold'` |
-| **`langchain-community` 已停止维护** | 导入即有 DeprecationWarning，1.0 将移除。`UnstructuredMarkdownLoader` 目前只在该包提供 |
-| **`TavilySearchResults` 已弃用** | 标记 `removal='1.0'`，将来需迁 `langchain_tavily.TavilySearch`（注意其默认返回**字符串**而非 dict 列表） |
-| **Milvus Lite 功能精简** | 支持建表（BM25+稀疏+512维）但**不支持 Function 形式 reranker**（报 `code=6`），且 `hybrid_search` 不稳定。只能验证"能否跑通"，验证不了"跑得好不好" |
-| **`InMemorySaver` 已被替换** | 官方指出内存版重启即丢检查点；本项目已改为 `SqliteSaver`。生产环境建议再换 `PostgresSaver` |
-| **`main.py` 无真实入口** | 仍是 PyCharm 模板残留（`print_hi('PyCharm')`），请用四个入口之一 |
-| **`graph1`/`graph_2` 依赖 `input()`** | 交互式脚本，不适合自动化/服务端部署 |
+| 层 | 指标 | 计算方式 | 抖动 |
+|---|---|---|---|
+| 检索层 | `context_recall` / `hit_rate` / `context_precision` | 块 ID 集合运算 | **0** |
+| 生成层 | `faithfulness` / `answer_relevancy` | LLM 判分 + 判定缓存 | 受控 |
 
-### 8.2 `langchain-community` 弃用后的迁移方向
+`context_precision` 天然偏低，且随配额放大必然更低，**只作硬门禁 / 监控，
+不参与告警**。
 
-| 现用 | 目标 | 说明 |
-|---|---|---|
-| `UnstructuredMarkdownLoader` | `langchain_unstructured` | 该包只导出 `UnstructuredLoader`，**无同名替换**，暂无 drop-in |
-| `ChatMessageHistory` | `langchain_classic` | 改造后已不再使用（改用 checkpointer） |
-| `TavilySearchResults` | `langchain_tavily.TavilySearch` | 返回类型不同，需同步改取值逻辑 |
+### 6.2 门禁阈值
 
-### 8.3 Attu 图形界面的两个坑
+| 指标 | FAIL | WARN |
+|---|---:|---:|
+| `context_recall` | < 0.60 | < 0.80 |
+| `hit_rate` | < 0.75 | < 0.85 |
+| `context_precision` | < 0.03 | 不告警 |
+| `faithfulness` | < 0.60 | < 0.80 |
+| `answer_relevancy` | < 0.60 | < 0.80 |
 
-用 `zilliz/attu`（Milvus 官方 Web 界面）时实测遇到：
+LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回退**。
 
-| 现象 | 原因与解法 |
-|---|---|
-| 连接始终失败 | 地址不能填 `localhost`。Attu 是**服务端**连 Milvus，`localhost` 指向 Attu 容器自己。同一 Docker 网络内用容器名：地址填 `milvus-standalone:19530`；跨网络用 `host.docker.internal:19530`。另外 Milvus 未开鉴权时，认证方式要选「**没有**」而不是「密码」 |
-| 集合列表正常，但点进 `schema` 页报「出了点问题」 | **Attu v3.0.1 前端 bug，非数据问题**。同一份 schema 用 SDK `describe_collection()` 读取完全正常 |
+### 6.3 当前结果
 
-第二个问题已排除内存因素：四个容器 `restarts=0`、`OOMKilled=false`，Docker 配额
-7.37 GB 而总占用仅约 520 MB（7%）。若真为内存不足，容器会被 kill 且重启次数大于 0。
+| 指标 | 值 |
+|---|---:|
+| `context_recall` | **0.8664** |
+| `hit_rate` | **0.9375** |
+| `context_precision` | 0.0496（仅监控） |
+| `faithfulness` | **1.0000** |
+| `answer_relevancy` | **0.8750** |
+| 门禁判定 | **PASS** |
 
-**结论**：Attu 的集合列表、实体数量（`t_collection01`=102、`demo`=52）都可信；
-schema 页加载失败时改用 SDK 查看，不要据此判断数据有问题。
+### 6.4 回归与并发
 
-### 8.4 `scratch/text_search.py` 是 WIP 文件（已隔离）
-
-96 行的**个人实验稿**，不是生产代码。它尝试用不同方式建表/检索做对比实验，
-**存在多处未定义名称**（`DataType`、`Function`、`FunctionType`、`Milvus`、
-`bge_embedding`、`COLLECTION_NAME`、`res` 等），调用即报 `NameError`。
-
-它原本在 `RAG_PROJECT/tools/text_search.py`，没有任何模块 import 它，
-但会在 IDE 里持续产生 12 个真实报错、并干扰 `compileall`。
-现已移至 **`scratch/text_search.py`**，并在 `pyrightconfig.json` 的 `exclude` 中排除。
-实验内容保留，需要时可参考 `RAG_PROJECT/tools/retriever_tools.py` 的正式实现。
-
-### 8.4a 静态检查（IDE）配置说明
-
-项目以「包根」为导入起点（`from utils.env_utils import ...`），但 `RAG_PROJECT/`
-没有 `__init__.py`，IDE 默认会把 `from utils.xxx` 判成 PEP 328 已废弃的
-**隐式相对导入**，从而产生大量误报（实测 67 个）。
-
-根目录的 **`pyrightconfig.json`** 已声明：
-
-| 配置项 | 作用 |
-|---|---|
-| `extraPaths: ["./RAG_PROJECT"]` | 把包根声明为分析根，**消除 67 个隐式相对导入报错 + 7 个找不到模块** |
-| `reportImplicitRelativeImport: none` | 同上，二者任一即可生效 |
-| `venvPath` / `venv` | 指向 `.venv`，避免分析器用错解释器 |
-| `exclude` | 排除 `.venv`、`scratch`、本地 Milvus 库文件等非生产内容 |
-| 5 条 `report*` 设为 `none` | 见下 |
-
-实测效果（basedpyright 1.40.2）：**error 117 → 0**。
-
-被关掉的 5 条规则全部经过逐条核实，**均为类型严格度误报**，不是 bug：
-
-| 规则 | 数量 | 说明 |
-|---|---|---|
-| `reportArgumentType` | 19 | 传给 SDK 的 dict 类型与注解不精确匹配，运行正常 |
-| `reportAttributeAccessIssue` | 7 | `scored_result.binary_score` 静态推断成 `dict`，实际是 Pydantic 模型 |
-| `reportCallIssue` | 2 | `OpenAIEmbeddings(openai_api_key=...)` 运行时**有效**，但 `langchain-openai` 类型存根用 `**kwargs` 未声明 |
-| `reportOperatorIssue` | 2 | `milvus_db.py:67` 等处的存根类型差异 |
-| `reportGeneralTypeIssues` | 1 | 泛型推断噪音 |
-
-> 若某天需要重新启用其中某条，把对应的 `"规则名": "none"` 删掉即可。
-
-### 8.5 `datas/output/` 的 187 个 JSON
-
-它们是 `datas/layout-parser-paper.pdf` 的解析产物（Title 17 / NarrativeText 126 /
-Table 2 / CodeSnippet 2，覆盖 12+ 页），**不是 Milvus 数据**，也没有任何代码消费它们。
-
-- 它们带 `coordinates` / `PixelSpace` 元数据，是 Unstructured **hi_res** 策略的签名，
-  而本项目从来只用 `strategy='fast'` → **来自项目外部**
-- 仓库里**没有 PDF 解析脚本**，删掉无法用现有代码重建 → **保留**
-- 已做的修正：把失效的 `metadata.source`（`E:\my_project\...`）改为相对路径
-  `datas/layout-parser-paper.pdf`，`page_content` 零改动
-
-### 8.6 硬编码的既有路径
-
-`utils/env_utils.py` 里 `MILVUS_URI` 的**默认值**仍是旧公网地址（保留是为了行为不变）。
-首次使用务必在 `.env` 中覆盖。
+* `run_all_checks.py --full`：**13/13 判定通过**（含 API+SSE、多租户联动）；
+* 并发实测（1/2/4/8）：墙钟 **4.4 / 4.3 / 5.9 / 8.1s**，全部成功（1/1、2/2、4/4、8/8）；
+  8 较 4 为 **+37%**，说明开始排队；
+* 容量建议：**生产并发上限取 4~6**；更高并发与 HTTP 层压测未做。
 
 ---
 
-## 九、实测结论（真实环境）
+## 七、边界与关键坑
 
-环境：Docker Milvus 2.6.25 + DeepSeek `deepseek-flash` + 本地 BGE-small-zh + Tavily，
-语料 102 块（7 个 md）。
+### 7.1 能力边界
 
-### 9.1 三个入口全部跑通
-
-| 入口 | 结果 |
+| 项 | 现状 |
 |---|---|
-| `graph2`（CRAG 完整链路） | 路由 / 检索 / 判分 / 生成 / 幻觉检查 / 答案判分 全通 |
-| `graph1` | 6 节点 7 边；`SqliteSaver` 生效；多轮记忆注入正常（2 → 4 条消息） |
-| `rag_agent` | 1.x 标准 `create_agent`（节点 `model`/`tools`）；多轮记忆正常 |
-| `web_search` 分支 | Tavily 官方 key 下返回真实网页内容（约 3.1k 字符） |
+| reranker | 实测增益 0，**已否决**（不是“未做”） |
+| 表格父子块 | 对查询类无增益，已否决；跨行统计改用“同表切片合并” |
+| 跨行聚合 / text-to-SQL | 未引入，靠 LLM 从完整表推理 |
+| 并发 | 4 安全；8 劣化；16/32 未测 |
+| HTTP 层并发 | 功能已验证，未做压测 |
+| 扫描件 OCR | 默认关闭；开启后约 2.5s/页 |
+| 多租户 | 集合级授权，不含身份认证 |
+| `score_threshold` | `search_type="similarity"` 下不被消费，属惰性参数 |
 
-### 9.2 问答质量（与 Milvus 官方文档核对一致）
+### 7.2 关键坑（均已处理）
 
-```
-Q: What index types does Milvus support?
-A: HNSW（基于图，适合对搜索效率要求高的场景）、FLAT（百万级小数据集上追求完全
-   精确搜索）、IVF_FLAT、IVF_SQ8、IVF_PQ、SCANN、DiskIndex ...
-
-Q: Does Milvus support non-x86 architectures?
-A: Milvus 不支持非 x86 架构…CPU 必须支持 SSE4.2、AVX、AVX2 或 AVX512 等 x86 专用
-   SIMD 指令集。当前版本也不支持 Apple M1 CPU。
-
-Q: How does Milvus handle index building?
-A: 插入向量后自动建索引，但仅在新增向量填满一个 segment 时才建；阈值由
-   rootcoord.minSegmentSizeToEnableIndex（默认 1024 行）控制，在此之前走暴力检索。
-```
-
-### 9.3 观察到的 CRAG 振荡路径（设计使然，非缺陷）
-
-```
-web_search -> generate -> transform_query -> retrieve -> grade_documents
--> transform_query -> retrieve -> grade_documents -> web_search -> generate
--> transform_query -> retrieve -> grade_documents -> web_search -> generate  ← 终止
-```
-
-问题在「向量库检索」与「网络搜索」之间来回切换，最终由 `MAX_GENERATION_RETRY`
-熔断保证终止 —— **若无该熔断，此处会无限循环**。
-
-### 9.4 踩过的坑（供后续参考）
-
-| 现象 | 根因 | 解法 |
-|---|---|---|
-| `code=1100 unsupported rerank function: []` | Function reranker缺 `reranker` 键、多了 `input_field_names` | 见 4.1 |
-| `nq [0] is invalid` | ① 检索器指向不存在的集合；② 入库未 flush | 见 4.8 / 4.10 |
-| `This response_format type is unavailable now` | `with_structured_output` 1.x 默认改用 `json_schema` | 显式指定 `method` |
-| `Thinking mode does not support this tool_choice` | DeepSeek thinking 与 `tool_choice` 冲突 | 关闭 thinking |
-| `Insert missed an field 'title'` | 顶层正文块未被赋予 `title` | `_ensure_required_fields()` 兜底 |
-| `JiebaAnalyzer requires the 'jieba' package` | 服务端未装 jieba | 装在 Milvus 容器里 |
-| `TypeError: string indices must be integers` | Tavily 工具出错时返回**字符串** | `web_search_node` 兼容三种形态 |
-| `Invalid token`（401） | 密钥与 `base_url` 不匹配 | 密钥须与服务商对应 |
-| 检索结果不相关 / 拒答 | 工具描述写的是「半导体和芯片」而语料是 Milvus | 描述已改为与语料一致 |
+1. **结构化输出必须显式 `function_calling`**：`langchain-openai` 1.x 默认改成
+   `json_schema`，DeepSeek 不支持；项目内 5 处调用点全部显式指定。
+2. **config 必须透传**：线程池 / 条件边包装器不继承 contextvar，
+   不透传 `config` 会导致 LLM 调用的 token **静默归零**。
+3. **集合名不能含连字符**：Milvus Lite 能接受，真实服务报 `code=1100`；
+   客户端已前置校验。
+4. **向量维度不可变**：换模型必须重建集合或换集合名；写入前做维度自检。
+5. **`add_documents` 只写 WAL**：写完立即查可能 `row_count=0`，需显式 `flush`。
+6. **SSE 不能用 `ContextVar.reset(token)`**：生成器跨上下文执行会抛
+   `Token was created in a different Context`；用 `set + finally` 归零。
+7. **`filter` 不生效，必须用 `expr`**：`langchain-milvus` 的 hybrid 路径只认 `expr`。
+8. **Milvus Lite 只适合验证逻辑**：不支持 Function 形式 reranker，
+   集合名校验更宽松，且文件锁只允许单进程。
 
 ---
 
-## 十、依赖清单
+## 八、文档
 
-完整列表见 `requirements.txt`（31 个精确 pin）与 `requirements-lock.txt`（全量 freeze）。
-`requirements-legacy-freeze.txt` 是升级前的原始基线，用于回滚对照。
-
-主要依赖：
-
-```
-langchain==1.4.3                langchain-core==1.6.6          langchain-openai==1.6.7
-langgraph==1.2.12               langgraph-checkpoint==4.2.0langgraph-prebuilt==1.1.0
-langchain-community==0.4.2      langchain-classic==1.0.8       langchain-experimental==0.4.2
-langchain-milvus==0.4.0         pymilvus==3.0.2langchain-unstructured==1.0.1
-langchain-huggingface==1.2.2    transformers==4.57.6          torch==2.7.1
-sentence-transformers==5.7.0    unstructured==0.27.10         jieba==0.42.1
-Markdown==3.11                   tavily-python==0.8.4          langgraph-checkpoint-sqlite==3.1.1
-loguru==0.7.3pydantic==2.13.5                numpy==2.5.3                  openai==3.24.0
-```
-
-> `langchain-classic` 虽未被源码引用，但它是 `langchain-community 0.4.2` 的**硬依赖**，
-> 删除会导致 `pip check` 报破损依赖，不可移除。
-
----
-
-## 十一、配套文档
-
-| 文档 | 内容 |
+| 文档 | 用途 |
 |---|---|
-| `UPGRADE_NOTES.md` | 升级报告：版本对照、改动理由、硬约束清单、全部实测结论与踩坑记录 |
-| `迁移验证报告.md` | 验证脚本自动生成的闸门结果快照（勿手工编辑） |
-| `scripts/verify_migration.py` | 迁移验证脚本，可重复运行，不修改项目任何文件 |
-| `scripts/milvus_probe.py` | 真实 Milvus 只读探测（版本/鉴权/集合/兼容性判断） |
-| `scripts/e2e_smoke_test.py` | 端到端冒烟测试（建表→写入→检索→过滤→清理） |
+| [`README.md`](README.md) | 总览、当前状态、快速开始、文档地图 |
+| [`ROADMAP.md`](ROADMAP.md) | 迭代日志与实测证据（按时间追加） |
+| [`docs/RESUME_PROJECT.md`](docs/RESUME_PROJECT.md) | 简历 / 面试口径 |
+| [`docs/archive/HISTORY.md`](docs/archive/HISTORY.md) | LangChain 1.x 迁移历史（已完成） |

@@ -478,7 +478,7 @@ def build_report(results, as_markdown):
     if as_markdown:
         o.write("# 迁移验证报告（自动生成，请勿手工编辑）\n\n")
         o.write("> 由 `scripts/verify_migration.py --report` 生成，每次运行整体覆盖。\n")
-        o.write("> 它是**执行证据**；`UPGRADE_NOTES.md` 是**决策依据**。\n\n")
+        o.write("> 它是**执行证据**；迁移决策与结论摘要见 `docs/archive/HISTORY.md`。\n\n")
         o.write(f"闸门共 {len(results)} 项：PASS {n.get('PASS',0)} / WARN {n.get('WARN',0)} / "
                 f"SKIP {n.get('SKIP',0)} / FAIL {n.get('FAIL',0)}\n\n")
         o.write("| 闸门 | 检查项 | 结果 | 说明 |\n|---|---|---|---|\n")

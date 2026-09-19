@@ -54,6 +54,102 @@ CITE_PROMPT = """你是一个严格基于给定资料作答的助手。规则：
 回答："""
 
 
+def _is_table_text(text: str) -> bool:
+    """是否包含 markdown 表格（至少 2 行以 `|` 开头）。"""
+    return sum(1 for l in text.splitlines() if l.strip().startswith("|")) >= 2
+
+
+def _start_line(text: str) -> int:
+    """切片形如 `表格：…（第 31-60 行）`，取起始行号用于排序。"""
+    import re
+    m = re.search(r"第\s*(\d+)\s*-\s*(\d+)\s*行", text)
+    return int(m.group(1)) if m else 10 ** 9
+
+
+def merge_table_slices(docs, max_chars: int = 20000):
+    """把**同一张表**的多个切片拼回完整表（ROADMAP 4.40）。
+
+    为什么需要：`eval/_exp_n005_table.py` 实测（各 3 次）——
+
+        A 生产上下文（9 块 / 16,182 字符，含 2 个表格碎片）: **3/3 稳定拒答**
+        B 完整表   （1 块 /  8,614 字符 / 91 行）          : **2/3 答对**
+
+    同一张表被切成 4 片后，模型看不到完整表，**无法确认「哪个最低」**，
+    于是按 prompt 规则 3 保守拒答。而 `generate_node2.py` 的注释早就点名
+    n005 是「跨行统计类提问」的真实案例（ROADMAP 3.5.1 的立项条件）。
+
+    合并规则（严格，宁可不合并也不合并错）：
+
+    1. 分组键 = `(filename, title)`；
+    2. **组内每一块都必须是表格**才合并（有一块是纯文本就整组不动）；
+    3. 按切片自带的「第 N-M 行」**起始行号升序**拼接；
+    4. **表头与分隔行只保留一次**；`表格：…` / `列名：…` 元信息行丢弃；
+    5. 合并后**超过 `max_chars` 就放弃**（返回原样）—— 避免拼出超长上下文；
+    6. 合并块的 metadata 取组内第一块的。
+
+    Args:
+        docs: `list[Document]`（或单个 Document —— 原样返回）。
+        max_chars: 合并结果字符上限。
+
+    Returns:
+        list[Document]：合并后的列表；不满足条件时原样返回。
+    """
+    if not isinstance(docs, list) or len(docs) < 2:
+        return docs
+
+    # 按首次出现顺序分组
+    groups: dict[tuple, list[tuple[int, object]]] = {}
+    for i, d in enumerate(docs):
+        md = getattr(d, "metadata", None) or {}
+        key = (md.get("filename"), md.get("title"))
+        groups.setdefault(key, []).append((i, d))
+
+    out: list[tuple[int, object]] = []
+    for _key, items in groups.items():
+        if len(items) < 2 or not all(_is_table_text(d.page_content) for _, d in items):
+            out.extend(items)
+            continue
+
+        ordered = sorted(items, key=lambda x: _start_line(x[1].page_content))
+        merged_lines: list[str] = []
+        header: str | None = None
+        kept_header = False        # **第一块要保留表头**，后续块才去重
+        for _idx, d in ordered:
+            lines = [l for l in d.page_content.splitlines() if l.strip()]
+            tbl_pos = [j for j, l in enumerate(lines) if l.strip().startswith("|")]
+            if not tbl_pos:
+                continue
+            local_head = lines[tbl_pos[0]].strip()
+            skip: set[int] = set()
+            if header is None:
+                header = local_head
+            if local_head == header and kept_header:
+                skip.add(tbl_pos[0])                      # 重复表头
+                nxt = tbl_pos[0] + 1
+                if nxt < len(lines) and set(lines[nxt].strip()) <= set("|-: "):
+                    skip.add(nxt)                         # 重复分隔行
+            elif local_head == header:
+                kept_header = True
+            for j, l in enumerate(lines):
+                s = l.strip()
+                if s.startswith("表格：") or s.startswith("列名："):
+                    continue
+                if j in skip:
+                    continue
+                merged_lines.append(l)
+
+        merged = "\n".join(merged_lines)
+        if not merged or len(merged) > max_chars:
+            out.extend(items)
+            continue
+        out.append((items[0][0],
+                    type(ordered[0][1])(page_content=merged,
+                                        metadata=dict(ordered[0][1].metadata))))
+
+    out.sort(key=lambda x: x[0])
+    return [d for _, d in out]
+
+
 def format_docs(docs):
     """带编号拼接上下文。
 
@@ -76,6 +172,20 @@ def generate(state, config=None):
     """
     question = state["question"]  # 获取用户问题
     documents = state["documents"]  # 获取检索到的文档
+
+    # [ROADMAP 4.40] **同表切片合并** —— 把同一张表的多块拼回完整表再生成。
+    #
+    # 依据：`eval/_exp_n005_table.py` 实测（各 3 次）
+    #     A 生产上下文（9 块 / 16,182 字符，含 2 个表格碎片）-> **3/3 稳定拒答**
+    #     B 完整表   （1 块 /  8,614 字符 / 91 行）           -> **2/3 答对**
+    # n005（「召回率最低的产品」）是「跨行统计类」提问，需要看完整表才能确认最小值；
+    # 切成 4 片后模型只能保守拒答（这符合 prompt 规则 3，是**正确但无益**的行为）。
+    #
+    # 为什么放在这里而不是检索层：`run_eval.py:120` 的 recall 用
+    # `retriever.invoke(q)` 的**原始块**算，与最终 state 无关 —— 所以此处合并不影响
+    # 检索层指标；而 `grade_generation` 的引用校验用 `state["documents"]`，
+    # 本函数返回合并后的 documents，编号仍然自洽。
+    documents = merge_table_slices(documents)
 
     prompt = PromptTemplate(
         template=CITE_PROMPT,
