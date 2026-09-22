@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
@@ -162,6 +163,62 @@ def format_docs(docs):
     return '[1] ' + docs.page_content
 
 
+# [ROADMAP 4.41] **带对话历史**的 prompt。
+#
+# 为什么不直接改 `CITE_PROMPT`：
+#   `graph/generate_node.py:6` 直接 `from graph2.generate_node2 import CITE_PROMPT`，
+#   给原模板加一个 `{history}` 变量会让 graph1 在格式化时**因缺参数报错**
+#   （`PromptTemplate` 会校验 `input_variables`）。
+#   所以新增一个模板，**只在有历史时才用**，原路径完全不变。
+CITE_PROMPT_MEMORY = """你是一个严格基于给定资料作答的助手。规则：
+1. 每个事实性句子后必须标注来源编号，格式为 [1]、[2]，多来源写 [1][3]。
+2. 只允许使用给定资料，禁止补充资料之外的知识。
+3. 若资料不足以回答，只回复：知识库中未找到依据。
+4. 回答简洁，不要重复问题。
+5. 下方「对话历史」只用来理解**指代与上下文**（如「它」「这个产品」「那第二点呢」），
+   **事实依据必须来自「资料」**；历史里出现但资料中没有的内容不得作为答案。
+
+对话历史：
+{history}
+
+资料：
+{context}
+
+问题：{question}
+回答："""
+
+# 注入 prompt 的历史轮数上限（一问一答算一轮）。
+# 为什么限轮数：`messages` 会随轮次无限增长，全塞进去会挤爆上下文窗口，
+# 也会让早期无关对话干扰当前判断。3 轮足以覆盖「它/那个/第二点」这类指代。
+MAX_HISTORY_TURNS = 3
+
+
+def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS) -> str:
+    """把 `messages` 渲染成「用户: … / 助手: …」的纯文本，供 prompt 使用。
+
+    设计要点：
+    * 只取**最近** `max_turns` 轮（一轮 = 一条 human + 一条 ai）；
+    * 忽略 `system` / `tool` 等其它角色（本流程只产生 human/ai）；
+    * 空历史返回空串 —— 调用方据此决定**是否走带历史的模板**；
+    * **纯函数、无 LLM 调用**，便于单测（`eval/test_memory.py` C4）。
+    """
+    if not messages:
+        return ""
+    # 只保留 human / ai 两类，按出现顺序
+    pairs = [m for m in messages
+             if getattr(m, "type", "") in ("human", "ai")]
+    if not pairs:
+        return ""
+    keep = pairs[-max_turns * 2:]          # 最近 max_turns 轮
+    lines = []
+    for m in keep:
+        role = "用户" if m.type == "human" else "助手"
+        text = str(getattr(m, "content", "")).strip().replace("\n", " ")
+        if text:
+            lines.append("%s：%s" % (role, text[:300]))   # 单条截断，防单轮超长
+    return "\n".join(lines)
+
+
 def generate(state, config=None):
     """
     生成回答
@@ -187,10 +244,28 @@ def generate(state, config=None):
     # 本函数返回合并后的 documents，编号仍然自洽。
     documents = merge_table_slices(documents)
 
-    prompt = PromptTemplate(
-        template=CITE_PROMPT,
-        input_variables=["question", "context"],
-    )
+    # [ROADMAP 4.41] **有历史才用带历史的模板** —— 单轮调用走原路径，行为完全不变。
+    #
+    # ⚠️ 判据用 `session_id` 而**不是** `messages is not None`：
+    #    实测发现 LangGraph 会把 `TypedDict` 里声明的 `messages` **初始化为 `[]`**
+    #    （不是缺失、也不是 None），所以 `state.get("messages") is not None` **恒为真** ——
+    #    单轮调用也会被误判成「记忆模式」并往里写历史（`_verify_memory_e2e.py` 的 E4 抓到）。
+    #
+    # `session_id` 由 `run_with_trace` 在**记忆模式下**注入，单轮时不传 -> None ->
+    # 判据为假，行为与改造前完全一致。
+    has_memory = bool(state.get("session_id"))
+    history_text = _format_history(state.get("messages") or [])
+
+    if history_text:
+        prompt = PromptTemplate(
+            template=CITE_PROMPT_MEMORY,
+            input_variables=["question", "context", "history"],
+        )
+    else:
+        prompt = PromptTemplate(
+            template=CITE_PROMPT,
+            input_variables=["question", "context"],
+        )
 
     # 构建RAG处理链
     rag_chain = (
@@ -212,8 +287,10 @@ def generate(state, config=None):
     # 但一旦有人为了提速把它改成并发（线程池），token 会**静默归零** ——
     # 正是 `grade_documents` 首版踩过的坑（判分用了线程池 -> 统计不到 -> 4.22 才发现）。
     # 显式传递把这个隐式依赖消掉。
-    generation = rag_chain.invoke({"context": format_docs(documents), "question": question},
-                                  config=_sub_config(config))  # 调用RAG链生成回答
+    payload = {"context": format_docs(documents), "question": question}
+    if history_text:
+        payload["history"] = history_text
+    generation = rag_chain.invoke(payload, config=_sub_config(config))  # 调用RAG链生成回答
 
     # [ROADMAP 2.1 ⑤] 构造「编号 -> 原文块」映射，供调用方渲染溯源信息。
     # 引用编号的**合法性校验**不在这里做 —— 它属于流程控制（越界要触发熔断重试），
@@ -225,5 +302,17 @@ def generate(state, config=None):
     # 累加生成次数：原先 graph_2.py 中 "not supported" -> generate 是无条件自环，
     # 幻觉检测反复失败会无限循环；该计数供判分函数做熔断判断。
     generation_count = state.get("generation_count", 0) + 1
-    return {"documents": documents, "question": question, "generation": generation,
-            "generation_count": generation_count, "citations": citations}
+    updates = {"documents": documents, "question": question, "generation": generation,
+               "generation_count": generation_count, "citations": citations}
+
+    # [ROADMAP 4.41] **只在记忆模式下追加历史**。
+    #
+    # `add_messages` 是 reducer，返回 `{"messages": [...]}` 会**追加**到已有列表。
+    # 判据同样是「state 里有没有 messages 键」—— 单轮调用不写，state 结构不变。
+    #
+    # 为什么把「问 + 答」成对追加：下一轮的 prompt 需要看到「上一轮问了什么、
+    # 答了什么」才能解析「它 / 那个 / 第二点」这类指代。
+    if has_memory:
+        updates["messages"] = [HumanMessage(content=question),
+                               AIMessage(content=generation)]
+    return updates

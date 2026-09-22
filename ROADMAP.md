@@ -5640,6 +5640,105 @@ scanned_performance_faq.pdf.md         6 块     vector_db_benchmark.xlsx.md    
 
 ---
 
+## 4.41 graph2 多轮记忆模块（原本完全没有）
+
+### 4.41.1 改造前的事实
+
+```
+graph2/graph_2.py:307   return workflow.compile()        # 无 checkpointer
+graph/graph1.py:110     compile(checkpointer=...)        # 有
+agent/rag_agent.py:53   create_agent(checkpointer=...)   # 有
+api/main.py:59          class AskRequest: question / with_trace   # 没有 session_id
+```
+
+**结论：`graph2` 与 HTTP 服务都是单轮** —— 第二轮问「它的 QPS 是多少」时，
+模型不知道「它」指谁。这是**能力缺失**，不是设计优势（原文只陈述「请求级状态」，没给理由）。
+
+### 4.41.2 设计：三处改动，**默认行为零变化**
+
+| 改动 | 内容 |
+|---|---|
+| `graph_state2.py` | 加 `messages: NotRequired[Annotated[List[AnyMessage], add_messages]]` + `session_id` |
+| `graph_2.py` | `create_graph(checkpointer=None)`；新增 `get_memory_graph()`（惰性单例）；`run_with_trace(..., thread_id=None)` |
+| `generate_node2.py` | 新增 `CITE_PROMPT_MEMORY`（含 `{history}`）+ `_format_history()`；`generate` 按 `session_id` 决定是否注入历史并追加消息 |
+| `api/main.py` | `AskRequest.session_id`（可选）；`/ask` 与 `/ask/stream` 都透传 |
+
+**三个关键取舍**：
+
+1. **checkpointer 做成可选参数**，不直接挂 —— 挂了之后 LangGraph **要求每次调用必须带
+   `thread_id`**，而现有调用方（`eval/*`、`test_pipeline_smoke`、`run_with_trace` 默认路径）
+   都不传。可选参数 = 零破坏。
+2. **不修改 `CITE_PROMPT`**，新增 `CITE_PROMPT_MEMORY` —— `graph/generate_node.py:6`
+   直接 import 了原模板，加 `{history}` 变量会让 graph1 格式化时报缺参。
+3. **历史只注入最近 3 轮**（`MAX_HISTORY_TURNS`），单条截断 300 字 —— 否则会随轮次无限膨胀。
+
+### 4.41.3 ⚠️ 两个实测才暴露的坑（本节重点）
+
+**(1) LangGraph 会把 `TypedDict` 里的 `messages` 初始化为 `[]`，不是 `None`**
+
+所以第一版判据 `has_memory = state.get("messages") is not None` **恒为真** ——
+**单轮调用也被当成记忆模式并写历史**。`_verify_memory_e2e.py` 的 E4 抓到：
+
+```
+E4 不传 thread_id -> messages=2（应为 0）
+```
+
+**修法**：改用 `bool(state.get("session_id"))` 作判据 —— `session_id` 只有记忆模式才注入。
+（`scratch/_diag_mem.py` 用一个只含 `probe` 节点的小图直接验证：`state.get('messages')` 返回 `[]`。）
+
+**(2) `run_with_trace` 用 `final_state.update()` 拼增量，会把累积结果覆盖**
+
+`g.stream()` 产出的是**每个节点的增量**。图内 `state` 因 `add_messages` reducer 正确累积到
+4 条，但 `generate` 节点的**增量**只有本轮新增的 2 条 → `update()` 把 4 覆盖成 2。
+
+诊断证据（`_verify_memory_e2e.py` 第二轮前插入 `get_state`）：
+
+```
+[诊断] 第2轮前 get_state 读到 messages=2 条     <- 历史确实落盘了
+第2轮    messages=2                             <- 但返回值被增量覆盖
+```
+
+**修法**：记忆模式下改用 `g.get_state(config).values` 取**完整 state**
+（其它字段是覆盖语义，不受影响；读不到时退回原逻辑，不阻断）。
+
+### 4.41.4 验证
+
+**机制验证（`eval/_verify_memory_e2e.py`，4/4）**：
+
+```
+E1 同 thread_id 第1轮 -> messages=2   ✅
+E2 同 thread_id 第2轮 -> messages=4   ✅  跨轮累积
+E3 另一 thread_id       -> messages=2   ✅  会话隔离
+E4 不传 thread_id       -> messages=0   ✅  单轮行为不变
+```
+
+**语义验证（同一个 E2）**：第 2 轮问「**它**的 QPS 是多少」（「它」指上一轮的 TurboPuffer），
+回答「TurboPuffer 在 Cohere Medium 1M-768D、过滤比例 98% 时 QPS 为 184.54」——
+**说明历史确实进入了 prompt，指代被解析**。
+
+**契约测试（`eval/test_memory.py`，11/11）**：
+`_format_history` 空/None/单轮/超限截断/忽略 system/单条截断；
+`create_graph()` 默认无 checkpointer、传了能挂；`get_memory_graph()` 单例；`run_with_trace` 签名。
+
+**回归**：11/11 通过（`test_memory.py` 已注册）。
+
+### 4.41.5 一个差点复发的「假注册」
+
+注册测试后，回归里这两项显示「**已运行，无通过率可解析**」——
+因为我的脚本只打印「全部通过」，而 `run_all_checks.py` 用正则解析 `X/Y 通过`。
+
+**这和 4.22 那次「写了测试但没注册」是同一类错误的变种**：
+注册了，但**格式不匹配**，等于仍不计入判定项。已改为输出 `14/14 通过` / `11/11 通过`。
+
+### 4.41.6 边界与后续
+
+* **SQLite 单文件并发写是瓶颈** —— 真正上生产应换 `PostgresSaver`；
+* **历史只保留 3 轮** —— 更长会挤占上下文，且早期无关对话会干扰当前判断；
+* **多轮会略微增加 token** —— 第 2 轮起 prompt 多出历史段（3 轮内约数百 token）；
+* **未做「会话过期/清理」** —— `checkpoints.db` 会持续增长，后续可加 TTL 或定期清理。
+
+---
+
 ## 4.40 n005 根因确诊并修复：同表切片合并（跨行统计类提问）
 
 ### 4.40.1 现象与排除

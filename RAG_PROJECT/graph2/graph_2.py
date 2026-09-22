@@ -246,8 +246,20 @@ def _traced_router(name: str, fn):
     return wrapper
 
 
-def create_graph():
+def create_graph(checkpointer=None):
     """构建并编译工作流图，返回已编译的图对象。
+
+    Args:
+        checkpointer: 可选的检查点存储。**默认 None（不挂记忆）** ——
+            模块级 `graph` 就是这样编译的，与改造前完全一致；
+            需要多轮记忆时传 `SqliteSaver`（见 `get_memory_graph()`）。
+
+            [ROADMAP 4.41] 为什么做成**可选参数**而不是直接挂上：
+            挂了 checkpointer 后 LangGraph 要求每次调用必须带
+            `config["configurable"]["thread_id"]`，否则报错；
+            而现有调用方（`eval/*.py`、`test_pipeline_smoke`、
+            甚至 `run_with_trace` 的默认路径）都不传 thread_id。
+            做成可选参数 -> **零破坏**：默认行为不变，要用记忆才显式开启。
 
     依据 LangGraph 官方 Application structure 文档，langgraph.json 的 graphs 入口
     可以是「已编译的图对象」，也可以是「一个用于创建图的函数」。本函数即后者，
@@ -304,14 +316,43 @@ def create_graph():
     workflow.add_edge("transform_query", "retrieve")  # 查询优化后重新检索
 
     # 编译工作流
-    return workflow.compile()
+    # [ROADMAP 4.41] 传 checkpointer 时才启用多轮记忆（默认 None = 无记忆）
+    return workflow.compile(checkpointer=checkpointer)
 
 
 # 模块级导出已编译的图，保持原有 `from graph2.graph_2 import graph` 的用法不变
+# **注意：这是「无记忆」的图** —— 单轮调用、评测、回归都走它。
 graph = create_graph()
 
 
-def run_with_trace(question: str, enabled: bool = True, save: bool = True) -> dict:
+# [ROADMAP 4.41] 带记忆的图：**惰性单例**。
+#
+# 为什么惰性：`create_checkpointer()` 会建立 SQLite 连接并可能写表，
+# 在 import 阶段执行会让「只想跑一次检索评测」的脚本也去开数据库。
+#
+# 为什么单例：`SqliteSaver` 持有连接，重复构造会叠加连接数；
+# 而多轮记忆需要**同一个 saver 实例**才能看到彼此写入的检查点。
+_memory_graph = None
+
+
+def get_memory_graph():
+    """返回挂了 `SqliteSaver` 的图（多轮记忆用）。
+
+    与模块级 `graph` 的区别只有 checkpointer：
+    同一 `thread_id` 的多次调用会**先读回上次的 state**（含 `messages`），
+    因此 `generate` 能把历史注入 prompt。
+
+    真正上生产应换 `PostgresSaver`（SQLite 单文件并发写是瓶颈）。
+    """
+    global _memory_graph
+    if _memory_graph is None:
+        from utils.checkpointer import create_checkpointer
+        _memory_graph = create_graph(checkpointer=create_checkpointer())
+    return _memory_graph
+
+
+def run_with_trace(question: str, enabled: bool = True, save: bool = True,
+                   thread_id: str | None = None) -> dict:
     """跑一次完整工作流，返回最终状态 + 执行轨迹（ROADMAP 3.1）。
 
     与直接 `graph.stream()` 的区别只在**观测**：
@@ -322,25 +363,62 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True) -> di
         question: 用户问题。
         enabled: 是否记录（False 时等价于不观测，用于对比性能开销）。
         save: 是否把 trace 追加写入 `logs/trace.jsonl`。
+        thread_id: **多轮会话标识**（ROADMAP 4.41）。
+            * `None`（默认）-> 走**无记忆**的模块级 `graph`，行为与改造前**完全一致**；
+            * 传值 -> 走 `get_memory_graph()`，同一 thread_id 的多次调用共享历史。
 
     Returns:
-        {"generation": 最终答案, "trace": 轨迹 dict}
+        {"generation": 最终答案, "trace": 轨迹 dict, "documents": ..., "messages": ...}
     """
     t = tracer.start(question, enabled=enabled)
-    config = {"callbacks": t.callbacks} if t.callbacks else None
-
+    base_config = {"callbacks": t.callbacks} if t.callbacks else {}
     final_state: dict = {}
-    for output in graph.stream({"question": question}, config=config):
+
+    if thread_id:
+        g = get_memory_graph()
+        # 注入 `session_id` 作为「记忆模式」的**显式标记**（`generate` 用它判断
+        # 是否追加历史）。不能用 `messages is not None` —— LangGraph 会把它初始化为 []。
+        #
+        # `messages=[]` 只是首轮的初值；`add_messages` reducer 会把它与
+        # checkpoint 读回的历史合并（实测：传 [] 不会覆盖已有历史）。
+        inputs = {"question": question, "messages": [],
+                  "session_id": str(thread_id)}
+        config = {**base_config, "configurable": {"thread_id": str(thread_id)}}
+    else:
+        g = graph
+        inputs = {"question": question}
+        config = base_config or None
+
+    for output in g.stream(inputs, config=config):
         for _node, value in output.items():
             if isinstance(value, dict):
                 final_state.update(value)
+
+    # [ROADMAP 4.41] **记忆模式下改用 checkpointer 的完整 state**。
+    #
+    # 为什么：`g.stream()` 产出的是**每个节点的增量**。对 `messages` 这类带
+    # reducer（`add_messages`）的字段，图内 state 会累积成 4 条，但 `generate`
+    # 节点的**增量**只有本轮新增的 2 条 —— 上面的 `final_state.update()` 会把
+    # 累积结果覆盖成 2 条。实测（`_verify_memory_e2e.py` E2）：
+    #     第2轮前 get_state 读到 2 条（历史在），第2轮返回却只有 2 条（被增量覆盖）。
+    # 其它字段（question/generation/documents）都是覆盖语义，所以不受影响。
+    if thread_id:
+        try:
+            _vals = getattr(g.get_state(config), "values", None) or {}
+            if _vals:
+                final_state = dict(_vals)
+        except Exception:  # noqa: BLE001
+            pass          # 读不到就退回增量拼装的结果，不阻断主流程
 
     gen = final_state.get("generation", "")
     t.result = gen
     if save:
         t.save()
     return {"generation": gen, "trace": t.to_dict(),
-            "documents": final_state.get("documents", [])}
+            "documents": final_state.get("documents", []),
+            # [ROADMAP 4.41] 供调用方检查多轮历史是否在累积（单轮模式下恒为空）
+            "messages": final_state.get("messages", []),
+            "session_id": thread_id}
 
 # draw_graph(graph, 'graph_rag2.png')
 

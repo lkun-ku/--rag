@@ -53,6 +53,8 @@ CHECKS = [
     # [ROADMAP 4.40] 同表切片合并：n005「召回率最低」原本 3/3 稳定拒答
     # （表格被切成 4 片，模型看不到完整表），合并后 3/3 答对。
     ("同表切片合并", "eval/test_table_merge.py", "quick", "同表多切片合并（表头去重/乱序/超限/非表格）"),
+    # [ROADMAP 4.41] 多轮记忆：默认无 checkpointer（零破坏）+ 历史格式化 + 单例
+    ("多轮记忆", "eval/test_memory.py", "quick", "graph2 记忆契约（判据/截断/单例/签名）"),
     # [FIX / 代码审查] 这两个脚本此前**没有注册** —— 写了测试但回归里不跑，
     # 等于「有测试等于没测试」（review 的 Standards 轴 A4 发现）。
     ("批量判分契约", "eval/test_grade_batch.py", "quick", "grade_batch 结构/语义/容错/并发顺序"),

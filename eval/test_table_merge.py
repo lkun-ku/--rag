@@ -42,9 +42,12 @@ from langchain_core.documents import Document  # noqa: E402
 from graph2.generate_node2 import merge_table_slices  # noqa: E402
 
 FAILED = []
+TOTAL = 0
 
 
 def check(name, cond, detail=""):
+    global TOTAL
+    TOTAL += 1
     if cond:
         print("  [OK ] %s" % name)
     else:
@@ -138,7 +141,9 @@ check("其它表仍在", any("别的表" in d.page_content for d in out))
 
 print()
 print("=" * 100)
+# [注意] 必须输出 `X/Y 通过` 格式 —— `run_all_checks.py` 靠正则解析通过率，
+# 只写「全部通过」会被判成「已运行，无通过率可解析」，等于注册了但不计入判定项。
+print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))
 if FAILED:
-    print("失败 %d 项：%s" % (len(FAILED), FAILED))
+    print("失败项：%s" % FAILED)
     sys.exit(1)
-print("全部通过")

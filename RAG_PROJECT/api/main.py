@@ -59,6 +59,12 @@ APP_VERSION = "1.0.0"
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000, description="用户问题")
     with_trace: bool = Field(False, description="是否在响应中附带执行轨迹（调试用）")
+    # [ROADMAP 4.41] 多轮会话标识。**不传 = 单轮（行为与改造前完全一致）**；
+    # 传同一个值 -> 该会话的问答历史会被持久化并在后续轮次注入 prompt
+    # （例如第二轮问「它的 QPS 是多少」，模型能知道「它」指上一轮的产品）。
+    session_id: Optional[str] = Field(
+        None, max_length=128,
+        description="多轮会话 ID；不传则按单轮处理（无记忆）")
 
 
 class Citation(BaseModel):
@@ -205,12 +211,17 @@ def _tenant_collections_of(tenant: Optional[str]):
 # ---------------------------------------------------------------------------
 # 问答
 # ---------------------------------------------------------------------------
-def _run_once(question: str, with_trace: bool) -> Dict[str, Any]:
-    """跑一次完整工作流并组装响应（同步与流式共用）。"""
+def _run_once(question: str, with_trace: bool,
+              session_id: Optional[str] = None) -> Dict[str, Any]:
+    """跑一次完整工作流并组装响应（同步接口）。
+
+    [ROADMAP 4.41] `session_id` 透传给 `run_with_trace(thread_id=...)`：
+    None -> 无记忆（原行为）；有值 -> 该会话历史持久化。
+    """
     from graph2.graph_2 import run_with_trace
 
     t0 = time.time()
-    result = run_with_trace(question, save=False)
+    result = run_with_trace(question, save=False, thread_id=session_id)
     docs = result.get("documents") or []
     answer = result.get("generation", "") or ""
 
@@ -247,7 +258,7 @@ def ask(req: AskRequest,
     tenant = _resolve_tenant(x_tenant_id)
     try:
         with tenant_scope(tenant):
-            out = _run_once(req.question, req.with_trace)
+            out = _run_once(req.question, req.with_trace, req.session_id)
         out["tenant"] = tenant
         return out
     except HTTPException:
@@ -274,11 +285,22 @@ def ask_stream(req: AskRequest,
     tenant = _resolve_tenant(x_tenant_id)
 
     def gen():
-        from graph2.graph_2 import graph
+        from graph2.graph_2 import get_memory_graph, graph
 
         t = tracer.start(req.question, enabled=True)
-        config = {"callbacks": t.callbacks} if t.callbacks else None
+        config: Dict[str, Any] = {"callbacks": t.callbacks} if t.callbacks else {}
         final: Dict[str, Any] = {}
+
+        # [ROADMAP 4.41] 流式同样支持多轮：传了 session_id 就走带记忆的图。
+        # 与 `run_with_trace` 的逻辑保持一致（同一 thread_id 才共享历史）。
+        if req.session_id:
+            g = get_memory_graph()
+            inputs: Dict[str, Any] = {"question": req.question, "messages": []}
+            config = {**config, "configurable": {"thread_id": req.session_id}}
+        else:
+            g = graph
+            inputs = {"question": req.question}
+            config = config or None
 
         # [FIX  · 严重回归] **不能用 `tenant_scope()` 的 token-reset**。
         #
@@ -295,7 +317,7 @@ def ask_stream(req: AskRequest,
         # `retriever_node` 每次迭代都在同一上下文读取该值，语义等价。
         set_tenant(tenant)
         try:
-            for output in graph.stream({"question": req.question}, config=config):
+            for output in g.stream(inputs, config=config):
                 for node, value in output.items():
                     if isinstance(value, dict):
                         final.update(value)
