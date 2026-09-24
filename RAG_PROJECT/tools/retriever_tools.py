@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import threading
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -72,6 +73,14 @@ from utils.log_utils import log
 #
 # 注意：`FETCH_K_PER_ROUTE` 必须 **>= 本值**（见下方常量），否则候选池不足。
 PER_COLLECTION_K = 12
+# [ROADMAP 4.42 / 企业级] **深检索**配额：当查询是「跨行比较/统计」类时
+# （`tools/reranker_tools.is_aggregation_query`），每集合多召回一些 —— 因为这类问题
+# 需要看到完整表/更多行才能比出大小。**代价由 reranker 精排兜底收敛**：
+# 粗排多取，精排后仍只留 `RERANK_TOP_K` 块，所以不会把判分成本打爆。
+#
+# 为什么不是「默认就用深检索」：会增加粗排耗时与判分输入；只有聚合类才值得。
+PER_COLLECTION_K_DEEP = int(os.getenv("PER_COLLECTION_K_DEEP", "20"))
+FINAL_K_DEEP = int(os.getenv("FINAL_K_DEEP", "60"))
 # 最终交给下游的条数。
 FINAL_K = 36
 # 阶段二 RRF 的平滑常数
@@ -409,16 +418,40 @@ def get_tenant() -> Optional[str]:
     return _CURRENT_TENANT.get()
 
 
-def get_retriever():
+def get_retriever(deep: bool = False):
     """取当前生效的检索器。
 
     * 未设置租户上下文 -> 返回全局检索器（**单租户模式，行为与引入本功能前一致**）
     * 设置了租户       -> 返回该租户专属检索器（只含授权集合）
+
+    Args:
+        deep: [ROADMAP 4.42] True = 用**深检索**配额（`PER_COLLECTION_K_DEEP`）。
+            供「跨行比较/统计」类查询使用：粗排多取，由 reranker 负责收敛。
+            **默认 False，非聚合类调用方零差异**。
+
+    ⚠️ **深检索只在无租户的全局路径生效**：租户路径涉及授权边界
+    （多取是否会越权要看租户的集合划分），留给后续；当前先保证全局路径的企业级能力可用。
     """
     t = _CURRENT_TENANT.get()
     if not t:
-        return retriever
+        return get_deep_retriever() if deep else retriever
     return build_tenant_retriever(t)
+
+
+# [ROADMAP 4.42] 深检索检索器（惰性 + 单例缓存）。
+# 为什么缓存：`_build_multi_retriever` 会连 Milvus 建 3 个 retriever，每次查询都建一遍
+# 会把检索耗时白白拉高；与模块级 `retriever` 同样的复用策略。
+_deep_retriever = None
+
+
+def get_deep_retriever():
+    """返回（必要时构造）深检索用的全局检索器。"""
+    global _deep_retriever
+    if _deep_retriever is None:
+        _deep_retriever = _build_multi_retriever(
+            per_k=PER_COLLECTION_K_DEEP, final_k=FINAL_K_DEEP
+        )
+    return _deep_retriever
 
 
 @contextmanager
