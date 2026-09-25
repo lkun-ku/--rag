@@ -42,5 +42,9 @@ class GraphState(TypedDict):
     messages: NotRequired[Annotated[List[AnyMessage], add_messages]]
     # 测试/调试用：记录本次会话的标识（真正隔离由 checkpointer 的 thread_id 负责）
     session_id: NotRequired[str]
+    # [ROADMAP 4.43] **更早内容的摘要**：当 messages 超过 26 轮时，
+    # `generate` 会把「掉出最近 13 轮的部分」压成一段摘要存这里。
+    # 只生成一次、之后复用（不每轮重算，见 `_summarize` 的成本取舍）。
+    summary: NotRequired[str]
     # 便于类型标注（Any 仅用于兜底不可预期的附加键）
     _extra: NotRequired[Any]
