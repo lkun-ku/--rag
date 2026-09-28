@@ -211,6 +211,65 @@ def _tenant_collections_of(tenant: Optional[str]):
 # ---------------------------------------------------------------------------
 # 问答
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 会话管理（ROADMAP 4.45）：新开对话 / 列表 / 删除
+# ---------------------------------------------------------------------------
+class NewSessionRequest(BaseModel):
+    title: str = Field("", max_length=200, description="会话标题（空则用首条问题填充）")
+
+
+@app.post("/sessions/new")
+def sessions_new(req: NewSessionRequest) -> Dict[str, Any]:
+    """**新开对话**：服务端生成 session_id 并建档。
+
+    之后 `/ask` 带这个 `session_id` 即可获得多轮记忆；
+    `/ask/stream` 同理。
+    """
+    from utils import session_store
+    sid = session_store.create_session(req.title)
+    return {"session_id": sid, "ttl_seconds": session_store.SESSION_TTL_SECONDS}
+
+
+@app.get("/sessions")
+def sessions_list() -> Dict[str, Any]:
+    """会话列表（按最后活跃倒序）。"""
+    from utils import session_store
+    items = session_store.list_sessions()
+    return {"count": len(items), "sessions": items}
+
+
+@app.delete("/sessions/{session_id}")
+def sessions_delete(session_id: str) -> Dict[str, Any]:
+    """删除会话：历史向量块 + LangGraph 检查点 + 元数据，三处一起清。"""
+    from utils import session_store
+    ok = session_store.delete_session(session_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="会话不存在或删除失败")
+    return {"deleted": session_id}
+
+
+@app.on_event("startup")
+def _start_session_janitor():
+    """启动会话清理线程（ROADMAP 4.45）。
+
+    [取舍] 用 `@app.on_event("startup")` 而非新的 `lifespan` API：
+    后者要改 app 构造签名，影响面更大；`on_event` 虽在新版 FastAPI 标记 deprecated，
+    但语义稳定、且本项目是**单进程**部署（uvicorn 单 worker），
+    不存在「多 worker 各起一份」的额外问题。
+
+    线程设为 daemon：服务退出时随主进程结束，不阻塞 shutdown。
+    """
+    import threading
+
+    from utils import session_store
+    t = threading.Thread(target=session_store.janitor_loop,
+                         name="session-janitor", daemon=True)
+    t.start()
+    log.info("[api] 会话清理线程已启动（TTL=%ds，间隔=%ds）"
+             % (session_store.SESSION_TTL_SECONDS,
+                session_store.SESSION_JANITOR_INTERVAL))
+
+
 def _run_once(question: str, with_trace: bool,
               session_id: Optional[str] = None) -> Dict[str, Any]:
     """跑一次完整工作流并组装响应（同步接口）。
@@ -294,8 +353,16 @@ def ask_stream(req: AskRequest,
         # [ROADMAP 4.41] 流式同样支持多轮：传了 session_id 就走带记忆的图。
         # 与 `run_with_trace` 的逻辑保持一致（同一 thread_id 才共享历史）。
         if req.session_id:
+            from utils import session_store
+            from tools import history_store
             g = get_memory_graph()
-            inputs: Dict[str, Any] = {"question": req.question, "messages": []}
+            # [FIX / 文档审计] 必须同时注入 `session_id` —— `generate` 用它判断
+            # 「是否处于记忆模式」（`has_memory = bool(state.get("session_id"))`）。
+            # 首版只传了 `messages`，导致流式路径下三层记忆**完全不生效**
+            # （既不注入历史，也不写历史）。与 `/ask` 保持一致。
+            session_store.ensure_session(req.session_id, req.question[:200])
+            inputs: Dict[str, Any] = {"question": req.question, "messages": [],
+                                      "session_id": req.session_id}
             config = {**config, "configurable": {"thread_id": req.session_id}}
         else:
             g = graph
