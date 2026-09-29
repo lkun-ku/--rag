@@ -1,6 +1,9 @@
+import os
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+from utils.log_utils import log
+from tools import history_store
 
 from graph2.grade_documents_node import _sub_config
 from llm_models.all_llm import llm
@@ -188,35 +191,144 @@ CITE_PROMPT_MEMORY = """你是一个严格基于给定资料作答的助手。�
 回答："""
 
 # 注入 prompt 的历史轮数上限（一问一答算一轮）。
-# 为什么限轮数：`messages` 会随轮次无限增长，全塞进去会挤爆上下文窗口，
-# 也会让早期无关对话干扰当前判断。3 轮足以覆盖「它/那个/第二点」这类指代。
-MAX_HISTORY_TURNS = 3
+#
+# [ROADMAP 4.43] 由 3 提到 **13** —— 依据 `eval/_budget_history.py` 的真实数据：
+#      实测 max_turns=13 时历史文本 4,672 字符（≈2,300 token），占整个 prompt 约 22%，
+#      远低于「挤占检索上下文」的警戒线（本项目检索上下文约 16,182 字符）。
+#      且 question 中位 27 字、golden answer 中位 12 字，本项目真实答案普遍短。
+MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "13"))
+
+# 单条消息的字符上限。**它不再是主约束** —— 主约束是下面的总预算。
+# 提到 500 是防御性的：万一未来有长答案（表格罗列、多条目汇总），
+# 3 轮时代的 `[:300]` 会把每条砍残，13 轮时会把 13 条全砍残。
+MAX_PER_MSG_CHARS = int(os.getenv("MAX_PER_MSG_CHARS", "500"))
+
+# **历史总预算**（字符）。超出时**从最老的一端开始丢，保住最近**。
+#
+# 为什么用总预算而不是单条截断：
+#   单条截断在「答案都短」时形同虚设（本项目正好如此，实测几乎不触发），
+#   在「答案都长」时会把每一轮都削掉一截，得到 13 段残缺记忆；
+#   总预算则相反 —— 短答案时能容纳满 13 轮，长答案时优雅退化成「只记最近几轮」。
+MAX_HISTORY_CHARS = int(os.getenv("MAX_HISTORY_CHARS", "6000"))
+
+# 触发摘要压缩的轮数阈值：超过它才把「比最近 N 轮更早」的内容压成摘要。
+# 默认 2 × MAX_HISTORY_TURNS = 26 轮。
+SUMMARY_TRIGGER_TURNS = 2 * MAX_HISTORY_TURNS
 
 
-def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS) -> str:
+def _pairs_of(messages):
+    """只保留 human / ai 两类消息，按出现顺序。"""
+    if not messages:
+        return []
+    return [m for m in messages if getattr(m, "type", "") in ("human", "ai")]
+
+
+def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS,
+                    budget: int | None = None) -> str:
     """把 `messages` 渲染成「用户: … / 助手: …」的纯文本，供 prompt 使用。
 
     设计要点：
     * 只取**最近** `max_turns` 轮（一轮 = 一条 human + 一条 ai）；
+    * `budget` 给定时，**从最新往最旧累加**，超预算即停 ——
+      即「先保最近，再保更早」，与直觉一致（绝对不会为了留旧内容而丢掉最新一轮）；
     * 忽略 `system` / `tool` 等其它角色（本流程只产生 human/ai）；
     * 空历史返回空串 —— 调用方据此决定**是否走带历史的模板**；
-    * **纯函数、无 LLM 调用**，便于单测（`eval/test_memory.py` C4）。
+    * **纯函数、无 LLM 调用**，便于单测（`eval/test_history_budget.py`）。
     """
-    if not messages:
+    keep = _pairs_of(messages)[-max_turns * 2:] if messages else []
+    if not keep:
         return ""
-    # 只保留 human / ai 两类，按出现顺序
-    pairs = [m for m in messages
-             if getattr(m, "type", "") in ("human", "ai")]
-    if not pairs:
-        return ""
-    keep = pairs[-max_turns * 2:]          # 最近 max_turns 轮
+
+    limit = MAX_HISTORY_CHARS if budget is None else budget
+    lines: list[str] = []
+    total = 0
+    for m in reversed(keep):                     # 从最新往最旧
+        role = "用户" if m.type == "human" else "助手"
+        text = str(getattr(m, "content", "")).strip().replace("\n", " ")
+        if not text:
+            continue
+        line = "%s：%s" % (role, text[:MAX_PER_MSG_CHARS])
+        # 已经攒下内容、再加就超预算 -> 停止（更老的丢掉）
+        if limit and limit > 0 and lines and total + len(line) > limit:
+            break
+        lines.append(line)
+        total += len(line)
+    lines.reverse()                              # 恢复时间正序
+    return "\n".join(lines)
+
+
+def _should_summarize(messages):
+    """判断是否需要摘要压缩，并返回「待摘要的旧内容」。
+
+    Returns:
+        (need: bool, old_text: str)
+        need=True 时 old_text 是「比最近 MAX_HISTORY_TURNS 轮更早」的对话原文，
+        调用方（generate）应把它交给 LLM 压成摘要后再注入 prompt；
+        need=False 时 old_text 为 ""（单轮 / 轮数未超阈值）。
+
+    **纯函数**：只做阈值判断与文本切片，不调 LLM。
+    """
+    pairs = _pairs_of(messages)
+    if len(pairs) <= SUMMARY_TRIGGER_TURNS * 2:
+        return False, ""
+    old = pairs[:-(MAX_HISTORY_TURNS * 2)]
     lines = []
-    for m in keep:
+    for m in old:
         role = "用户" if m.type == "human" else "助手"
         text = str(getattr(m, "content", "")).strip().replace("\n", " ")
         if text:
-            lines.append("%s：%s" % (role, text[:300]))   # 单条截断，防单轮超长
-    return "\n".join(lines)
+            lines.append("%s：%s" % (role, text[:MAX_PER_MSG_CHARS]))
+    return True, "\n".join(lines)
+
+
+def build_history_prompt_part(messages, budget: int | None = None,
+                              summary: str = "") -> dict:
+    """把历史整理成「摘要 + 最近若干轮」两部分，供 prompt 使用。
+
+    **纯函数**：摘要文本由调用方生成后传入（它需要一次 LLM 调用，
+    不应藏在这个函数里——否则单测也要走 LLM）。
+
+    Returns:
+        {"summary": str, "history": str}
+        summary 为空串表示没有更早内容需要摘要。
+    """
+    return {"summary": (summary or "").strip(),
+            "history": _format_history(messages, budget=budget)}
+
+
+# 摘要压缩的 prompt。[ROADMAP 4.43]
+_SUMMARY_PROMPT = """把下面的多轮对话压缩成不超过 300 字的摘要。
+
+必须保留：① 讨论过的主题；② 关键实体（产品名 / 指标名 / 具体数值）；
+③ 用户表达过的偏好或约束。
+不要编造，只总结给定内容；不要评价。
+
+对话：
+{history}
+
+摘要："""
+
+
+def _summarize(old_text: str, config=None) -> str:
+    """调一次 LLM 把旧对话压成摘要。**失败返回空串，不阻断主流程**。
+
+    成本取舍（ROADMAP 4.43）：摘要只在**首次超过阈值**时生成一次，
+    之后复用 `state["summary"]`，不每轮重算 ——
+    否则 40 轮会话要额外 14 次 LLM 调用，收益却递减（最近 13 轮原文已覆盖）。
+    """
+    if not old_text or not old_text.strip():
+        return ""
+    try:
+        from langchain_core.output_parsers import StrOutputParser
+        chain = (PromptTemplate(template=_SUMMARY_PROMPT,
+                                input_variables=["history"])
+                 | llm | StrOutputParser())
+        text = chain.invoke({"history": old_text}, config=_sub_config(config))
+        return (text or "").strip()[:500]        # 兜底截断，防模型不听话
+    except Exception as e:  # noqa: BLE001
+        log.warning("[history] 摘要生成失败，降级为无摘要: %s: %s"
+                    % (type(e).__name__, str(e)[:120]))
+        return ""
 
 
 def generate(state, config=None):
@@ -254,7 +366,37 @@ def generate(state, config=None):
     # `session_id` 由 `run_with_trace` 在**记忆模式下**注入，单轮时不传 -> None ->
     # 判据为假，行为与改造前完全一致。
     has_memory = bool(state.get("session_id"))
-    history_text = _format_history(state.get("messages") or [])
+    # [ROADMAP 4.43] 摘要压缩：只在「超阈值且尚未生成过摘要」时调一次 LLM，
+    # 之后每轮复用 state["summary"]（checkpointer 会把它带回来）。
+    _msgs = state.get("messages") or []
+    _need_sum, _old_text = _should_summarize(_msgs)
+    _summary = state.get("summary") or ""
+    if has_memory and _need_sum and not _summary:
+        _summary = _summarize(_old_text, config)
+
+    history_text = _format_history(_msgs)
+    if _summary:
+        # 摘要放在**前面**、最近原文放在**后面** —— 越近的内容离问题越近，权重越高
+        history_text = ("【更早内容的摘要】\n%s\n\n【最近的对话】\n%s"
+                        % (_summary, history_text))
+
+    # [ROADMAP 4.44] **历史向量检索**：找回「含具体数值的早期轮次」。
+    #
+    # 三层记忆各有不可替代的分工：
+    #     最近 13 轮原文 -> 近期指代（「它」）
+    #     摘要          -> 主题脉络（做过什么）
+    #     ★本节         -> 早期**具体事实**（「第 3 轮那个 184.54」）
+    # 只有这一层能在长会话里找回已掉出窗口的具体数值。
+    if has_memory:
+        _hits = history_store.lookup_history(state.get("session_id"), question)
+        if _hits:
+            _lines = []
+            for i, d in enumerate(_hits[:history_store.HISTORY_TOP_K], 1):
+                _md = getattr(d, "metadata", None) or {}
+                _body = (d.page_content or "").strip()[:600]
+                _lines.append("【%d】（%s）%s" % (i, _md.get("title", "更早轮次"), _body))
+            history_text += ("\n\n【更早但相关的轮次（语义检索）】\n"
+                             + "\n".join(_lines))
 
     if history_text:
         prompt = PromptTemplate(
@@ -315,4 +457,6 @@ def generate(state, config=None):
     if has_memory:
         updates["messages"] = [HumanMessage(content=question),
                                AIMessage(content=generation)]
+        if _summary:
+            updates["summary"] = _summary
     return updates

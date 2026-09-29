@@ -53,8 +53,16 @@ CHECKS = [
     # [ROADMAP 4.40] 同表切片合并：n005「召回率最低」原本 3/3 稳定拒答
     # （表格被切成 4 片，模型看不到完整表），合并后 3/3 答对。
     ("同表切片合并", "eval/test_table_merge.py", "quick", "同表多切片合并（表头去重/乱序/超限/非表格）"),
+    # [ROADMAP 4.42] 企业级精排链路：reranker（默认关）+ 分数门槛 + 聚合类深检索
+    ("企业级精排", "eval/test_rerank.py", "quick", "reranker 精排/门槛/降级 + 聚合类深检索"),
     # [ROADMAP 4.41] 多轮记忆：默认无 checkpointer（零破坏）+ 历史格式化 + 单例
     ("多轮记忆", "eval/test_memory.py", "quick", "graph2 记忆契约（判据/截断/单例/签名）"),
+    # [ROADMAP 4.43] 轮次提升到 13 + 总预算约束 + 摘要压缩阈值
+    ("历史预算与摘要", "eval/test_history_budget.py", "quick", "13 轮/总预算/单条上限/摘要触发"),
+    # [ROADMAP 4.44] 会话历史的向量存储与检索（默认开启）
+    ("历史向量检索", "eval/test_history_store.py", "quick", "历史集合/隔离 expr/TTL 清理/降级"),
+    # [ROADMAP 4.45] 会话管理 + 滑动 TTL（新开对话/列表/删除）
+    ("会话管理", "eval/test_session_store.py", "quick", "sessions 表 CRUD + 6h 滑动 TTL"),
     # [FIX / 代码审查] 这两个脚本此前**没有注册** —— 写了测试但回归里不跑，
     # 等于「有测试等于没测试」（review 的 Standards 轴 A4 发现）。
     ("批量判分契约", "eval/test_grade_batch.py", "quick", "grade_batch 结构/语义/容错/并发顺序"),

@@ -16,7 +16,9 @@ from graph2.retriever_node import retrieve
 from graph2.transform_query_node import transform_query
 from graph2.web_search_node import web_search
 from utils import tracer
+from utils import session_store
 from utils.log_utils import log
+from tools import history_store
 
 
 # 生成答案的最大重试次数。
@@ -376,6 +378,10 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
 
     if thread_id:
         g = get_memory_graph()
+        # [ROADMAP 4.45] 刷新会话活跃时间（**滑动 TTL** 的依据）。
+        # 用 ensure_session 而非 touch_session：客户端可能自生成 UUID 而没走
+        # `/sessions/new`，upsert 语义既宽容又不丢会话目录。
+        session_store.ensure_session(thread_id, question[:200])
         # 注入 `session_id` 作为「记忆模式」的**显式标记**（`generate` 用它判断
         # 是否追加历史）。不能用 `messages is not None` —— LangGraph 会把它初始化为 []。
         #
@@ -412,6 +418,19 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
 
     gen = final_state.get("generation", "")
     t.result = gen
+
+    # [ROADMAP 4.44] 记忆模式：把本轮问答写入**历史向量集合**。
+    #
+    # 为什么放在这里而不是 `generate` 节点内：`generate` 可能因幻觉判定被
+    # 重试（`not supported -> generate`），写在节点里会导致**重复入库**；
+    # 而在图结束后写，拿到的 `gen` 就是最终答案，**一轮只写一次**。
+    #
+    # turn 号由 messages 条数推：messages 是「一问一答」成对的，
+    # 写完本轮后条数 = 2 × 轮次，所以 `// 2` 即当前轮次。
+    if thread_id and gen:
+        _turn = len(final_state.get("messages") or []) // 2
+        history_store.record_turn(thread_id, _turn, question, gen)
+
     if save:
         t.save()
     return {"generation": gen, "trace": t.to_dict(),

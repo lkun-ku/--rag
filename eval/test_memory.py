@@ -26,7 +26,8 @@ sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 
-from graph2.generate_node2 import MAX_HISTORY_TURNS, _format_history  # noqa: E402
+from graph2.generate_node2 import (MAX_HISTORY_TURNS, MAX_PER_MSG_CHARS,  # noqa: E402
+                                   _format_history)
 from graph2.graph_2 import create_graph, get_memory_graph, run_with_trace  # noqa: E402
 
 FAILED = []
@@ -67,10 +68,11 @@ check("超限只取最近 %d 轮" % MAX_HISTORY_TURNS,
 h = _format_history([SystemMessage(content="系统提示"), HumanMessage(content="问"), AIMessage(content="答")])
 check("忽略 system 角色", "系统提示" not in h and "问" in h, repr(h[:60]))
 
-# 单条超长被截断
+# 单条超长被截断（[ROADMAP 4.43] 上限由 300 提到 MAX_PER_MSG_CHARS=500）
 long_msg = [HumanMessage(content="长" * 1000), AIMessage(content="答")]
 h = _format_history(long_msg)
-check("单条截断到 300 字", len(h) < 400, "实际 %d" % len(h))
+check("单条截断到 MAX_PER_MSG_CHARS 以内",
+      len(h) <= MAX_PER_MSG_CHARS + 8, "实际 %d" % len(h))
 
 print()
 print("=" * 100)
