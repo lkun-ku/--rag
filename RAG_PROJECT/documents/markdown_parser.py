@@ -12,11 +12,14 @@ import re
 import shutil
 import tempfile
 from typing import List
-from langchain_experimental.text_splitter import SemanticChunker
+# [ROADMAP 4.48] 不再直接 import SemanticChunker（langchain-experimental 已 sunset）：
+# 改走 tools/semantic_splitter.make_splitter —— 可用时行为完全不变，
+# 不可用时降级为结构分块并打 WARNING，避免整个入库链路在 import 阶段就炸。
 
 # [UPGRADE ] 改用本地 bge_embedding：分块语义须与入库向量同源（路线图坑①）
 from llm_models.embeddings_model import bge_embedding
 from utils.env_utils import MD_DIR
+from tools.semantic_splitter import make_splitter
 from utils.log_utils import log
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_core.documents import Document
@@ -200,9 +203,9 @@ class MarkdownParser:
             table_max_rows: [ROADMAP 2.4] 表格行数阈值。超过则按行切分，
                 且每块重复完整表头（表头注入）。默认 30 行。
         """
-        self.text_splitter = SemanticChunker(
-            bge_embedding, breakpoint_threshold_type="percentile"
-        )
+        # [ROADMAP 4.48] 走封装：可用时仍是 SemanticChunker(percentile)，
+        # **分块结果与改造前完全一致**；实验包不可用时降级为结构分块 + WARNING。
+        self.text_splitter = make_splitter(bge_embedding)
         self.table_max_rows = table_max_rows
 
     def text_chunker(self, datas: List[Document]) -> List[Document]:

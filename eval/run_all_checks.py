@@ -53,6 +53,8 @@ CHECKS = [
     # [ROADMAP 4.40] 同表切片合并：n005「召回率最低」原本 3/3 稳定拒答
     # （表格被切成 4 片，模型看不到完整表），合并后 3/3 答对。
     ("同表切片合并", "eval/test_table_merge.py", "quick", "同表多切片合并（表头去重/乱序/超限/非表格）"),
+    # [ROADMAP 4.48] 语义分块封装：隔离 langchain-experimental sunset 风险
+    ("语义分块封装", "eval/test_semantic_splitter.py", "quick", "SemanticChunker 封装 + 降级告警"),
     # [ROADMAP 4.47] 表格结构化查询：聚合类问题交给 pandas 算，不交给 LLM 猜
     ("表格结构化查询", "eval/test_table_query.py", "quick", "markdown 表解析 + min/max/mean + 降级"),
     # [ROADMAP 4.42] 企业级精排链路：reranker（默认关）+ 分数门槛 + 聚合类深检索
