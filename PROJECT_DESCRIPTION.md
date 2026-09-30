@@ -75,7 +75,7 @@ RAG_PROJECT/
 │   └── rag_agent.py              create_agent + SqliteSaver 的标准 Agent
 ├── api/                          （无 __init__.py，按 PYTHONPATH 导入）
 │   ├── main.py                   FastAPI：/ /health /ask /ask/stream /ingest
-│   │                             + /sessions/new /sessions /sessions/{id}
+│   │                                      + /sessions/new /sessions /sessions/{id}
 │   └── run.py                    服务启动脚本
 ├── documents/
 │   ├── __init__.py
@@ -208,10 +208,9 @@ Milvus Lite 因文件锁自动降级为单进程。
   │     │   · 聚合类查询走深检索（per_k=20 / final_k=60）
   │     │   · reranker 精排 + 分数门槛（RERANK_ENABLED=1 时，默认不做）
   │     ▼                                      │
-  │     ▼                                      │
-  │  grade_documents（闸门②：逐块相关性）       │
+  │  grade_documents（闸门②：逐块相关性）      │
   │     ├─ 有相关块 ───────────────────────┐   │
-  │     └─ 全不相关                          │   │
+  │     └─ 全不相关                          │ │
   │          ├─ transform_count < 2 → transform_query（改写问题）
   │          └─ transform_count ≥ 2 → web_search
   │                                          ▼   ▼
