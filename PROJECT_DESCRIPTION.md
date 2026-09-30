@@ -17,15 +17,17 @@
 * 检索结果经过**文档相关性判分**，再生成带 `[n]` 引用编号的答案；
 * 生成后做**确定性引用校验** + **幻觉判分** + **问题匹配度判分**，不合格则自纠错重试；
 * 通过 FastAPI + SSE 提供同步/流式问答，支持集合级多租户隔离；
+* 支持**多轮记忆**（最近 13 轮原文 + 摘要压缩 + 历史向量检索三层）与会话管理
+  （`POST /sessions/new` 等 3 个端点，6 小时滑动 TTL）；
 * 配套 `eval/` 评测、门禁、探针与回归入口，所有关键结论都有实测数字。
 
 ### 1.2 规模
 
 | 项 | 当前值 |
 |---|---|
-| 业务代码 | **5,176 行 / 45 个 `.py`** |
-| 评测与验证代码 | **8,867 行 / 71 个 `.py`** |
-| 根目录 `scripts/` | **970 行 / 4 个 `.py`** |
+| 业务代码 | **7,416 行 / 48 个 `.py`** |
+| 评测与验证代码 | **11,999 行 / 81 个 `.py`** |
+| 根目录 `scripts/` | **1,166 行 / 4 个 `.py`** |
 | 语料 | **18 文件 / 523 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
 | golden 集 | 32 题 |
 
@@ -36,15 +38,15 @@
 
 | 目录 | 行数 | 职责 |
 |---|---:|---|
-| `documents/` | 2,065 | 解析、表格、建表、入库 |
-| `graph2/` | 1,106 | CRAG 主工作流（核心） |
-| `utils/` | 634 | 配置、日志、引用、轨迹、检查点 |
-| `tools/` | 391 | 跨集合混合检索 |
-| `api/` | 356 | FastAPI + SSE |
-| `scripts/`（包内） | 271 | 轨迹查看、检索试验 |
-| `graph/` | 239 | 简化 ReAct 工作流 |
-| `agent/` | 59 | 1.x 标准 Agent |
-| `llm_models/` | 55 | LLM 与本地嵌入 |
+| `documents/` | 2,423 | 解析、表格、建表、入库 |
+| `graph2/` | 1,709 | CRAG 主工作流（核心，含多轮记忆） |
+| `utils/` | 1,016 | 配置、日志、引用、轨迹、检查点、**会话管理** |
+| `tools/` | 992 | 跨集合混合检索、**reranker 精排**、**历史向量检索** |
+| `api/` | 519 | FastAPI + SSE（含会话管理端点） |
+| `graph/` | 302 | 简化 ReAct 工作流 |
+| `scripts/`（包内） | 323 | 轨迹查看、检索试验 |
+| `agent/` | 68 | 1.x 标准 Agent |
+| `llm_models/` | 64 | LLM 与本地嵌入模型 |
 
 ### 1.3 技术栈
 
@@ -57,7 +59,8 @@
 | 文档解析 | unstructured 0.27.16 / pymupdf4llm 1.28.2 / markitdown 0.1.8 |
 | 结构化输出 | Pydantic v2 + `with_structured_output(method="function_calling")` |
 | 服务化 | FastAPI 0.143.0 + uvicorn 0.54.0，SSE 流式 |
-| 会话记忆 | `langgraph-checkpoint-sqlite` 3.1.1（仅 `graph1` / `agent`） |
+| 会话记忆 | `langgraph-checkpoint-sqlite` 3.1.1（`graph2` / `graph1` / `agent` 均支持，按 `thread_id` 隔离） |
+| 精排（可选） | `sentence-transformers` CrossEncoder + `BAAI/bge-reranker-v2-m3`（本地，**默认关**） |
 | 日志与追踪 | loguru + 自建 `utils/tracer.py` |
 | 环境 | Python 3.12.7（Windows / Linux） |
 
@@ -72,6 +75,7 @@ RAG_PROJECT/
 │   └── rag_agent.py              create_agent + SqliteSaver 的标准 Agent
 ├── api/                          （无 __init__.py，按 PYTHONPATH 导入）
 │   ├── main.py                   FastAPI：/ /health /ask /ask/stream /ingest
+│   │                             + /sessions/new /sessions /sessions/{id}
 │   └── run.py                    服务启动脚本
 ├── documents/
 │   ├── __init__.py
@@ -110,13 +114,16 @@ RAG_PROJECT/
 │   └── embeddings_model.py        本地 BGE 嵌入
 ├── tools/
 │   ├── __init__.py
-│   └── retriever_tools.py         跨集合混合检索 + 编号上下文 + 租户作用域
+│   ├── retriever_tools.py         跨集合混合检索 + 编号上下文 + 租户作用域
+│   ├── reranker_tools.py          reranker 精排 + 分数门槛 + 聚合类问题识别
+│   └── history_store.py           会话历史的向量存储与检索（独立集合，按 session 隔离）
 ├── utils/
 │   ├── __init__.py
 │   ├── env_utils.py               主要配置与 DOC_SOURCES / TENANTS
 │   ├── citation.py                引用解析、校验、拒答识别
 │   ├── tracer.py                  节点/边级轨迹与 token 统计
 │   ├── checkpointer.py            SqliteSaver 工厂
+│   ├── session_store.py           会话元数据表 + 6h 滑动 TTL + 后台清理
 │   ├── log_utils.py
 │   └── print_utils.py
 ├── scripts/                      （无 __init__.py）
@@ -136,7 +143,7 @@ RAG_PROJECT/
 > `__init__.py` 为 0 字节；`api/` 与 `scripts/` 没有该文件（按 `PYTHONPATH=RAG_PROJECT`
 > 以命名空间包导入）。`.idea/`、`__pycache__/`、`.venv/` 等本地/生成物未列出。
 
-工作区根另有：`eval/`（评测与回归）、`scripts/`（模型下载 / Milvus 探测 / 迁移验证）、
+工作区根另有：`eval/`（评测与回归）、`scripts/`（**端到端冒烟** / 模型下载 / Milvus 探测 / 迁移验证）、
 `docs/`、`scratch/`（临时验证，未入库）、`.venv/`、`requirements*.txt`、`.env.example`、
 `pyrightconfig.json`、本地保留的迁移前快照（不随公开仓库发布）。
 
@@ -198,7 +205,9 @@ Milvus Lite 因文件锁自动降级为单进程。
   │     │                                      │
   │     ▼                                      ▼
   │  retrieve（跨集合混合检索）             Tavily 搜索
-  │     │                                      │
+  │     │   · 聚合类查询走深检索（per_k=20 / final_k=60）
+  │     │   · reranker 精排 + 分数门槛（RERANK_ENABLED=1 时，默认不做）
+  │     ▼                                      │
   │     ▼                                      │
   │  grade_documents（闸门②：逐块相关性）       │
   │     ├─ 有相关块 ───────────────────────┐   │
@@ -209,6 +218,8 @@ Milvus Lite 因文件锁自动降级为单进程。
   │                                       generate
   │                              · 同表切片合并（n005 类跨行统计）
   │                              · 上下文编号 [1]..[n]
+  │                              · **三层历史注入**（仅 session_id 模式）：
+  │                                  最近 13 轮 + 摘要 + 历史向量检索 top-3
   │                              · 强约束引用 prompt
   │                                          │
   │                                          ▼
@@ -249,7 +260,7 @@ Milvus Lite 因文件锁自动降级为单进程。
 
 | 入口 | 构建方式 | 拓扑 | 记忆 | 特点 |
 |---|---|---|---|---|
-| `graph2` | 手写 `StateGraph` | 5 显式节点 + 3 条件边 | 无（请求级状态） | 路由 + 联网 + 四道闸门 + 熔断 |
+| `graph2` | 手写 `StateGraph` | 5 显式节点 + 3 条件边 | `SqliteSaver`（`get_memory_graph()`，**三层记忆**） | 路由 + 联网 + 四道闸门 + 熔断 |
 | `graph1` | 手写 `StateGraph` | 4 个显式节点（含 START/END 共 6 个）+ 2 处条件边（7 条分支） | SqliteSaver | ReAct 循环 + 相关性 + 改写 |
 | `rag_agent` | `create_agent()` | `model` / `tools` | SqliteSaver | LangChain 1.x 标准写法 |
 
@@ -264,6 +275,9 @@ Milvus Lite 因文件锁自动降级为单进程。
 | `POST /ask` | 同步问答：答案 + 引用溯源；`with_trace=true` 时在响应里附带轨迹，但**不落盘** |
 | `POST /ask/stream` | SSE 流式：`event: step` 逐节点进度，`event: answer` 最终答案，异常时 `event: error` |
 | `POST /ingest` | 按 `DOC_SOURCES` 源名入库；`reset=true` 才清空集合，默认增量追加 |
+| `POST /sessions/new` | **新开对话**：服务端生成 `session_id`（UUID）并建档，返回 sid 与 ttl |
+| `GET /sessions` | 会话列表，按 `last_active` 倒序 |
+| `DELETE /sessions/{id}` | 删会话：历史向量块 + LangGraph 检查点 + 元数据，三处一起清 |
 
 * 多租户：`X-Tenant-Id` 请求头；配置了 `KB_TENANTS` 时缺失返回 400，未知租户返回 403；
 * 未配置 `KB_TENANTS` 时忽略该头（单租户模式，可访问全部集合）；
@@ -314,9 +328,10 @@ RRF 只看排名，天然规避量纲问题。
 sparse 路把**原始 query** 交给 Milvus 服务端，用与入库相同的 jieba 分析器算 BM25。
 两端分词口径必须一致，否则关键词路会失效。
 
-**为什么不用 reranker**：bge-reranker-v2-m3 实测在本项目 8 题上**增益为 0**，
-且基线已拿到大部分可召回块，天花板有限；接入它反而会把噪声块换进来。
-详见 ROADMAP 的 reranker 专项。
+**reranker 的定位**（ROADMAP 4.42）：bge-reranker-v2-m3 在本项目 8 题上实测**增益为 0**
+（基线已拿到大部分可召回块，天花板有限），因此**默认关闭**；
+但 `tools/reranker_tools.py` 已提供开关（`RERANK_ENABLED=1`）+ reranker 分数门槛，
+供**加大检索深度**或**更高精度要求**的企业级场景启用 —— 届时由它负责把粗排的多余候选收敛掉。
 
 **HNSW vs FLAT**：FLAT 暴力遍历、召回 100% 但线性变慢；HNSW 用 `M` /
 `efConstruction` 换速度，适合百万级向量 + 毫秒延迟的企业知识库场景。
@@ -330,7 +345,9 @@ BM25 依赖分词。中文不分词时，“光刻”与“光刻机”会被当
 analyzer_params={"tokenizer": "jieba", "filter": ["cnalphanumonly"]}
 ```
 
-jieba 必须装在**服务端**，客户端安装无效；官方镜像已内置，自定义镜像需自行安装。
+**远端 Milvus** 需在服务端安装 jieba（官方镜像已内置，自定义镜像需自行安装）；
+**Milvus Lite** 的分词在客户端进程内执行，因此 `requirements.txt` 把 `jieba` 钉为客户端依赖
+（缺失时建表即报 `JiebaAnalyzer requires the 'jieba' package`）。
 
 ### 4.3 解析、切片与表格
 
@@ -340,7 +357,8 @@ jieba 必须装在**服务端**，客户端安装无效；官方镜像已内置�
 | PPTX 逐页 | 优先 `PPTXParser`（逐页一块，提取备注/SmartArt/图表/组合形状）；失败回退 markitdown | markitdown 会把多页并成 1 块且丢结构 |
 | 标题合并 | 子元素拼进父标题，`category` 改为 `content` | 检索时带层级语境，且能用 `expr` 排除纯标题块 |
 | 表格恢复 | 从 `text_as_html` 还原 Markdown 表格，加“表格：/列名：”前缀 | Unstructured 会吞掉 `|` 分隔符 |
-| 表格切分 | 超过 30 行按行切，每块重复完整表头 + 行范围 | 行边界天然对齐记录，避免一条记录跨块 |
+| 表格切分 | **行数与字节双重闸门**：两者都未超限才整表一块，任一超限即按行切（按字节上限收缩），每块重复完整表头 + 行范围 | 行边界天然对齐记录，避免一条记录跨块 |
+| **表格孪生去重** | `is_flat_twin()` 三维判据（前向 0.98 / 反向 0.95 / 长度比 0.5~2.0），在标题合并阶段剔除与结构化表格块重复的扁平文本 | 避免同一张表以「表格版 + 压平版」两份进入检索 |
 | 短块合并 | < 50 字符碎片并入同文件相邻正文块 | 超短块会挤占检索配额 |
 | 语义切分 | 仅 > 5000 字符的块走 `SemanticChunker` | 语义切分要调 embedding，成本高，只对大块用 |
 | 同表合并 | 生成前把同表碎片拼回完整表 | 跨行统计类问题（如“最低值”）需要看到整表 |
@@ -408,8 +426,35 @@ $env:KB_TENANTS='{"acme":["milvus_docs","manuals"],"beta":["papers"]}'
 
 ### 4.8 会话记忆
 
-`graph1` 与 `rag_agent` 用 `SqliteSaver` 持久化检查点（`checkpoints.db`），
-按 `thread_id` 隔离会话；`graph2` / HTTP 服务是**请求级状态**，不启用检查点。
+**`graph2` 自 ROADMAP 4.41 起已支持多轮记忆**，与 `graph1` / `rag_agent` 并列，
+三者都按 `thread_id` 隔离会话；区别在**注入 prompt 的层数**：
+
+| 入口 | 持久化 | 注入 prompt 的历史 |
+|---|---|---|
+| `graph2`（生产） | `SqliteSaver`（`get_memory_graph()` 惰性单例）| **三层**：最近 13 轮原文 + 摘要 + 历史向量检索 top-3 |
+| `graph1` / `rag_agent` | `SqliteSaver` | 无（state 里有 `messages`，但 prompt 不注入）|
+
+**三层记忆的分工**（ROADMAP 4.43 / 4.44）：
+
+```
+最近 13 轮原文   近期指代（「它」「那个」）      有界：MAX_HISTORY_CHARS=6000
+摘要（`state["summary"]`）  主题脉络（做过什么）        有界：500 字；超 26 轮才生成，只生成一次
+历史向量检索      **含具体数值的早期轮次**        kb_session_history_* 集合，按 session_id 隔离
+```
+
+第三层是前两层替代不了的：第 3 轮问「TurboPuffer 的 QPS」答 184.54，
+第 30 轮问「刚才那个 QPS 对应的产品」—— 前两层都答不了。
+
+**触发条件**：只有 `run_with_trace(thread_id=...)` / `/ask` 带 `session_id` 才走记忆路径；
+单轮调用（不传）行为与改造前**完全一致**。
+
+**会话管理**（ROADMAP 4.45）：`sessions` 表（复用 `checkpoints.db`）记录
+`id / created_at / last_active / title`，支撑 `POST /sessions/new`、
+`GET /sessions`、`DELETE /sessions/{id}` 三个端点；
+`DELETE` 会清三处——历史向量块 + `checkpoints`/`writes` 行 + 元数据行。
+
+**TTL 是滑动的**（`now - last_active > 6h`），不是创建时间：
+否则持续 6.5 小时的会话会被误删。后台 janitor 线程每 30 分钟清一次。
 
 `SqliteSaver.setup()` 不需要手动调用，首次读写时自动建表；
 真正上生产应换 `PostgresSaver`。
@@ -423,9 +468,18 @@ $env:KB_TENANTS='{"acme":["milvus_docs","manuals"],"beta":["papers"]}'
 
 ### 4.10 配置
 
-主要配置集中在 `utils/env_utils.py`，从 `.env` 读取。
-例外：`PDF_OCR_FALLBACK` / `PDF_USE_OCR` 在 `documents/write_milvus.py` 读取，
-`TRACE_DIR` 在 `utils/tracer.py` 读取。
+配置统一从 `.env` 读取，但**分散在多个模块**（不是在 `env_utils.py` 一处）：
+
+| 变量组 | 实际读取位置 |
+|---|---|
+| LLM / Milvus / 嵌入 / `DOC_SOURCES` / `KB_TENANTS` / `CHECKPOINT_DB` | `utils/env_utils.py` |
+| `PDF_OCR_FALLBACK` / `PDF_USE_OCR` | `documents/write_milvus.py` |
+| `TRACE_DIR` | `utils/tracer.py` |
+| `RERANK_*`（开关 / top_k / 阈值 / 模型 / 截断） | `tools/reranker_tools.py` |
+| `PER_COLLECTION_K_DEEP` / `FINAL_K_DEEP` | `tools/retriever_tools.py` |
+| `HISTORY_*`（开关 / 集合名 / top_k / 上限 / 保留月数） | `tools/history_store.py` |
+| `MAX_HISTORY_TURNS` / `MAX_HISTORY_CHARS` / `MAX_PER_MSG_CHARS` | `graph2/generate_node2.py` |
+| `SESSION_TTL_SECONDS` / `SESSION_JANITOR_INTERVAL` | `utils/session_store.py` |
 
 | 变量 | 默认 / 推荐 | 说明 |
 |---|---|---|
@@ -448,6 +502,23 @@ $env:KB_TENANTS='{"acme":["milvus_docs","manuals"],"beta":["papers"]}'
 | `CHECKPOINT_DB` | `checkpoints.db` | 会话记忆文件 |
 | `PDF_OCR_FALLBACK` | `0` | 扫描件走带页码 OCR（在 `write_milvus.py` 读取） |
 | `PDF_USE_OCR` | `1` | pymupdf4llm 图片 OCR 开关（在 `write_milvus.py` 读取） |
+| `RERANK_ENABLED` | `0` | reranker 精排开关；`1` 才启用（本项目天花板仅 9%，故默认关） |
+| `RERANK_TOP_K` | `20` | 精排后保留几块 |
+| `RERANK_SCORE_THRESHOLD` | `0` | reranker 分数门槛；`0`=不过滤，`>0` 时低于阈值的块不送 LLM 判分 |
+| `RERANK_MODEL` | 空 | 空 = 项目内 `models/bge-reranker-v2-m3`（本地） |
+| `RERANK_MAX_CHARS` | `2000` | 单块送去精排的截断长度 |
+| `PER_COLLECTION_K_DEEP` | `20` | 聚合类查询的每集合召回数（默认 12） |
+| `FINAL_K_DEEP` | `60` | 聚合类查询的最终块数（默认 36） |
+| `MAX_HISTORY_TURNS` | `13` | 注入 prompt 的最近轮数 |
+| `MAX_HISTORY_CHARS` | `6000` | 历史**总预算**；超出从最老的丢起，保住最近 |
+| `MAX_PER_MSG_CHARS` | `500` | 单条历史上限（防御性，已不是主约束） |
+| `HISTORY_ENABLED` | `1` | 历史向量检索开关（三层记忆第三层） |
+| `HISTORY_COLLECTION` | `kb_session_history_bge_large_1024` | 历史独立集合（**不进** `DOC_SOURCES`） |
+| `HISTORY_TOP_K` | `3` | 每次召回几轮历史 |
+| `HISTORY_MAX_CHARS` | `1500` | 单轮 text 上限（schema VARCHAR 6000，留余量） |
+| `HISTORY_KEEP_MONTHS` | `3` | 历史保留月数（按月桶 TTL） |
+| `SESSION_TTL_SECONDS` | `21600` | 会话 6 小时**不活跃**才清（滑动，非创建时间） |
+| `SESSION_JANITOR_INTERVAL` | `1800` | 后台清理线程轮询间隔（30 分钟） |
 
 > 另有 `DATAS_DIR` / `MODELS_DIR` / `SRC_DIR_TXT` / `KB_COLLECTION_TXT` 等路径配置，
 > 见 `env_utils.py` 的 `DOC_SOURCES`；`TRACE_DIR` 见 `utils/tracer.py`。
@@ -470,6 +541,9 @@ Copy-Item .env.example .env      # 填 key、Milvus 地址、LLM 端点
 # 按 DOC_SOURCES 逐源入库（真实 Milvus 多进程；Lite 自动单进程）
 .venv\Scripts\python.exe -m RAG_PROJECT.documents.write_milvus
 ```
+
+> ⚠️ CLI 默认 `recreate=True`：**每个源先 `create_collection()`（会 drop 重建、清空集合）**。
+> 增量追加必须加 `--no-recreate`，否则是「全量重灌」。
 
 ### 5.3 三个 CLI 入口
 
@@ -535,7 +609,7 @@ LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回
 
 ### 6.4 回归与并发
 
-* `run_all_checks.py --full`：**13/13 判定通过**（含 API+SSE、多租户联动）；
+* `run_all_checks.py --full`：**19/19 判定通过**（含 API+SSE、多租户联动）；
 * 并发实测（1/2/4/8）：墙钟 **4.4 / 4.3 / 5.9 / 8.1s**，全部成功（1/1、2/2、4/4、8/8）；
   8 较 4 为 **+37%**，说明开始排队；
 * 容量建议：**生产并发上限取 4~6**；更高并发与 HTTP 层压测未做。
@@ -548,19 +622,22 @@ LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回
 
 | 项 | 现状 |
 |---|---|
-| reranker | 实测增益 0，**已否决**（不是“未做”） |
-| 表格父子块 | 对查询类无增益，已否决；跨行统计改用“同表切片合并” |
-| 跨行聚合 / text-to-SQL | 未引入，靠 LLM 从完整表推理 |
+| reranker | **质量层面**：当前语料实测增益 0（天花板仅 9%），故**默认关闭**；**工程层面**：已提供开关 `RERANK_ENABLED=1` + 分数门槛，为大数据量/深检索场景预留（ROADMAP 4.42） |
+| 表格父子块 | 对查询类无增益；跨行统计改用「同表切片合并」（`merge_table_slices`，生成前拼回完整表） |
+| 跨**文档**聚合 / text-to-SQL | **仍未做** —— 「比较 A 文档与 B 文档的指标」需要结构化查询，靠 LLM 推不出来 |
+| 多轮记忆 | 三层（13 轮原文 + 摘要 + 历史向量检索）；**6 小时不活跃即清**，跨天不继承；单块历史上限 1500 字 |
+| 历史集合 TTL | 按**月桶**删（`HISTORY_KEEP_MONTHS`）；要按小时/天精确删需给 schema 加 INT64 字段，未做 |
+| 会话清理触发 | 后台 janitor 每 30 分钟一次；**无手动触发端点** |
 | 并发 | 4 安全；8 劣化；16/32 未测 |
 | HTTP 层并发 | 功能已验证，未做压测 |
 | 扫描件 OCR | 默认关闭；开启后约 2.5s/页 |
 | 多租户 | 集合级授权，不含身份认证 |
-| `score_threshold` | `search_type="similarity"` 下不被消费，属惰性参数 |
+| `score_threshold` | `search_type="similarity"` 下不被消费，属惰性参数（可靠门槛用 reranker 分数，见 4.42） |
 
 ### 7.2 关键坑（均已处理）
 
 1. **结构化输出必须显式 `function_calling`**：`langchain-openai` 1.x 默认改成
-   `json_schema`，DeepSeek 不支持；项目内 5 处调用点全部显式指定。
+   `json_schema`，DeepSeek 不支持；项目内 **6 处**调用点全部显式指定。
 2. **config 必须透传**：线程池 / 条件边包装器不继承 contextvar，
    不透传 `config` 会导致 LLM 调用的 token **静默归零**。
 3. **集合名不能含连字符**：Milvus Lite 能接受，真实服务报 `code=1100`；
@@ -572,6 +649,19 @@ LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回
 7. **`filter` 不生效，必须用 `expr`**：`langchain-milvus` 的 hybrid 路径只认 `expr`。
 8. **Milvus Lite 只适合验证逻辑**：不支持 Function 形式 reranker，
    集合名校验更宽松，且文件锁只允许单进程。
+9. **`create_collection()` 会 drop 重建**：不能放在「每次写入前」调用，
+   否则每写一轮就把整个集合清空（ROADMAP 4.44 实测：4 轮写入成功却只剩 1 块）。
+   正确做法是先 `list_collections()` 判断，已存在就什么都不做。
+10. **`stream()` 产出的是节点增量，不是完整 state**：带 reducer 的字段
+    （如 `messages`）在图内累积到 4 条，但单次节点增量只有 2 条；
+    用 `dict.update()` 拼会把累积结果覆盖掉。记忆模式下应读
+    `graph.get_state(config).values`（ROADMAP 4.41）。
+11. **LangGraph 会把 TypedDict 里声明的 `messages` 初始化为 `[]`**：
+    所以「是否处于记忆模式」不能用 `state.get("messages") is not None` 判断
+    （恒为真），要用一个只有记忆模式才注入的字段（如 `session_id`）。
+12. **`history_store` 必须走项目的 `add_documents` 包装**：直接调
+    `vector_store_saved.add_documents` 只写 WAL 不 flush，
+    表现为「写入成功但 `row_count=0`、检索不到」（ROADMAP 4.44 bug ①）。
 
 ---
 
@@ -579,7 +669,8 @@ LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回
 
 | 文档 | 用途 |
 |---|---|
-| [`README.md`](README.md) | 总览、当前状态、快速开始、文档地图 |
-| [`ROADMAP.md`](ROADMAP.md) | 迭代日志与实测证据（按时间追加） |
+| [`ROADMAP.md`](ROADMAP.md) | 迭代日志与实测证据（按时间追加，**主文档**） |
+| [`CHANGELOG.md`](CHANGELOG.md) | 对外时间线与当前状态 |
 | [`docs/RESUME_PROJECT.md`](docs/RESUME_PROJECT.md) | 简历 / 面试口径 |
+| [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md) | 面试问答（含如何体现独立能力） |
 | [`docs/archive/HISTORY.md`](docs/archive/HISTORY.md) | LangChain 1.x 迁移历史（已完成） |

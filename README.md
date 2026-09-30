@@ -20,9 +20,9 @@
 | 生成 | DeepSeek `deepseek-flash`（OpenAI 兼容端点） |
 | 检索 | 稠密 HNSW/IP + BM25/jieba；集合内 RRF，跨集合二次 RRF |
 | 质量门禁 | **PASS** — recall 0.8664 · hit_rate 0.9375 · faithfulness **1.0000** · answer_relevancy 0.8750 |
-| 回归 | `run_all_checks.py --full` **13/13 判定通过**（含 API+SSE、多租户联动） |
-| 业务代码 | **5,176 行 / 45 个 `.py`** |
-| 评测代码 | **8,867 行 / 71 个 `.py`**（评测代码量超过业务代码） |
+| 回归 | `run_all_checks.py --full` **19/19 判定通过**（含 API+SSE、多租户联动） |
+| 业务代码 | **7,416 行 / 48 个 `.py`** |
+| 评测代码 | **11,999 行 / 81 个 `.py`**（评测代码量超过业务代码） |
 | golden 集 | 32 题 |
 
 > 523 是当前 Milvus 三个集合的 `row_count` 合计（257 + 179 + 87）；
@@ -145,7 +145,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/ask `
 # 检索 + 生成层（需要可用 LLM）
 .venv\Scripts\python.exe eval\run_eval.py --with-generation
 
-# 全量回归（判定项 13/13，含 API/SSE 与多租户）
+# 全量回归（判定项 19/19，含 API/SSE 与多租户）
 .venv\Scripts\python.exe eval\run_all_checks.py --full
 ```
 

@@ -5640,6 +5640,387 @@ scanned_performance_faq.pdf.md         6 块     vector_db_benchmark.xlsx.md    
 
 ---
 
+## 4.44 历史向量检索：找回「含具体数值的早期轮次」（为大数据量铺路）
+
+### 4.44.1 它解决什么不可替代的问题
+
+多轮记忆三层分工，各有边界：
+
+| 层 | 覆盖 | 找不到什么 |
+|---|---|---|
+| 最近 13 轮原文 | 近期指代（「它」）| 已掉出窗口的早期轮次 |
+| 摘要 | 主题脉络 | **具体数值**（摘要只留「讨论过 QPS」，不留 184.54）|
+| **★ 历史向量检索** | **按语义召回早期轮次原文** | — |
+
+典型场景：第 3 轮问「TurboPuffer 的 QPS 是多少」→ 答 184.54；
+第 30 轮问「刚才那个 QPS 对应的产品叫什么」—— 前两层都答不了，只有本层能。
+
+### 4.44.2 设计
+
+* **独立集合** `kb_session_history_bge_large_1024`，**不进 `DOC_SOURCES`** →
+  `_discover_collections()` 不会发现它，知识库检索永不污染。
+* **零 schema 改动**，复用现有字段：`category="history"` / `filename=session_id`（隔离键）/
+  `title="第 N 轮 @YYYY-MM"`（轮次 + TTL 月份桶）/ `category_depth=0`（schema 必需）。
+* **写入在图结束后**（`run_with_trace`），不在 `generate` 节点内 ——
+  否则 `not supported -> generate` 重试会**重复入库**。
+* **失败降级**：任何异常 `record_turn→False`、`lookup→[]`，**不抛**。
+* **默认开启**：影响面仅「显式传 `session_id` 的请求」；评测/回归/单轮 CLI 都不传 → 零影响。
+
+### 4.44.3 ⚠️ 真实验证抓到 2 个契约测试永远抓不到的 bug
+
+这是本节最重要的部分。**两个 bug 都让接口返回 `True`、日志说「写入成功」**：
+
+| # | 现象 | 根因 |
+|---|---|---|
+| ① | 4 轮「写入成功」，`num_entities=0`，检索 0 块 | 调了 `mv.vector_store_saved.add_documents`（langchain 原始方法，**只写 WAL 不 flush**）；应调项目的 `mv.add_documents`（内含 `client.flush(self.collection_name)`）|
+| ② | 修 ① 后仍只剩 1 块 | `_ensure()` 无条件调 `create_collection()`，而它 **drop 后重建** → **每写一轮先清空整个历史库** |
+
+**只有查服务端 `num_entities` 才能发现** —— 契约测试用假 store，永远看不到。
+
+修复后实测（真实 Milvus + 真实 embedding）：
+
+```
+session-A 写 3 轮 -> 检索命中 3 块
+  1.（第 1 轮）TurboPuffer...QPS 是多少？答：...QPS 为 184.54   ← 关键数值排第一
+  2.（第 3 轮）jieba 分词在哪里配置？
+  3.（第 2 轮）Milvus 支持哪些索引类型？
+session-B 检索 -> 只命中自己的 1 块（隔离生效）
+```
+
+### 4.44.4 TTL 清理
+
+* `purge_session(sid)` —— 删整段会话历史（会话结束 / 被遗忘权）。
+* `purge_expired(keep_months)` —— 按**月份桶**删（`title like "%@YYYY-MM"`）。
+
+**取舍**：Milvus 的 VARCHAR 无法对「字符串里的日期」做范围比较，零 schema 改动下只能按月桶。
+要按小时/天精确 TTL，需给 schema 加 INT64 字段 —— 而 `create_collection()` 是**所有集合共用**的，
+`add_documents` 必须随之补默认值，否则知识库入库全线 `DataNotMatchException`。**风险不成比例，故不做。**
+（精确到会话级的清理由 4.45 的滑动 TTL 补上，那才是真正有用的粒度。）
+
+### 4.44.5 验证
+
+```
+契约测试  eval/test_history_store.py   27/27（默认开启/隔离 expr/top_k/降级/purge/月份桶）
+端到端    eval/_verify_history_store.py 7/7（真实 Milvus，含 2 个 bug 的发现记录）
+```
+
+---
+
+## 4.45 会话管理：新开对话 + 滑动 TTL（6 小时）
+
+### 4.45.1 动机与一个前提纠正
+
+用户提出「新开对话解决历史过长」+「6 小时记忆时长」。
+
+**先纠正前提**：prompt 里注入的历史**已经有界**（13 轮 + 6,000 字 + 摘要 500 字 + top-3），
+跑 500 轮也不会爆。**真正无限增长的是存储**（`checkpoints.db` 每轮一份含完整 messages；
+历史集合每轮一块）。所以「新开对话」的真实价值是**语义隔离 + 可清理**，不是省 token。
+
+### 4.45.2 为什么 TTL 用 `last_active` 而不是创建时间
+
+「创建后 6 小时删」会**误删活跃会话**：
+
+```
+用户 9:00 持续问到 15:30（跨 6.5h）
+  创建时间 TTL -> 9:00 写入的历史 15:00 过期 -> 15:30 问「刚才那个 QPS」时历史已没了 ❌
+  滑动 TTL     -> last_active 一直刷新 -> 永不过期                                ✅
+```
+
+判据是 `now - last_active > ttl`，与创建时间无关。测试 S5 专门锁定：
+**刚 touch 的会话必须保留**。
+
+### 4.45.3 实现（复用 `checkpoints.db`，零新依赖零新文件）
+
+```sql
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY, created_at INTEGER, last_active INTEGER, title TEXT);
+```
+
+| 端点 | 作用 |
+|---|---|
+| `POST /sessions/new` | 服务端生成 `session_id`（UUID）+ 建档，返回 sid 与 ttl |
+| `GET /sessions` | 列表，按 `last_active` 倒序 |
+| `DELETE /sessions/{id}` | **三处一起清**：历史向量块 + `checkpoints`/`writes` 行 + 元数据行 |
+
+`run_with_trace(thread_id=...)` 里调 `ensure_session()`（upsert）——
+**宽容客户端自生成 UUID**：若严格「没建档就拒绝」，这些请求的记忆会**静默不持久化**，更难排查。
+
+### 4.45.4 后台清理（janitor）
+
+```
+SESSION_TTL_SECONDS      = 21600   # 6 小时不活跃
+SESSION_JANITOR_INTERVAL = 1800    # 30 分钟轮询一次（远小于 TTL，用户无感知）
+```
+
+启动方式：`@app.on_event("startup")` + **daemon 线程**。
+（用 `on_event` 而非新版 `lifespan`：后者要改 app 构造签名，影响面更大；
+`on_event` 虽 deprecated 但语义稳定，且本项目单 worker 部署，不存在多 worker 重复起线程的额外问题。）
+
+**为什么把清理逻辑抽成 `run_janitor_once()`**：后台线程的循环体极难单测
+（要起线程、sleep、信号同步）；抽成纯逻辑后测试可直接调用，线程只负责「每隔 N 秒调一次」。
+
+**多进程部署会重复跑**：幂等无害 —— `purge_expired_sessions` 只删已过期的，第二次自然为空。
+
+### 4.45.5 为什么不动 Milvus schema
+
+按小时删历史块需 INT64 时间字段，而 `create_collection()` 是所有集合共用的 ——
+加字段会让 `MilvusVectorSave.add_documents` 必须补默认值，否则知识库入库全线报错。
+**本方案不需要**：会话级清理走已实现的 `purge_session(sid)`，TTL 判定走 SQLite（毫秒级）。
+
+### 4.45.6 验证
+
+```
+契约测试  eval/test_session_store.py   22/22（临时 DB，不碰真实数据、不连 Milvus）
+                                       含 J1~J4 janitor 契约
+回归      run_all_checks               17/17
+API       3 个 /sessions 端点已注册并可加载；startup 处理器 2 个（含 janitor）
+```
+
+### 4.45.7 遗留与可调项
+
+* **`SESSION_TTL_SECONDS` 默认 6h**：跨天不继承。若实际场景有「隔天继续昨天的分析」，
+  改环境变量为 `86400` 即可，**无需改代码**。
+* **6h 整的边界**：间隔恰好在 6h 附近的会话可能被清（滑动判定是严格的 `>`）。
+* **janitor 目前无手动触发入口**：如需立即清理，可另加 `POST /sessions/purge`。
+
+---
+
+## 4.43 记忆上下文扩容：3 → 13 轮 + 总预算 + 摘要压缩（先规划审视，后 TDD）
+
+### 4.43.1 规划审视：先用真实数据判断「13 轮是否可行」
+
+用户提出「只留 3 轮太少，提到 13~15 轮」。**没有直接改常数**，先写
+`eval/_budget_history.py` 用真实数据算账：
+
+| 实测项 | 数据 | 结论 |
+|---|---|---|
+| `max_turns=3` | 1,079 字符 | — |
+| `max_turns=13` | **4,672 字符**（≈2,300 token） | **可行** |
+| `max_turns=15` | 5,390 字符 | 收益递减 |
+| 历史占 prompt 比重 | 13 轮 = **22%**（检索上下文 16,182 字符） | 远低于警戒线 |
+| question 长度 | n=173，中位 27 字，最长 49 | 本项目问题都很短 |
+| golden answer | n=32，中位 12 字 | 本项目答案普遍短 |
+
+**同时暴露一个我原设计的错误**：`text[:300]` 是**错误的约束形式**。
+
+    · 答案都短时（本项目正好如此）—— 它形同虚设，实测几乎不触发
+    · 出现长答案时 —— 它会把 13 轮**每轮都削掉一截**，得到 13 段残缺记忆
+
+→ 改为**总预算**约束（`MAX_HISTORY_CHARS`）：短答案时容纳满 13 轮，
+长答案时优雅退化成「只记最近几轮」。
+
+### 4.43.2 改了什么
+
+| 常量 | 旧 | 新 | 理由 |
+|---|---|---|---|
+| `MAX_HISTORY_TURNS` | 3 | **13** | 用户要求 + 实测体量可接受 |
+| `MAX_PER_MSG_CHARS` | 300 | **500** | 从主约束降为**防御性**上限 |
+| `MAX_HISTORY_CHARS` | 无 | **6000** | **新的主约束**：超出从最老的丢，保住最近 |
+| `SUMMARY_TRIGGER_TURNS` | 无 | **26**（=2×13） | 超过它才把更早内容压成摘要 |
+
+新增函数（都在 `graph2/generate_node2.py`）：
+
+* `_format_history(messages, max_turns, budget)` —— 改为**从最新往最旧累加**，
+  超预算即停。保证「绝不会为了留旧内容丢掉最新一轮」。
+* `_should_summarize(messages)` -> `(need, old_text)` —— 纯函数阈值判断，
+  返回「待摘要的旧内容」（超过最近 13 轮的部分）。
+* `build_history_prompt_part(messages, budget, summary)` -> `{summary, history}`
+  —— 纯函数拼装。**摘要文本由调用方传入**，因为它需要一次 LLM 调用，
+  藏进来会让单测也不得不走 LLM。
+* `_summarize(old_text, config)` —— 真调 LLM 压成摘要，失败返回空串不阻断。
+
+`generate` 里的接线：
+
+```python
+_need_sum, _old_text = _should_summarize(_msgs)
+_summary = state.get("summary") or ""
+if has_memory and _need_sum and not _summary:
+    _summary = _summarize(_old_text, config)      # 只在「超阈值且还没摘要过」时调一次
+history_text = _format_history(_msgs)
+if _summary:
+    history_text = "【更早内容的摘要】\n%s\n\n【最近的对话】\n%s" % (_summary, history_text)
+```
+
+`graph_state2` 新增 `summary: NotRequired[str]`，checkpointer 会跨轮带回来。
+
+### 4.43.3 成本取舍（写进代码注释）
+
+摘要**只在首次超过阈值时生成一次，之后复用 `state["summary"]`**，不每轮重算。
+
+    否则 40 轮会话要额外 14 次 LLM 调用，而收益递减 ——
+    最近 13 轮原文已经覆盖了大部分指代需求。
+
+### 4.43.4 验证
+
+**契约测试** `eval/test_history_budget.py`（21/21）：常量、预算内保最近丢最老、
+小预算顺序、单条上限、阈值判定、待摘要切片范围、`build_history_prompt_part` 组合、
+`_format_history` 纯函数性。
+
+**端到端（真实 LLM，不 mock）** `eval/_verify_history_e2e.py`（7/7）：
+
+```
+30 轮历史 + 1 问
+  messages 本轮新增 2 条（完整累积由图内 reducer 负责）
+  summary **真实生成 340 字**
+  摘要含早期主题：「TurboPuffer 召回率 61.35%」「Milvus HNSW 索引参数」「RRF 融合」
+  复用：带 summary 再来一轮 -> 原样保留（**未再调 LLM**）
+  单轮（无 messages）-> summary=None、不写 messages（零影响）
+```
+
+**回归**：**15/15 通过**。
+
+### 4.43.5 回归抓到的两处「测试自身过时」
+
+改动后首次回归出现 2 个 FAIL，**都是旧断言没跟上新设计，不是代码缺陷**：
+
+| 失败 | 原因 | 修法 |
+|---|---|---|
+| `单条截断到 300 字` | 上限已提到 500，输出 508（含「用户：」前缀）符合新设计 | 改为 `<= MAX_PER_MSG_CHARS + 8` |
+| `_format_history 内不出现 llm` | 切片区间从 `def _format_history` 到 `def generate`，把中间插入的 `_summarize`（**合理地在调 llm**）也圈进去 | 缩到「下一个顶层 def」为止 |
+
+**教训**：改常量后必须重跑**所有**相关测试 —— `test_memory.py` 是老测试，
+但它断言的正是被我改掉的行为。**「老测试全绿」不等于「新行为被覆盖」**。
+
+### 4.43.6 未做：历史向量检索（及原因）
+
+用户需求里包含它，本轮**刻意没做**，理由是审视后的判断：
+
+```
+要做它必须：新建 Milvus 集合 + 会话分区 schema + 写入链路 + 检索融合 + 隔离测试
+≈ 400 行，且它是三项里唯一「本项目规模下收益未被证明」的：
+
+  · 13 轮原文已覆盖近期指代
+  · 向量检索只在「第 20 轮问第 3 轮的事」才有增益
+  · 而本项目实测 173 条 trace 全是单轮会话，连 13 轮都很少用满
+```
+
+与项目一贯做法一致（多租户没加 schema、reranker 实测否决）：
+**收益未被数据证明的功能，不做**。等出现真实长会话数据再上，
+避免变成「造出来没人用的功能」。若将来要做，定位是**摘要的下一级兜底**。
+
+---
+
+## 4.42 企业级检索能力补齐 + 修正 4.15 的表述矛盾（TDD）
+
+### 4.42.0 先修一处前后矛盾：**4.15「否决父子块」与 4.40「用了父子块」并存**
+
+**矛盾的成因**（不是笔误，是**结论的范围下错了**）：
+
+```
+4.15  做「表格父子块」实验，结论写「否决：多个切片都能匹配上问题，父块无增益」
+      ^^ 那个实验**只覆盖了查询类问题**（「Milvus 怎么安装」这类）
+4.40  n005（跨行统计类）证明切片会导致 3/3 拒答，写了 merge_table_slices
+      ^^ 但它本质就是**父子块思想的轻量变体**（小块检索、生成前拼回完整表）
+```
+
+**所以 4.15 的正确表述应该是**：
+
+> 「表格父子块对**查询类**问题无增益（单切片即可回答）；
+> 对**跨行统计类**问题**是必需的**（n005 实证）；
+> 4.40 用「生成前合并」这种**不重建索引**的轻量方案覆盖了表格场景，
+> **真·父子块索引（索引期建父块）的领域是跨文档聚合**，那部分仍未做。」
+
+**4.40 的实现本质**（`graph2/generate_node2.py: merge_table_slices`）：
+
+| 维度 | 正统父子块（small-to-big） | 本项目的 `merge_table_slices` |
+|---|---|---|
+| 索引期 | 建父块（表级）+ 子块（行级）两套 | **不建**，只用现有切片 |
+| 检索期 | 搜子块 → 取其父块 | 直接搜切片，拿到的是碎片 |
+| 生成前 | 已是完整父块 | **把同表碎片拼回完整表** |
+| 成本 | 重建集合 + 改检索逻辑 | **零索引成本**，只在 generate 内拼 |
+
+**两者是同一思想的两种实现，差别只在「在索引期做还是生成期做」。**
+表述统一后不再自相矛盾。
+
+### 4.42.1 四个该上而没上的条件，本次落地情况
+
+| 条件 | 本次落地 | 状态 |
+|---|---|---|
+| ① 延迟撑不住 LLM 判分 | `enterprise_rerank`：先用 reranker 收敛，只把高分块送判分 | ✅ 已实现，**默认关闭** |
+| ② 检索深度 k 被迫加大 | `PER_COLLECTION_K_DEEP=20` / `FINAL_K_DEEP=60`，聚合类查询走深检索 | ✅ 已实现，**默认开启**（仅聚合类） |
+| ③ 跨块/跨文档聚合 | `is_aggregation_query()` 识别 + 深检索；表格侧已有 `merge_table_slices` | ✅ 表格侧完成；**跨文档聚合仍未做** |
+| ④ 需要硬过滤省 LLM 成本 | **用 reranker 分数做门槛**（不是裸 cosine） | ✅ 已实现，默认阈值 0（不过滤） |
+
+**为什么reranker 默认关闭**：24 个提交的既有指标全部建立在「无精排」之上，
+默认开启会让 recall/faithfulness 的对比失去基线；
+企业级部署设 `RERANK_ENABLED=1` 即可启用（届时同时承担 ① 和 ④）。
+`measure_rerank_gain.py` 的质量结论（天花板 9%、增益 0）**不被推翻**——
+本模块提供的是**开关**，不是「默认开启」。
+
+**关键取舍：为什么 reranker 放在 `retrieve` 节点内而不是新建图节点**：
+
+| 方案 | 代价 |
+|---|---|
+| 新建 `rerank` 节点 | 改图拓扑（加节点 + 改边），影响全部回归与 `test_pipeline_smoke` |
+| **在 `retrieve` 内后处理**（采纳） | 零拓扑改动，回归只新增 1 项 |
+
+### 4.42.2 TDD 过程与抓到的自身 bug
+
+**测试先行**：`eval/test_rerank.py`，31 项断言，**跑在实现之前**（先确认 RED：`ModuleNotFoundError`）。
+
+**实现过程中被测试抓出 3 个自身 bug**：
+
+| # | bug | 测试怎么抓到 |
+|---|---|---|
+| 1 | `retriever_tools.py` 用了 `os.getenv` 但**没 import os** | C8 一跑就 `NameError` |
+| 2 | `enterprise_rerank` 不读 `_override` 注入值 → top_k/threshold **完全不生效** | C3/C4 FAIL（截断 3、过滤不生效） |
+| 3 | 测试的 `FakeReranker` 用 0-based 分数（0/1/2），与断言语义不符 | C2 FAIL（降序后只剩 1 块） |
+
+其中 #2 是**测试注入点被主逻辑绕过**——若没有先写测试，这个开关在生产里会「看起来能配、实际不生效」。
+
+### 4.42.3 验证
+
+**回归**：**14/14 通过**（新增「企业级精排 31/31」）。
+
+**标准评测（检索层）**：`runnable/run_eval.py --no-save`
+
+```
+context_recall    0.8664   与改造前**完全一致**
+hit_rate          0.9375   一致
+context_precision 0.0496   一致
+分源              manuals 0.9643 · milvus 1.0 · papers 0.7464 · out_of_scope 0.0   一致
+```
+
+→ **深检索与精排默认关闭的组合，对既有指标零影响**。
+
+**深检索 A/B**（`eval/_ab_deep_retrieval.py`，n005，不调 LLM）：
+
+```
+路径                      块数    golden 命中
+普通 (per_k=12)            36      2/2
+深检索 (per_k=20)          60      2/2   ← 多召回 24 块候选
+```
+
+**如实说明**：该题 golden 覆盖**持平**——per_k=12 时 top-36 已覆盖两块 golden。
+深检索的价值**不是本题提升**，而是：① 为大规模语料下「聚合类问题需要更多候选」预留能力；
+② 多出的 24 块候选交给 reranker 精排收敛（`RERANK_ENABLED=1` 时才有意义）。
+**不把它写成"提升了召回"**。
+
+### 4.42.4 企业级启用方式（一行业务配置）
+
+```bash
+RERANK_ENABLED=1                  # 开启精排（同时获得条件 ① 和 ④）
+RERANK_TOP_K=20                   # 精排后保留 20 块
+RERANK_SCORE_THRESHOLD=0.15        # reranker 分数门槛，低于此值不送 LLM 判分
+PER_COLLECTION_K_DEEP=30          # 聚合类的深检索再加深（需同步 FINAL_K_DEEP）
+```
+
+**深检索与租户的边界**：深检索**只在无租户的全局路径生效**——
+租户路径涉及授权边界（多取是否会读到未授权的块要看租户集合划分），留给后续。
+
+### 4.42.5 仍未做的（说清边界）
+
+```
+❌ 跨**文档**聚合：「比较 A 文档和 B 文档的指标」—— 需要结构化查询或真·父块索引
+❌ 租户路径的深检索：授权边界需要单独设计
+❌ reranker 的 A/B 质量数据：本次只锁定工程契约，质量对比需单独跑
+   （measure_rerank_gain.py 已有基线：天花板 9%）
+❌ 深检索的**必要性**在本项目规模下未被证明（A/B 显示持平）——
+   它属于「能力预留」，不应包装成优化成果
+```
+
+---
+
 ## 4.41 graph2 多轮记忆模块（原本完全没有）
 
 ### 4.41.1 改造前的事实
