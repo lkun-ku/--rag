@@ -110,9 +110,24 @@ def merge_table_slices(docs, max_chars: int = 20000):
 
     out: list[tuple[int, object]] = []
     for _key, items in groups.items():
-        if len(items) < 2 or not all(_is_table_text(d.page_content) for _, d in items):
+        # [FIX / 演示暴露] **容错**：只要求组内**至少 2 个表格块**，不再要求「每一块都是表格」。
+        #
+        # 原判据 `not all(_is_table_text(...))` 过于严格：同一 title 下往往还有一个
+        # **纯文本标题块**（内容就是表名、1 行），它会让**整组放弃合并**。
+        # 实测（vector_db_benchmark.xlsx.md，6 块）：
+        #     title="检索性能实测" 组 = 1 个标题块 + 3 个表格块（第 1-30 / 31-60 / 61-85 行）
+        #     -> 因标题块非表格 -> 整组不合并 -> 仍是 3 张「各自带表头」的碎片
+        #     -> 模型当成三张独立的表分别看，只报告第一块里的最低值（89.93%），
+        #        而全局最低 61.35% 在第二块里。
+        # 改为：非表格块**原样保留**，只把表格块合并。
+        table_items = [(i, d) for i, d in items if _is_table_text(d.page_content)]
+        if len(table_items) < 2:
             out.extend(items)
             continue
+        for i, d in items:
+            if not _is_table_text(d.page_content):
+                out.append((i, d))          # 非表格块原样保留
+        items = table_items
 
         ordered = sorted(items, key=lambda x: _start_line(x[1].page_content))
         merged_lines: list[str] = []

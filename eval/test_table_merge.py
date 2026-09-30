@@ -141,6 +141,26 @@ check("其它表仍在", any("别的表" in d.page_content for d in out))
 
 print()
 print("=" * 100)
+print("C8 组内混有**非表格块**（标题块）-> 只合并表格块，标题块原样保留")
+print("=" * 100)
+# 实测复现：vector_db_benchmark.xlsx.md 的 title="检索性能实测" 组 =
+#   1 个纯文本标题块 + 3 个表格块（第 1-30 / 31-60 / 61-85 行）
+# 原判据「每块都必须是表格」会让整组放弃合并 -> 3 张各自带表头的碎片
+title_block = Document(page_content="检索性能实测",
+                       metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"})
+d1 = tbl([("静态", 1, 89.93)], 1, 30)
+d2 = tbl([("带过滤", 2, 61.35)], 31, 60)
+out = merge_table_slices([title_block, d1, d2])
+check("3 块 -> 2 块（表格合并、标题块保留）", len(out) == 2, len(out))
+check("标题块原样保留",
+      any(d.page_content.strip() == "检索性能实测" for d in out))
+check("合并块含 61.35", any("61.35" in d.page_content for d in out))
+check("表头只出现一次",
+      sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out) == 1,
+      sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out))
+
+print()
+print("=" * 100)
 # [注意] 必须输出 `X/Y 通过` 格式 —— `run_all_checks.py` 靠正则解析通过率，
 # 只写「全部通过」会被判成「已运行，无通过率可解析」，等于注册了但不计入判定项。
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))
