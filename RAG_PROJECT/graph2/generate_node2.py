@@ -346,6 +346,22 @@ def _summarize(old_text: str, config=None) -> str:
         return ""
 
 
+# [ROADMAP 4.46] **聚合类问题的额外引导**。
+#
+# 实测背景（`eval/_diag_ctx.py`）：修好「标题块阻断合并」后，87 行的完整表
+# **确实进入了上下文**（同时含 61.35 与 89.93），但模型仍答 89.93% ——
+# 它只比较了第一个场景（静态检索），没扫完整个表。
+#
+# 所以问题不在检索、也不在合并，而在**「怎么让模型读完这张表」**。
+# 这段引导只对 `is_aggregation_query()` 命中的问题追加，不影响其它问题；
+# 且**只拼进 payload 的 question，不写入 messages**，避免污染对话历史。
+AGG_HINT = (
+    "\n\n（本题需要**跨行比较**：请逐行扫描表格中的**所有场景 / 所有行**，"
+    "先列出每个候选值，再给出最小（或最大）者与它的完整条件。"
+    "不要只看第一行、第一个场景或第一个分组。）"
+)
+
+
 def generate(state, config=None):
     """
     生成回答
@@ -444,7 +460,13 @@ def generate(state, config=None):
     # 但一旦有人为了提速把它改成并发（线程池），token 会**静默归零** ——
     # 正是 `grade_documents` 首版踩过的坑（判分用了线程池 -> 统计不到 -> 4.22 才发现）。
     # 显式传递把这个隐式依赖消掉。
-    payload = {"context": format_docs(documents), "question": question}
+    # [ROADMAP 4.46] 聚合类问题：在**送模型的 question** 上追加跨行比较引导。
+    # 注意下面 `updates["messages"]` 用的仍是**原始 `question`** ——
+    # 引导语不进历史，否则下一轮会把这段提示当成用户说过的话。
+    from tools.reranker_tools import is_aggregation_query
+    _q = question + AGG_HINT if is_aggregation_query(question) else question
+
+    payload = {"context": format_docs(documents), "question": _q}
     if history_text:
         payload["history"] = history_text
     generation = rag_chain.invoke(payload, config=_sub_config(config))  # 调用RAG链生成回答
