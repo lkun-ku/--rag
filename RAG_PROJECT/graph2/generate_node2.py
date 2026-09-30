@@ -460,13 +460,28 @@ def generate(state, config=None):
     # 但一旦有人为了提速把它改成并发（线程池），token 会**静默归零** ——
     # 正是 `grade_documents` 首版踩过的坑（判分用了线程池 -> 统计不到 -> 4.22 才发现）。
     # 显式传递把这个隐式依赖消掉。
-    # [ROADMAP 4.46] 聚合类问题：在**送模型的 question** 上追加跨行比较引导。
-    # 注意下面 `updates["messages"]` 用的仍是**原始 `question`** ——
-    # 引导语不进历史，否则下一轮会把这段提示当成用户说过的话。
+    # [ROADMAP 4.46/4.47] 聚合类问题：**结构化计算 + 引导**。
+    #
+    # 三层排查证明瓶颈在「模型扫不完 87 行表格」（见 tools/table_query.py 的文档）。
+    # 所以这里先把跨行比较**交给 pandas 算准**，把结果作为「事实」注入 context，
+    # 模型只需陈述；算不出来（返回 None）时才退回「让模型自己扫 + 引导」。
+    #
+    # 注意：`updates["messages"]` 用的仍是**原始 `question`** —— 引导语与事实
+    # 都不进历史，否则下一轮会把它们当成用户说过的话。
     from tools.reranker_tools import is_aggregation_query
-    _q = question + AGG_HINT if is_aggregation_query(question) else question
+    from tools.table_query import answer_aggregation
 
-    payload = {"context": format_docs(documents), "question": _q}
+    _is_agg = is_aggregation_query(question)
+    _q = question + AGG_HINT if _is_agg else question
+    _ctx = format_docs(documents)
+    if _is_agg:
+        _fact = answer_aggregation(question, documents)
+        if _fact:
+            log.info("[generate] 聚合类问题已用代码精确计算：%s" % _fact[:80])
+            _ctx = ("【已由代码精确计算的事实 —— 请直接采用该结论，不要自行重新比较】\n"
+                    "%s\n\n" % _fact) + _ctx
+
+    payload = {"context": _ctx, "question": _q}
     if history_text:
         payload["history"] = history_text
     generation = rag_chain.invoke(payload, config=_sub_config(config))  # 调用RAG链生成回答
