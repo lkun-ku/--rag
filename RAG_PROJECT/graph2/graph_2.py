@@ -435,6 +435,10 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
         t.save()
     return {"generation": gen, "trace": t.to_dict(),
             "documents": final_state.get("documents", []),
+            # [FIX / 演示暴露] **必须返回 citations** —— `generate` 产出的
+            # 「编号 -> 原文块」映射（ROADMAP 2.1 引用溯源）此前没被带出来，
+            # 导致调用方拿到的引用列表**恒为空**，答案里的 `[1]` 无从校验来源。
+            "citations": final_state.get("citations", []),
             # [ROADMAP 4.41] 供调用方检查多轮历史是否在累积（单轮模式下恒为空）
             "messages": final_state.get("messages", []),
             "session_id": thread_id}
