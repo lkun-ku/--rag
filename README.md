@@ -15,7 +15,7 @@
 
 | 项 | 当前值 |
 |---|---|
-| 语料 | **18 文件 / 523 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
+| 语料 | **18 文件 / 454 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
 | 支持格式 | `.md` · `.pdf` · `.docx` · `.xlsx` · `.pptx` · **`.html`** · **`.txt`**<br>（html/txt 转 Markdown 后复用同一管道；不支持 `.doc`/`.xls`/`.csv`/图片）|
 | 嵌入 | `BAAI/bge-large-zh-v1.5`，**1024 维**，本地 CPU |
 | 生成 | DeepSeek `deepseek-flash`（OpenAI 兼容端点） |
@@ -26,8 +26,8 @@
 | 评测代码 | **11,999 行 / 81 个 `.py`**（评测代码量超过业务代码） |
 | golden 集 | 32 题 |
 
-> 523 是当前 Milvus 三个集合的 `row_count` 合计（257 + 179 + 87）；
-> `eval/chunk_index.json` 的 496 是历史快照，不代表当前行数。
+> 454 是当前 Milvus 三个集合的 `row_count` 合计（216 + 160 + 78）；
+> `eval/chunk_index.json` 的 496 是**重灌前**的历史快照，不代表当前行数。
 
 ---
 

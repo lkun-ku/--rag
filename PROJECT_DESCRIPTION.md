@@ -28,10 +28,10 @@
 | 业务代码 | **8,099 行 / 52 个 `.py`** |
 | 评测与验证代码 | **12,961 行 / 90 个 `.py`** |
 | 根目录 `scripts/` | **1,166 行 / 4 个 `.py`** |
-| 语料 | **18 文件 / 523 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
+| 语料 | **18 文件 / 454 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
 | golden 集 | 32 题 |
 
-> 523 是当前 Milvus 三个集合的 `row_count` 合计（257 + 179 + 87，已实测）；
+> 454 是当前 Milvus 三个集合的 `row_count` 合计（216 + 160 + 78，已实测）；
 > `eval/chunk_index.json` 的 496 是历史快照，不代表当前行数。
 
 业务代码分布：
@@ -601,7 +601,7 @@ LLM 不可用时返回 `INCONCLUSIVE`（退出码 3），**不得判为质量回
 |---|---:|
 | `context_recall` | **0.8664** |
 | `hit_rate` | **0.9375** |
-| `context_precision` | 0.0496（仅监控） |
+| `context_precision` | 0.0477（仅监控） |
 | `faithfulness` | **1.0000** |
 | `answer_relevancy` | **0.8750** |
 | 门禁判定 | **PASS** |

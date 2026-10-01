@@ -150,7 +150,7 @@ contextvar 传递，而**线程池不继承它** —— 用三条对照实验证
 | 层 | 选型 |
 |---|---|
 | 编排 | **LangGraph** 1.2.14 / LangChain 1.4.3（CRAG 工作流 + 条件边路由 + 自纠错循环） |
-| 向量库 | **Milvus** 3.0.1 + pymilvus 3.0.2（3 集合 · 523 块 · 服务端 jieba 中文分词） |
+| 向量库 | **Milvus** 3.0.1 + pymilvus 3.0.2（3 集合 · 454 块 · 服务端 jieba 中文分词） |
 | 检索 | **稠密（bge-large-zh-v1.5 / 1024 维）+ BM25 稀疏** 双路召回，**RRF 融合** |
 | 生成 | **DeepSeek** `deepseek-flash`（OpenAI 兼容协议 + `with_structured_output`） |
 | 服务化 | **FastAPI + SSE** 流式推送；多租户配置隔离 |
