@@ -354,6 +354,21 @@ def _flat_twin_values(chunks: Sequence[str]) -> set:
     return vals
 
 
+def _table_body_chars(chunks: Sequence[str]) -> int:
+    """结构化块里**表格本体**的字符数（剔除「表格：{表名}」「列名：...」前缀行）。
+
+    这两行是 `grid_to_markdown` 加的自解释前缀，长度取决于表名（可能是一条完整面包屑），
+    与表格数据量无关。把它算进长度比，判定就会随表名长度漂移（见 `is_flat_twin` 判据 3）。
+    """
+    total = 0
+    for c in chunks or []:
+        for line in (c or '').splitlines():
+            if line.startswith('表格：') or line.startswith('列名：'):
+                continue
+            total += len(line)
+    return total
+
+
 def is_flat_twin(flat_text: str, table_chunks: Sequence[str]) -> bool:
     """该扁平文本是否为「已产出结构化块的表格」的孪生（是则可安全丢弃）。
 
@@ -388,7 +403,11 @@ def is_flat_twin(flat_text: str, table_chunks: Sequence[str]) -> bool:
         return False
 
     # 判据 3：长度比 —— 防止「同内容被重复多遍」之类的畸形输入
-    total = sum(len(c) for c in table_chunks)
+    # [FIX] 分母只算**表格本体**，剔除我们自己加的「表格：{表名}」「列名：...」前缀。
+    # 前缀长度随表名变化（表名是完整面包屑，实测 50~70 字符），把它算进分母会把比值
+    # 压向下界：同一张 -db 表，表名取末段时 ratio=0.60（判为孪生），改成全面包屑后
+    # ratio=0.48（翻成非孪生）-> 扁平文本与结构化表格**两份入库**（实测 9/24 张表翻转）。
+    total = _table_body_chars(table_chunks)
     if total <= 0:
         return False
     lo, hi = _FLAT_TWIN_LEN_RATIO

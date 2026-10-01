@@ -56,6 +56,8 @@ CHECKS = [
     ("同表切片合并", "eval/test_table_merge.py", "quick", "同表多切片合并（表头去重/乱序/超限/非表格）"),
     # [ROADMAP 4.48] 语义分块封装：隔离 langchain-experimental sunset 风险
     ("语义分块封装", "eval/test_semantic_splitter.py", "quick", "SemanticChunker 封装 + 降级告警"),
+    # [4.x] 面包屑 / 归属契约：parent_id 缺失时的标题合并正确性
+    ("面包屑归属", "eval/test_markdown_breadcrumb.py", "quick", "标题合并 + 父子归属 + 表块命名"),
     # [ROADMAP 4.49] 按章节聚合（Parent-Child 检索后轻量版，默认关）
     ("按章节聚合", "eval/test_section_merge.py", "quick", "同章节父子块聚合 + 超限拆分 + 默认关"),
     # [ROADMAP 4.51/4.52] Parent-Child：结构感知切分 + 子块检索父块回查（默认关）
