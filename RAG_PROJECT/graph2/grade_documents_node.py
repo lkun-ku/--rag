@@ -141,8 +141,7 @@ def grade_documents(state, config=None):
         # 日志会与真实行为不符（静默不一致）。此处直接把常量读在当前作用域，
         # 保证「日志说的」= 「代码做的」。
         _bs = max(1, int(BATCH_SIZE or 1))
-        log.info(f"---GRADE(batch): 判分完成 {kept}/{total} 块保留"
-                 f"（批大小 {_bs}，共 {-(-total // _bs)} 次调用）---")
+        log.info(f"---GRADE(batch): 判分完成 {kept}/{total} 块保留（批大小 {_bs}，共 {-(-total // _bs)} 次调用）---")
         return {"documents": filtered_docs, "question": question}
 
     # 文档评分与过滤（并发；executor.map 保序）
@@ -161,8 +160,7 @@ def grade_documents(state, config=None):
         else:
             log.info("---GRADE: 打印不相关标识,并丢掉doc---")
 
-    log.info(f"---GRADE: 判分完成 {len(filtered_docs)}/{len(documents)} 块保留"
-             f"（并发度 {workers}）---")
+    log.info(f"---GRADE: 判分完成 {len(filtered_docs)}/{len(documents)} 块保留（并发度 {workers}）---")
     return {"documents": filtered_docs, "question": question}  # 返回仅含相关文档的状态
 
 
@@ -202,8 +200,7 @@ class _BlockVerdict(BaseModel):
 class _BatchVerdicts(BaseModel):
     """整批判定。"""
 
-    verdicts: List[_BlockVerdict] = Field(
-        description="每个块的判定，**必须覆盖所有块且每个块只出现一次**")
+    verdicts: List[_BlockVerdict] = Field(description="每个块的判定，**必须覆盖所有块且每个块只出现一次**")
 
 
 _BATCH_SYSTEM = """你是一个评估检索文档与用户问题相关性的评分器。
@@ -231,12 +228,13 @@ def _get_batch_chain():
     """惰性构造批量判分链（模块级缓存，避免每次重复构造）。"""
     global _batch_chain
     if _batch_chain is None:
-        structured = llm.with_structured_output(_BatchVerdicts,
-                                                method=LLM_STRUCTURED_METHOD)
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", _BATCH_SYSTEM),
-            ("human", _BATCH_HUMAN),
-        ])
+        structured = llm.with_structured_output(_BatchVerdicts, method=LLM_STRUCTURED_METHOD)
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", _BATCH_SYSTEM),
+                ("human", _BATCH_HUMAN),
+            ]
+        )
         _batch_chain = prompt | structured
     return _batch_chain
 
@@ -270,14 +268,12 @@ USE_BATCH_GRADE = True
 
 def _format_blocks(docs) -> str:
     """把块按 `【块 N】` 编号后拼成一段（编号是回填 index 的唯一依据）。"""
-    return "\n\n".join(
-        "【块 %d】\n%s" % (i, (d.page_content or "")) for i, d in enumerate(docs, 1)
-    )
+    return "\n\n".join("【块 %d】\n%s" % (i, (d.page_content or "")) for i, d in enumerate(docs, 1))
 
 
-def grade_batch(question: str, documents, config=None,
-                batch_size: int = BATCH_SIZE,
-                max_workers: int = MAX_GRADE_WORKERS) -> List[bool]:
+def grade_batch(
+    question: str, documents, config=None, batch_size: int = BATCH_SIZE, max_workers: int = MAX_GRADE_WORKERS
+) -> List[bool]:
     """批量判分：一次 LLM 调用判 `batch_size` 个块，返回每块是否相关。
 
     Args:
@@ -319,7 +315,7 @@ def grade_batch(question: str, documents, config=None,
     out: List[bool] = [True] * len(docs)
     chain = _get_batch_chain()
     size = max(1, int(batch_size or 1))
-    batches = [(s, docs[s:s + size]) for s in range(0, len(docs), size)]
+    batches = [(s, docs[s : s + size]) for s in range(0, len(docs), size)]
 
     def _run_batch(item):
         """跑一批。返回 (start, chunk, result_or_None, error_or_None)。"""
@@ -343,14 +339,15 @@ def grade_batch(question: str, documents, config=None,
     for start, chunk, res, err in results:
         no = start // size + 1
         if err is not None:
-            log.warning(f"---GRADE(batch): 第 {no} 批判分失败，"
-                        f"保守保留该批 {len(chunk)} 块: {type(err).__name__}: {str(err)[:80]}---")
+            log.warning(
+                f"---GRADE(batch): 第 {no} 批判分失败，"
+                f"保守保留该批 {len(chunk)} 块: {type(err).__name__}: {str(err)[:80]}---"
+            )
             continue
 
         verdicts = getattr(res, "verdicts", None) or []
         if not verdicts:
-            log.warning(f"---GRADE(batch): 第 {no} 批未返回任何判定，"
-                        f"保守保留该批 {len(chunk)} 块---")
+            log.warning(f"---GRADE(batch): 第 {no} 批未返回任何判定，保守保留该批 {len(chunk)} 块---")
             continue
 
         got = 0
@@ -368,14 +365,12 @@ def grade_batch(question: str, documents, config=None,
             # （把相关块丢掉）；同时 `got` 会重复计数，
             # 使下面「缺判告警」失效（got 虚高到等于 len(chunk)）。
             if idx in seen_idx:
-                log.warning(f"---GRADE(batch): 第 {no} 批出现重复编号 {idx}，"
-                            f"保留首次判定、忽略后续---")
+                log.warning(f"---GRADE(batch): 第 {no} 批出现重复编号 {idx}，保留首次判定、忽略后续---")
                 continue
             seen_idx.add(idx)
             out[start + idx - 1] = bool(getattr(v, "relevant", True))
             got += 1
         if got < len(chunk):
-            log.warning(f"---GRADE(batch): 第 {no} 批只返回 {got}/"
-                        f"{len(chunk)} 个判定，缺失的块保守保留---")
+            log.warning(f"---GRADE(batch): 第 {no} 批只返回 {got}/{len(chunk)} 个判定，缺失的块保守保留---")
 
     return out

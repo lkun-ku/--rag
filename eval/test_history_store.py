@@ -27,6 +27,7 @@
 | V7 | 历史集合**不在** `_discover_collections()` 里（不污染知识库检索） |
 | V8 | 无 session_id 的调用：write 返回 False、search 返回 []（单轮零影响） |
 """
+
 from __future__ import annotations
 
 import inspect
@@ -73,10 +74,17 @@ class FakeStore:
         self.calls.append(("search", session_id, query, top_k, filter_expr))
         if self.boom:
             raise RuntimeError("Milvus 挂了")
-        return [Document(page_content="问：%s\n答：历史答案" % query,
-                         metadata={"category": "history", "filename": session_id,
-                                   "title": "第 3 轮", "source": "session_history"})]
-
+        return [
+            Document(
+                page_content="问：%s\n答：历史答案" % query,
+                metadata={
+                    "category": "history",
+                    "filename": session_id,
+                    "title": "第 3 轮",
+                    "source": "session_history",
+                },
+            )
+        ]
 
     def purge(self, filter_expr):
         """TTL 清理的假实现：记录收到的过滤条件，可指定抛异常。"""
@@ -106,14 +114,12 @@ print("=" * 100)
 ok = hs.record_turn("sess-A", 7, "TurboPuffer 的 QPS？", "184.54 QPS [1]")
 check("V2 write 委派一次", ok is True and len(fs.calls) == 1, fs.calls[:1])
 w = fs.calls[0]
-check("委派参数完整（session/turn/q/a）",
-      w[1:] == ("sess-A", 7, "TurboPuffer 的 QPS？", "184.54 QPS [1]"), str(w))
+check("委派参数完整（session/turn/q/a）", w[1:] == ("sess-A", 7, "TurboPuffer 的 QPS？", "184.54 QPS [1]"), str(w))
 
 res = hs.lookup_history("sess-A", "那个 QPS 对应的产品", top_k=5)
 # 调用记录：("search", session_id, query, top_k, filter_expr) —— 索引 3 是 top_k
 check("V4 top_k=5 透传", fs.calls[-1][3] == 5, str(fs.calls[-1]))
-check("V6 返回块带 session_id 元数据",
-      res and res[0].metadata.get("filename") == "sess-A", str(res[:1]))
+check("V6 返回块带 session_id 元数据", res and res[0].metadata.get("filename") == "sess-A", str(res[:1]))
 check("V6 返回块带轮次元数据", res and res[0].metadata.get("title") == "第 3 轮")
 
 print()
@@ -137,8 +143,7 @@ spy = SpyStore()
 hs._reset_for_test(enabled=True, store=spy)
 hs.lookup_history("sess-B", "问题", top_k=3)
 last = spy.calls[-1]
-check("V3 底层真的收到了含 session_id 的过滤条件",
-      "sess-B" in str(last[-1]) and "history" in str(last[-1]), str(last))
+check("V3 底层真的收到了含 session_id 的过滤条件", "sess-B" in str(last[-1]) and "history" in str(last[-1]), str(last))
 
 print()
 print("=" * 100)
@@ -154,11 +159,16 @@ print("=" * 100)
 print("V7 历史集合不污染知识库检索")
 print("=" * 100)
 cols = _discover_collections()
-check("HISTORY_COLLECTION 不在 DOC_SOURCES 发现的集合里",
-      hs.HISTORY_COLLECTION not in cols, "%s in %s" % (hs.HISTORY_COLLECTION, cols))
-check("HISTORY_COLLECTION 常量已定义",
-      isinstance(hs.HISTORY_COLLECTION, str) and hs.HISTORY_COLLECTION.startswith("kb_"),
-      hs.HISTORY_COLLECTION)
+check(
+    "HISTORY_COLLECTION 不在 DOC_SOURCES 发现的集合里",
+    hs.HISTORY_COLLECTION not in cols,
+    "%s in %s" % (hs.HISTORY_COLLECTION, cols),
+)
+check(
+    "HISTORY_COLLECTION 常量已定义",
+    isinstance(hs.HISTORY_COLLECTION, str) and hs.HISTORY_COLLECTION.startswith("kb_"),
+    hs.HISTORY_COLLECTION,
+)
 
 print()
 print("=" * 100)
@@ -178,12 +188,15 @@ fs2 = FakeStore()
 hs._reset_for_test(enabled=True, store=fs2)
 n = hs.purge_session("sess-X")
 check("V11 purge_session 委派 delete", len(fs2.purged) == 1, fs2.purged)
-check("V11 过滤条件含 session_id + history",
-      'filename == "sess-X"' in fs2.purged[0] and 'category == "history"' in fs2.purged[0],
-      fs2.purged[:1])
+check(
+    "V11 过滤条件含 session_id + history",
+    'filename == "sess-X"' in fs2.purged[0] and 'category == "history"' in fs2.purged[0],
+    fs2.purged[:1],
+)
 check("V11 返回删除条数", isinstance(n, int) and n >= 0, n)
 
 import datetime as _dt  # noqa: E402
+
 now = _dt.datetime.now()
 fs2.purged.clear()
 hs.purge_expired(keep_months=0)
@@ -192,8 +205,7 @@ y, m = now.year, now.month - 1
 while m <= 0:
     m += 12
     y -= 1
-check("V12 keep_months=0 -> 删上个月的桶",
-      ("%04d-%02d" % (y, m)) in buckets, buckets[:120])
+check("V12 keep_months=0 -> 删上个月的桶", ("%04d-%02d" % (y, m)) in buckets, buckets[:120])
 check("V12 过滤用 like 后缀匹配", "like" in buckets, buckets[:120])
 
 fs3 = FakeStore(boom=True)
@@ -201,9 +213,14 @@ hs._reset_for_test(enabled=True, store=fs3)
 check("V13 purge_session 异常 -> 返回 0 不抛", hs.purge_session("s") == 0)
 check("V13 purge_expired 异常 -> 返回 0 不抛", hs.purge_expired() == 0)
 
-check("V14 title 带 @YYYY-MM 月份桶（TTL 依据）",
-      any("@" in (d.metadata.get("title") or "") for d in
-          [Document(page_content="x", metadata={"title": "第 1 轮 @2026-10"})]) or True)
+check(
+    "V14 title 带 @YYYY-MM 月份桶（TTL 依据）",
+    any(
+        "@" in (d.metadata.get("title") or "")
+        for d in [Document(page_content="x", metadata={"title": "第 1 轮 @2026-10"})]
+    )
+    or True,
+)
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

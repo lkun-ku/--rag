@@ -71,8 +71,13 @@ class MilvusVectorSave:
         client = MilvusClient(uri=MILVUS_URI)
         schema = client.create_schema()
         schema.add_field(field_name='id', datatype=DataType.INT64, is_primary=True, auto_id=True)
-        schema.add_field(field_name='text', datatype=DataType.VARCHAR, max_length=6000, enable_analyzer=True,
-                         analyzer_params={"tokenizer": "jieba", "filter": ["cnalphanumonly"]})
+        schema.add_field(
+            field_name='text',
+            datatype=DataType.VARCHAR,
+            max_length=6000,
+            enable_analyzer=True,
+            analyzer_params={"tokenizer": "jieba", "filter": ["cnalphanumonly"]},
+        )
         schema.add_field(field_name='category', datatype=DataType.VARCHAR, max_length=1000)
         schema.add_field(field_name='source', datatype=DataType.VARCHAR, max_length=1000)
         schema.add_field(field_name='filename', datatype=DataType.VARCHAR, max_length=1000)
@@ -103,7 +108,7 @@ class MilvusVectorSave:
                 "inverted_index_algo": "DAAT_MAXSCORE",
                 # Algorithm for building and querying the index. Valid values: DAAT_MAXSCORE, DAAT_WAND, TAAT_NAIVE.
                 "bm25_k1": 1.2,
-                "bm25_b": 0.75
+                "bm25_b": 0.75,
             },
         )
         index_params.add_index(
@@ -111,7 +116,7 @@ class MilvusVectorSave:
             index_name="dense_inverted_index",
             index_type=IndexType.HNSW,  # Inverted index type for sparse vectors
             metric_type=MetricType.IP,
-            params={"M": 16, "efConstruction": 64}  # M :邻接节点数, efConstruction: 搜索范围
+            params={"M": 16, "efConstruction": 64},  # M :邻接节点数, efConstruction: 搜索范围
         )
 
         if self.collection_name in client.list_collections():
@@ -121,11 +126,7 @@ class MilvusVectorSave:
             client.drop_index(collection_name=self.collection_name, index_name='dense_inverted_index')
             client.drop_collection(collection_name=self.collection_name)
 
-        client.create_collection(
-            collection_name=self.collection_name,
-            schema=schema,
-            index_params=index_params
-        )
+        client.create_collection(collection_name=self.collection_name, schema=schema, index_params=index_params)
 
     def check_dim_consistency(self):
         """若目标集合已存在，校验其 dense 维度与当前嵌入模型是否一致。
@@ -142,8 +143,7 @@ class MilvusVectorSave:
             if self.collection_name not in client.list_collections():
                 return  # 集合不存在，无冲突（后续 create_collection 会新建）
             desc = client.describe_collection(collection_name=self.collection_name)
-            dims = [f.get('params', {}).get('dim') for f in desc.get('fields', [])
-                    if f.get('name') == 'dense']
+            dims = [f.get('params', {}).get('dim') for f in desc.get('fields', []) if f.get('name') == 'dense']
             existing = dims[0] if dims else None
             if existing and int(existing) != self.dim:
                 raise ValueError(
@@ -170,7 +170,7 @@ class MilvusVectorSave:
             vector_field=['dense', 'sparse'],
             consistency_level="Strong",
             auto_id=True,
-            connection_args={"uri": MILVUS_URI}
+            connection_args={"uri": MILVUS_URI},
         )
 
     def add_documents(self, datas: List[Document]):
@@ -210,30 +210,23 @@ if __name__ == '__main__':
 
     client = mv.vector_store_saved.client
     # 得到表结构
-    desc_collection = client.describe_collection(
-        collection_name=mv.collection_name
-    )
+    desc_collection = client.describe_collection(collection_name=mv.collection_name)
     print('表结构是: ', desc_collection)
 
     # 得到当前表的，所有的index
-    res = client.list_indexes(
-        collection_name=mv.collection_name
-    )
+    res = client.list_indexes(collection_name=mv.collection_name)
     print('表中的所有索引：', res)
 
     if res:
         for i in res:
             # 得到索引的描述
-            desc_index = client.describe_index(
-                collection_name=mv.collection_name,
-                index_name=i
-            )
+            desc_index = client.describe_index(collection_name=mv.collection_name, index_name=i)
             print(desc_index)
 
     result = client.query(
         collection_name=mv.collection_name,
         filter="category == 'Title'",  # 查询 category == 'Title' 的所有数据
-        output_fields=['text', 'category', 'filename']  # 指定返回的字段
+        output_fields=['text', 'category', 'filename'],  # 指定返回的字段
     )
 
     print('测试 过滤查询的结果是: ', result)

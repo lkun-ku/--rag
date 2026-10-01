@@ -15,6 +15,7 @@
 **为什么 S1 是最重要的一条**：这层的目的只是「防未来 import 失败」，
 **不能顺手改变现有分块行为** —— 否则 523 块要重灌、golden 的 `source_blocks` 全部失效。
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -59,26 +60,27 @@ P99 延迟在 98% 过滤比例下为 48.1ms。
 print("=" * 100)
 print("S1/S2 默认语义分块、强制降级")
 print("=" * 100)
-sp_default = ss.make_splitter(embedding=None)     # 语义分块不需要真的 embedding 才能构造
+sp_default = ss.make_splitter(embedding=None)  # 语义分块不需要真的 embedding 才能构造
 name_default = type(sp_default).__name__
 check("S1 默认返回 SemanticChunker", "Semantic" in name_default, name_default)
 
 sp_fb = ss.make_splitter(embedding=None, force_fallback=True)
 name_fb = type(sp_fb).__name__
-check("S2 force_fallback -> RecursiveCharacterTextSplitter",
-      "Recursive" in name_fb, name_fb)
+check("S2 force_fallback -> RecursiveCharacterTextSplitter", "Recursive" in name_fb, name_fb)
 
 print()
 print("=" * 100)
 print("S4/S5 状态")
 print("=" * 100)
-check("S4 SEMANTIC_AVAILABLE 与真实导入一致", ss.SEMANTIC_AVAILABLE is True,
-      ss.SEMANTIC_AVAILABLE)
+check("S4 SEMANTIC_AVAILABLE 与真实导入一致", ss.SEMANTIC_AVAILABLE is True, ss.SEMANTIC_AVAILABLE)
 st = ss.status()
 check("S5 status 含 semantic_available", st.get("semantic_available") is True)
-check("S5 status 含降级参数",
-      st.get("fallback_chunk_size") == ss.FALLBACK_CHUNK_SIZE and
-      st.get("fallback_chunk_overlap") == ss.FALLBACK_CHUNK_OVERLAP, st)
+check(
+    "S5 status 含降级参数",
+    st.get("fallback_chunk_size") == ss.FALLBACK_CHUNK_SIZE
+    and st.get("fallback_chunk_overlap") == ss.FALLBACK_CHUNK_OVERLAP,
+    st,
+)
 
 print()
 print("=" * 100)
@@ -89,8 +91,7 @@ out_fb = sp_fb.split_documents(docs)
 # SAMPLE*6 ≈ 1,800 字符 > chunk_size 800 -> 应产出多块
 check("降级分块器产出 >1 块", len(out_fb) > 1, len(out_fb))
 check("降级分块的块都非空", all(d.page_content.strip() for d in out_fb))
-check("降级分块保留表格行",
-      any("61.35" in d.page_content for d in out_fb))
+check("降级分块保留表格行", any("61.35" in d.page_content for d in out_fb))
 
 # 语义分块需要真 embedding，这里只验证「有 split_documents 方法」
 check("语义分块器有 split_documents", hasattr(sp_default, "split_documents"))
@@ -107,8 +108,7 @@ handler_id = logger.add(buf, level="WARNING", format="{message}")
 ss.make_splitter(embedding=None, force_fallback=True)
 logger.remove(handler_id)
 captured = buf.getvalue()
-check("降级时输出 WARNING", "降级" in captured or "WARNING" in captured.upper(),
-      captured[:80].replace("\n", " "))
+check("降级时输出 WARNING", "降级" in captured or "WARNING" in captured.upper(), captured[:80].replace("\n", " "))
 check("WARNING 提示了「分块结果会变化」", "分块结果会变化" in captured, captured[:80])
 
 print()
@@ -119,9 +119,11 @@ src = (ROOT / "RAG_PROJECT/documents/markdown_parser.py").read_text(encoding="ut
 check("已 import make_splitter", "make_splitter" in src)
 # 只检查**代码行**（排除注释）—— 注释里出现 `SemanticChunker(` 字样是正常的说明文字
 code_lines = [l for l in src.splitlines() if not l.strip().startswith("#")]
-check("不再直接调用 SemanticChunker(",
-      not any("SemanticChunker(" in l for l in code_lines),
-      [l.strip()[:60] for l in code_lines if "SemanticChunker(" in l])
+check(
+    "不再直接调用 SemanticChunker(",
+    not any("SemanticChunker(" in l for l in code_lines),
+    [l.strip()[:60] for l in code_lines if "SemanticChunker(" in l],
+)
 check("调用的是 make_splitter(", "make_splitter(" in src)
 
 print()

@@ -13,6 +13,7 @@ from utils.env_utils import LLM_STRUCTURED_METHOD
 # 数据模型
 class RouteQuery(BaseModel):
     """将用户查询路由到最相关的数据源"""
+
     datasource: Literal["vectorstore", "web_search"] = Field(
         ...,
         description="根据用户问题选择将其路由到向量知识库或网络搜索",

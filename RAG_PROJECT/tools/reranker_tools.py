@@ -26,6 +26,7 @@
 增益 0」。本模块不推翻那个结论——**它提供的是「开关」而不是「默认开启」**：
 一旦业务侧需要加大 k 或提高精度，这个开关就是现成的，不必再改代码。
 """
+
 from __future__ import annotations
 
 import os
@@ -40,13 +41,13 @@ from utils.log_utils import log
 RERANK_ENABLED = os.getenv("RERANK_ENABLED", "0") not in ("", "0", "false", "False")
 RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "20"))
 RERANK_SCORE_THRESHOLD = float(os.getenv("RERANK_SCORE_THRESHOLD", "0"))
-RERANK_MAX_CHARS = int(os.getenv("RERANK_MAX_CHARS", "2000"))   # 单块送去打分的截断长度
+RERANK_MAX_CHARS = int(os.getenv("RERANK_MAX_CHARS", "2000"))  # 单块送去打分的截断长度
 
 _HERE = pathlib.Path(__file__).resolve().parent
 _MODEL_ROOT = _HERE.parent / "models"
 RERANK_MODEL = os.getenv(
     "RERANK_MODEL",
-    str(_MODEL_ROOT / "bge-reranker-v2-m3"),      # **默认本地路径**，不走网络下载
+    str(_MODEL_ROOT / "bge-reranker-v2-m3"),  # **默认本地路径**，不走网络下载
 )
 
 # 聚合类问题的特征词：命中说明用户要「跨行比较/统计」，需要看完整表
@@ -59,8 +60,8 @@ _AGG_PATTERN = re.compile(
 # 内部状态（惰性单例 + 测试注入点）
 # ---------------------------------------------------------------------------
 _reranker = None
-_reranker_failed = False          # 加载失败后不再重试（避免每次问答都卡一遍）
-_override: dict = {}              # 仅供测试注入，生产永远为空
+_reranker_failed = False  # 加载失败后不再重试（避免每次问答都卡一遍）
+_override: dict = {}  # 仅供测试注入，生产永远为空
 
 
 def _reset_for_test(enabled=None, reranker=None, top_k=None, threshold=None):
@@ -99,14 +100,14 @@ class _CrossEncoderWrapper:
     def rank(self, query: str, docs):
         pairs = [(query, (d.page_content or "")[:RERANK_MAX_CHARS]) for d in docs]
         scores = self.model.predict(pairs)
-        return list(enumerate(scores))          # [(idx, score), ...]
+        return list(enumerate(scores))  # [(idx, score), ...]
 
 
 def _get_reranker():
     """惰性加载 CrossEncoder；失败返回 None（调用方降级）。"""
     global _reranker, _reranker_failed
     if _override.get("injected"):
-        return _reranker                          # 测试注入的假模型
+        return _reranker  # 测试注入的假模型
     if _reranker is not None:
         return _reranker
     if _reranker_failed:
@@ -116,14 +117,11 @@ def _get_reranker():
 
         if not pathlib.Path(RERANK_MODEL).exists():
             raise FileNotFoundError("模型目录不存在: %s" % RERANK_MODEL)
-        _reranker = _CrossEncoderWrapper(
-            CrossEncoder(RERANK_MODEL, max_length=512, device="cpu")
-        )
+        _reranker = _CrossEncoderWrapper(CrossEncoder(RERANK_MODEL, max_length=512, device="cpu"))
         log.info("[rerank] 模型已加载: %s" % RERANK_MODEL)
     except Exception as e:  # noqa: BLE001
-        _reranker_failed = True                  # 不重试，避免每次问答都卡
-        log.warning("[rerank] 模型加载失败，本次降级为不精排: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        _reranker_failed = True  # 不重试，避免每次问答都卡
+        log.warning("[rerank] 模型加载失败，本次降级为不精排: %s: %s" % (type(e).__name__, str(e)[:120]))
         return None
     return _reranker
 
@@ -195,8 +193,7 @@ def enterprise_rerank(query: str, docs, top_k=None, threshold=None):
         kept = [(i, s) for i, s in ordered if float(s) >= th]
         n_drop = len(ordered) - len(kept)
         if n_drop:
-            log.info("[rerank] 分数门槛 %.3f 剔除 %d 块（剩 %d）"
-                     % (th, n_drop, len(kept)))
+            log.info("[rerank] 分数门槛 %.3f 剔除 %d 块（剩 %d）" % (th, n_drop, len(kept)))
         result = [docs[i] for i, _ in kept]
 
     # top_k 截断

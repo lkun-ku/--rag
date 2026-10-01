@@ -22,6 +22,7 @@ SSE 的教训：3.3 引入多租户后**没有任何测试覆盖 SSE**，它一�
     .venv\\Scripts\\python.exe eval\\run_all_checks.py            # 快速档
     .venv\\Scripts\\python.exe eval\\run_all_checks.py --full      # 完整档
 """
+
 from __future__ import annotations
 
 import argparse
@@ -103,8 +104,15 @@ def run_one(name: str, script: str) -> tuple:
     extra = ["--no-save"] if path.name == "run_eval.py" else []
 
     t0 = time.time()
-    r = subprocess.run([PY, "-u", str(path), *extra], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", env=env, cwd=str(ROOT))
+    r = subprocess.run(
+        [PY, "-u", str(path), *extra],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        cwd=str(ROOT),
+    )
     out = (r.stdout or "") + (r.stderr or "")
     el = time.time() - t0
 

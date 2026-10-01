@@ -80,7 +80,10 @@ class Tracer:
                 log.warning(
                     "tracer: UsageMetadataCallbackHandler 不可用（%s: %s）—— "
                     "**本次 trace 不会有 token 统计**，成本监控会缺失，"
-                    "请检查 langchain_core 版本。", type(e).__name__, str(e)[:80])
+                    "请检查 langchain_core 版本。",
+                    type(e).__name__,
+                    str(e)[:80],
+                )
                 self._usage = False  # 标记为不可用
         return self._usage or None
 
@@ -114,8 +117,7 @@ class Tracer:
         """记录一个节点的执行。"""
         if not self.enabled:
             return
-        rec = {"node": node, "t": round(time.time() - self.t0, 3),
-               "elapsed_sec": round(elapsed, 3)}
+        rec = {"node": node, "t": round(time.time() - self.t0, 3), "elapsed_sec": round(elapsed, 3)}
         rec.update({k: v for k, v in info.items() if v is not None})
         self.steps.append(rec)
 
@@ -203,12 +205,9 @@ def traced(name: str):
         #     fn(state, *, config=None)     -> 关键字传
         try:
             _params = list(inspect.signature(fn).parameters.values())
-            _n_pos = len([p for p in _params
-                          if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
-            _kwonly_cfg = any(
-                p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params
-            )
-        except (TypeError, ValueError):      # 内建/无签名可读时按「只接 state」处理
+            _n_pos = len([p for p in _params if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+            _kwonly_cfg = any(p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params)
+        except (TypeError, ValueError):  # 内建/无签名可读时按「只接 state」处理
             _n_pos, _kwonly_cfg = 1, False
 
         def wrapper(state, config=None):

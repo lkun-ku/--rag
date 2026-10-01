@@ -56,9 +56,9 @@ def _pixmap_to_ndarray(pix):
 
     arr = np.frombuffer(pix.samples, dtype=np.uint8)
     arr = arr.reshape(pix.height, pix.width, pix.n)
-    if pix.n == 4:          # RGBA -> RGB
+    if pix.n == 4:  # RGBA -> RGB
         arr = arr[:, :, :3]
-    elif pix.n == 1:        # 灰度 -> RGB
+    elif pix.n == 1:  # 灰度 -> RGB
         arr = np.repeat(arr, 3, axis=2)
     return np.ascontiguousarray(arr)
 
@@ -72,9 +72,14 @@ class PDFParser:
       - 标题面包屑（"A -> B -> 正文"）照常生成
     """
 
-    def __init__(self, keep_temp_md: bool = False, ocr_fallback: bool = False,
-                 ocr_dpi: int = 200, ocr_min_score: float = 0.5,
-                 use_ocr: bool = True):
+    def __init__(
+        self,
+        keep_temp_md: bool = False,
+        ocr_fallback: bool = False,
+        ocr_dpi: int = 200,
+        ocr_min_score: float = 0.5,
+        use_ocr: bool = True,
+    ):
         """
         Args:
             keep_temp_md: 是否保留中间产出的临时 Markdown（默认 False，解析后删除）。
@@ -137,8 +142,7 @@ class PDFParser:
             doc.close()
 
     @staticmethod
-    def ocr_to_markdown(file_path: str, dpi: int = 200,
-                        min_score: float = 0.5) -> str:
+    def ocr_to_markdown(file_path: str, dpi: int = 200, min_score: float = 0.5) -> str:
         """[ROADMAP 2.3] 用 RapidOCR 逐页识别扫描件，拼成 Markdown。
 
         为什么选 RapidOCR 而不是 `unstructured` hi_res：
@@ -155,13 +159,11 @@ class PDFParser:
             ValueError: RapidOCR 不可用，或所有页都未识别出有效文本。
         """
         import pymupdf  # PyMuPDF
+
         try:
             from rapidocr_onnxruntime import RapidOCR
         except ImportError as e:  # 显式报错，不静默降级
-            raise ValueError(
-                'OCR 回退需要 rapidocr-onnxruntime（以及 onnxruntime / pyclipper / shapely）：'
-                f'{e}'
-            ) from e
+            raise ValueError(f'OCR 回退需要 rapidocr-onnxruntime（以及 onnxruntime / pyclipper / shapely）：{e}') from e
 
         engine = RapidOCR()
         basename = os.path.basename(file_path)
@@ -184,12 +186,12 @@ class PDFParser:
                 result = raw[0] if isinstance(raw, tuple) and len(raw) == 2 else raw
 
                 lines: List[str] = []
-                for item in (result or []):
+                for item in result or []:
                     # item 形如 [box, text, score]
                     text = str(item[1]).strip() if len(item) > 1 else ''
                     score = float(item[2]) if len(item) > 2 else 1.0
                     if not text or score < min_score:
-                        continue        # 低置信度行直接丢弃（OCR 会产出少量噪声行）
+                        continue  # 低置信度行直接丢弃（OCR 会产出少量噪声行）
                     lines.append(text)
 
                 if lines:
@@ -202,9 +204,7 @@ class PDFParser:
             doc.close()
 
         if total_lines == 0:
-            raise ValueError(
-                f'OCR 未从任何页面识别出文本（置信度阈值 {min_score}）: {basename}'
-            )
+            raise ValueError(f'OCR 未从任何页面识别出文本（置信度阈值 {min_score}）: {basename}')
         log.info(f'OCR 完成: {basename} -> {total_lines} 行 / {page_count} 页')
         return '\n'.join(parts)
 
@@ -229,9 +229,7 @@ class PDFParser:
         is_scanned = text_layer < MIN_TEXT_LAYER_CHARS
 
         if is_scanned and self.ocr_fallback:
-            log.warning(
-                f'PDF 文本层仅 {text_layer} 字符，判定为扫描件，走整页 OCR: {basename}'
-            )
+            log.warning(f'PDF 文本层仅 {text_layer} 字符，判定为扫描件，走整页 OCR: {basename}')
             md_text = self.ocr_to_markdown(file_path, self.ocr_dpi, self.ocr_min_score)
         else:
             md_text = self.to_markdown(file_path, use_ocr=self.use_ocr)

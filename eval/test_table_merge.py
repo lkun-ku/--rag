@@ -29,6 +29,7 @@
 而 `grade_generation` 的引用校验用的是 `state["documents"]`，
 `generate` 返回合并后的 documents 后仍然自洽。
 """
+
 from __future__ import annotations
 
 import sys
@@ -56,8 +57,7 @@ def check(name, cond, detail=""):
 
 
 def tbl(rows, start, end, fname="bench.xlsx.md", title="检索性能实测"):
-    head = ("表格：%s（第 %d-%d 行）\n" % (title, start, end)
-            + "| 场景 | 产品 | 召回率 |\n|---|---|---|\n")
+    head = "表格：%s（第 %d-%d 行）\n" % (title, start, end) + "| 场景 | 产品 | 召回率 |\n|---|---|---|\n"
     body = "\n".join("| %s | P%d | %.2f%% |" % (r[0], r[1], r[2]) for r in rows)
     return Document(page_content=head + body, metadata={"filename": fname, "title": title})
 
@@ -73,22 +73,23 @@ if out:
     txt = out[0].page_content
     check("含 61.35", "61.35" in txt)
     check("含 83.52", "83.52" in txt)
-    check("表头只出现一次", txt.count("| 场景 | 产品 | 召回率 |") == 1,
-          "出现 %d 次" % txt.count("| 场景 | 产品 | 召回率 |"))
-    check("分隔行只出现一次", txt.count("|---|---|---|") == 1,
-          "出现 %d 次" % txt.count("|---|---|---|"))
+    check(
+        "表头只出现一次",
+        txt.count("| 场景 | 产品 | 召回率 |") == 1,
+        "出现 %d 次" % txt.count("| 场景 | 产品 | 召回率 |"),
+    )
+    check("分隔行只出现一次", txt.count("|---|---|---|") == 1, "出现 %d 次" % txt.count("|---|---|---|"))
 
 print()
 print("=" * 100)
 print("C2 顺序：按「第 N-M 行」的起始行号排序（乱序输入也要正确）")
 print("=" * 100)
-out = merge_table_slices([d2, d1])      # 故意倒序
+out = merge_table_slices([d2, d1])  # 故意倒序
 if out:
     txt = out[0].page_content
     i_static = txt.find("83.52")
     i_filter = txt.find("61.35")
-    check("83.52 在 61.35 之前（行号小在前）", 0 <= i_static < i_filter,
-          "索引 %d vs %d" % (i_static, i_filter))
+    check("83.52 在 61.35 之前（行号小在前）", 0 <= i_static < i_filter, "索引 %d vs %d" % (i_static, i_filter))
 
 print()
 print("=" * 100)
@@ -119,8 +120,7 @@ big1 = tbl([("a", 1, 1.0)] * 300, 1, 300)
 big2 = tbl([("b", 2, 2.0)] * 300, 301, 600)
 n_chars = len(big1.page_content) + len(big2.page_content)
 out = merge_table_slices([big1, big2], max_chars=1000)
-check("超限 -> 返回原样（2 块）", len(out) == 2,
-      "原长 %d 字符，实际块数 %d" % (n_chars, len(out)))
+check("超限 -> 返回原样（2 块）", len(out) == 2, "原长 %d 字符，实际块数 %d" % (n_chars, len(out)))
 
 print()
 print("=" * 100)
@@ -146,18 +146,18 @@ print("=" * 100)
 # 实测复现：vector_db_benchmark.xlsx.md 的 title="检索性能实测" 组 =
 #   1 个纯文本标题块 + 3 个表格块（第 1-30 / 31-60 / 61-85 行）
 # 原判据「每块都必须是表格」会让整组放弃合并 -> 3 张各自带表头的碎片
-title_block = Document(page_content="检索性能实测",
-                       metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"})
+title_block = Document(page_content="检索性能实测", metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"})
 d1 = tbl([("静态", 1, 89.93)], 1, 30)
 d2 = tbl([("带过滤", 2, 61.35)], 31, 60)
 out = merge_table_slices([title_block, d1, d2])
 check("3 块 -> 2 块（表格合并、标题块保留）", len(out) == 2, len(out))
-check("标题块原样保留",
-      any(d.page_content.strip() == "检索性能实测" for d in out))
+check("标题块原样保留", any(d.page_content.strip() == "检索性能实测" for d in out))
 check("合并块含 61.35", any("61.35" in d.page_content for d in out))
-check("表头只出现一次",
-      sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out) == 1,
-      sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out))
+check(
+    "表头只出现一次",
+    sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out) == 1,
+    sum(d.page_content.count("| 场景 | 产品 | 召回率 |") for d in out),
+)
 
 print()
 print("=" * 100)

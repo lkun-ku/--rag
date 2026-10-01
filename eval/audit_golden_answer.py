@@ -21,6 +21,7 @@
 
 只在**有实体词**的题上做（纯概念题如「Milvus 支持哪些索引类型？」没有型号，跳过）。
 """
+
 from __future__ import annotations
 
 import json
@@ -44,15 +45,12 @@ ENT_RE = re.compile(r"[A-Za-z][A-Za-z0-9._\-]{7,}")
 
 client = MilvusClient(uri=MILVUS_URI)
 by_id = {}
-for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-             "kb_manuals_bge_large_1024"):
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "text"], limit=8000):
+for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "text"], limit=8000):
         t = r.get("text") or ""
         by_id[metrics.chunk_id(t)] = {"filename": r.get("filename", ""), "text": t}
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 
 print("=" * 104)
 print("golden 含答案性核查（问题里的实体词是否出现在 golden 块中）")
@@ -85,8 +83,7 @@ for c in cases:
     if not any_hit:
         suspicious.append((c.get("id"), c["q"], ents, info))
 
-print("  有实体词的题: %d 道；其中 **全部 golden 块都不含任何实体词** 的: %d 道" % (
-    checked, len(suspicious)))
+print("  有实体词的题: %d 道；其中 **全部 golden 块都不含任何实体词** 的: %d 道" % (checked, len(suspicious)))
 print()
 if suspicious:
     print("  %-6s %-44s %s" % ("题", "问题", "实体词 / golden 块首行"))
@@ -98,11 +95,19 @@ if suspicious:
 else:
     print("  [OK] 没有发现「golden 完全不含问题实体」的题。")
 
-(HERE / "audit_golden_answer.json").write_text(json.dumps(
-    {"checked": checked, "suspicious": [
-        {"id": cid, "q": q, "ents": ents,
-         "blocks": [{"id": g, "hit": h, "head": hd} for g, h, hd in info]}
-        for cid, q, ents, info in suspicious]}, ensure_ascii=False, indent=2),
-    encoding="utf-8")
+(HERE / "audit_golden_answer.json").write_text(
+    json.dumps(
+        {
+            "checked": checked,
+            "suspicious": [
+                {"id": cid, "q": q, "ents": ents, "blocks": [{"id": g, "hit": h, "head": hd} for g, h, hd in info]}
+                for cid, q, ents, info in suspicious
+            ],
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/audit_golden_answer.json")

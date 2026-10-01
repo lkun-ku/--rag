@@ -18,6 +18,7 @@
 用**滑动片段**而不是整块匹配的原因：重建会改变块边界（父块变小 -> 语义切分更细），
 整块文本本来就不该存在；关心的是**字符级内容有没有丢**。
 """
+
 from __future__ import annotations
 
 import json
@@ -35,8 +36,7 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 FRAG_LEN = 40
 FRAG_STEP = 20
@@ -85,11 +85,10 @@ print("  备份: %s" % bk.name)
 #
 # 现在：**优先在同一文件的**新块里找；找不到该文件时退回集合级，
 # 但**单独计数**（`via_coll`），便于判断结论有多可信。
-new_by_file = {}      # (coll, filename) -> blob
-new_by_coll = {}      # coll -> blob（仅作回退）
+new_by_file = {}  # (coll, filename) -> blob
+new_by_coll = {}  # coll -> blob（仅作回退）
 for coll in COLLECTIONS:
-    rows = client.query(collection_name=coll, filter="",
-                        output_fields=["filename", "text"], limit=8000)
+    rows = client.query(collection_name=coll, filter="", output_fields=["filename", "text"], limit=8000)
     per_file = {}
     for r in rows:
         fn = r.get("filename") or "?"
@@ -128,38 +127,47 @@ for coll in COLLECTIONS:
         fn = it.get("filename") or "?"
         same_file = new_by_file.get((coll, fn))
         if same_file:
-            hit = sum(1 for f in frs if f in same_file)      # 同文件（严格）
+            hit = sum(1 for f in frs if f in same_file)  # 同文件（严格）
         else:
-            hit = sum(1 for f in frs if f in blob)           # 回退集合级（宽松）
+            hit = sum(1 for f in frs if f in blob)  # 回退集合级（宽松）
             via_coll += 1
         cov = hit / len(frs)
         if cov >= COVER_OK:
             ok += 1
         else:
-            lost.append({"filename": it.get("filename"), "title": it.get("title"),
-                         "coverage": round(cov, 3), "n_frag": len(frs),
-                         "head": norm(it.get("text") or "")[:120]})
+            lost.append(
+                {
+                    "filename": it.get("filename"),
+                    "title": it.get("title"),
+                    "coverage": round(cov, 3),
+                    "n_frag": len(frs),
+                    "head": norm(it.get("text") or "")[:120],
+                }
+            )
     tot_via_coll += via_coll
     tot_undec += undec
-    tot_old += len(items); tot_gone += len(gone); tot_ok += ok
+    tot_old += len(items)
+    tot_gone += len(gone)
+    tot_ok += ok
     if lost:
         all_lost.extend(lost)
-    print("  %-32s %10d %10d %10d %s" % (
-        coll, len(items), len(gone), ok,
-        "OK" if not lost else "**%d 块覆盖率 < %.2f**" % (len(lost), COVER_OK)))
+    print(
+        "  %-32s %10d %10d %10d %s"
+        % (coll, len(items), len(gone), ok, "OK" if not lost else "**%d 块覆盖率 < %.2f**" % (len(lost), COVER_OK))
+    )
 
 print("  " + "-" * 96)
 print("  %-32s %10d %10d %10d" % ("合计", tot_old, tot_gone, tot_ok))
 print()
 print("  **口径可信度**（[FIX / 二次筛查] 新增 —— 用于判断结论有多可信）:")
-print("     同文件内匹配上的      : %d（**严格**，是「未丢内容」的强证据）"
-      % max(tot_ok - tot_via_coll, 0))
-print("     回退到集合级匹配的    : %d（**宽松**，同集合其它文件里出现过就算，可能虚高）"
-      % tot_via_coll)
+print("     同文件内匹配上的      : %d（**严格**，是「未丢内容」的强证据）" % max(tot_ok - tot_via_coll, 0))
+print("     回退到集合级匹配的    : %d（**宽松**，同集合其它文件里出现过就算，可能虚高）" % tot_via_coll)
 print("     无法判定（无长词）的  : %d（**原先被直接计为 OK，是虚增**）" % tot_undec)
 print()
-print("  含义：'消失块'=%d，其中 %d 块（%.1f%%）的内容在新集合里覆盖率 >= %.2f"
-      % (tot_gone, tot_ok, (tot_ok / max(tot_gone, 1)) * 100, COVER_OK))
+print(
+    "  含义：'消失块'=%d，其中 %d 块（%.1f%%）的内容在新集合里覆盖率 >= %.2f"
+    % (tot_gone, tot_ok, (tot_ok / max(tot_gone, 1)) * 100, COVER_OK)
+)
 
 if all_lost:
     print()
@@ -173,10 +181,19 @@ else:
     print()
     print("  [OK] 所有消失块的内容都在新集合里 —— **未丢内容**。")
 
-(HERE / "verify_rebuild_coverage.json").write_text(json.dumps(
-    {"backup": bk.name, "collections": {
-        c: {"n": old["collections"].get(c, {}).get("n", 0)} for c in COLLECTIONS},
-     "gone_total": tot_gone, "covered_ok": tot_ok, "lost": all_lost},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "verify_rebuild_coverage.json").write_text(
+    json.dumps(
+        {
+            "backup": bk.name,
+            "collections": {c: {"n": old["collections"].get(c, {}).get("n", 0)} for c in COLLECTIONS},
+            "gone_total": tot_gone,
+            "covered_ok": tot_ok,
+            "lost": all_lost,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/verify_rebuild_coverage.json")

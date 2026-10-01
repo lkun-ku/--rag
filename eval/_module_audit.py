@@ -5,6 +5,7 @@
 
 全部基于真实执行结果，不做静态猜测。
 """
+
 from __future__ import annotations
 
 import importlib
@@ -18,8 +19,7 @@ ROOT = HERE.parent
 sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
 
 # ---- 1. 收集业务模块 -------------------------------------------------------
-biz = sorted(p for p in (ROOT / "RAG_PROJECT").rglob("*.py")
-             if "__pycache__" not in str(p))
+biz = sorted(p for p in (ROOT / "RAG_PROJECT").rglob("*.py") if "__pycache__" not in str(p))
 mods = []
 for p in biz:
     rel = p.relative_to(ROOT / "RAG_PROJECT").with_suffix("")
@@ -62,10 +62,10 @@ for name, p in mods:
     has_fallback = "_ROOT = _pathlib.Path(__file__).resolve().parent.parent" in t
     if not has_fallback:
         bad_main.append(name)
-print("  有 __main__ 的模块 %d 个，缺兜底 %d 个"
-      % (sum(1 for _, p in mods
-             if "__main__" in p.read_text(encoding="utf-8", errors="replace")),
-         len(bad_main)))
+print(
+    "  有 __main__ 的模块 %d 个，缺兜底 %d 个"
+    % (sum(1 for _, p in mods if "__main__" in p.read_text(encoding="utf-8", errors="replace")), len(bad_main))
+)
 for n in bad_main:
     print("    [缺兜底] %s" % n)
 if not bad_main:
@@ -90,7 +90,7 @@ for name, p in mods:
     for m in re.finditer(r"^(?:def|class)\s+([A-Za-z_]\w*)", t, re.M):
         sym = m.group(1)
         if sym.startswith("_"):
-            continue          # 私有符号不查（内部使用）
+            continue  # 私有符号不查（内部使用）
         # 在**其它文件**里找引用
         used = False
         for fp, src in all_src.items():

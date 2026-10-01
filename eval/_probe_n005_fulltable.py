@@ -26,6 +26,7 @@ n005 实测 **10/10 拒答**，而答案（`TurboPuffer, 83.52%`）**就在上�
 
 一次生成调用（约 2s）+ 一次库里扫表（约 1s）。
 """
+
 from __future__ import annotations
 
 import json
@@ -48,9 +49,11 @@ QID = os.environ.get("FT_QID", "n005")
 TARGET_FILE = "vector_db_benchmark.xlsx.md"
 TARGET_TITLE = "检索性能实测"
 
-cases = {json.loads(l).get("id"): json.loads(l)
-         for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
-         if l.strip()}
+cases = {
+    json.loads(l).get("id"): json.loads(l)
+    for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    if l.strip()
+}
 C = cases[QID]
 Q = C["q"]
 print("=" * 104)
@@ -67,16 +70,13 @@ from utils.env_utils import MILVUS_URI  # noqa: E402
 
 client = MilvusClient(uri=MILVUS_URI)
 parts = []
-for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-             "kb_manuals_bge_large_1024"):
+for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):
     try:
-        rows = client.query(collection_name=coll, filter="",
-                            output_fields=["filename", "title", "text"], limit=8000)
+        rows = client.query(collection_name=coll, filter="", output_fields=["filename", "title", "text"], limit=8000)
     except Exception:  # noqa: BLE001
         continue
     for r in rows:
-        if (r.get("filename") == TARGET_FILE
-                and (r.get("title") or "") == TARGET_TITLE):
+        if r.get("filename") == TARGET_FILE and (r.get("title") or "") == TARGET_TITLE:
             parts.append(r.get("text") or "")
 
 print("  该表在库里的分片数: %d" % len(parts))
@@ -91,7 +91,7 @@ import re  # noqa: E402
 
 def _start_line(t: str) -> int:
     m = re.search(r"第\s*(\d+)\s*-\s*(\d+)\s*行", t)
-    return int(m.group(1)) if m else 10 ** 9
+    return int(m.group(1)) if m else 10**9
 
 
 parts.sort(key=_start_line)
@@ -121,13 +121,13 @@ from graph2.generate_node2 import generate  # noqa: E402
 print("=" * 104)
 print("A. 完整表（模拟父块策略）")
 print("=" * 104)
-err_a = err_b = False      # [FIX] 三态判读需要它们
+err_a = err_b = False  # [FIX] 三态判读需要它们
 try:
     # 直接用生产节点 —— 它内部走同一个 rag_chain，且已处理「单个/多个 documents」
-    st = {"question": Q,
-          "documents": [Document(page_content=full_text,
-                                 metadata={"filename": TARGET_FILE,
-                                           "title": TARGET_TITLE})]}
+    st = {
+        "question": Q,
+        "documents": [Document(page_content=full_text, metadata={"filename": TARGET_FILE, "title": TARGET_TITLE})],
+    }
     out_full = generate(dict(st))
     txt_full = (out_full or {}).get("generation") or ""
     print("  上下文: 1 块（完整表，%d 字符）" % len(full_text))
@@ -168,14 +168,15 @@ print("=" * 104)
 # 于是 LLM 超时时会输出「假设不成立」这种**没有依据的结论**。
 # 这是测量脚本的经典错误（本项目在 4.13 吃过同类：拿旧 trace 当对照）。
 if err_a or err_b:
-    print("  **本次实验未完成**（A=%s, B=%s）—— **不能据此下任何结论**。"
-          % ("失败" if err_a else "成功", "失败" if err_b else "成功"))
+    print(
+        "  **本次实验未完成**（A=%s, B=%s）—— **不能据此下任何结论**。"
+        % ("失败" if err_a else "成功", "失败" if err_b else "成功")
+    )
     print("  需在端点稳定后重跑本脚本。**不要**把「调用失败」读成「假设不成立」。")
 elif hit:
     print("  **完整表下答对了** -> 假设成立：问题确实是「上下文不完整」导致的。")
     print("  **A 路线（父块 / 递归检索）有效** —— 值得按 4.35.5 推进：")
-    print("    本例完整表 %d 字符（约 %d token），增量可接受。"
-          % (len(full_text), len(full_text) // 2))
+    print("    本例完整表 %d 字符（约 %d token），增量可接受。" % (len(full_text), len(full_text) // 2))
 else:
     print("  **完整表下仍未答对**（A/B 都成功但没命中正确值）-> 假设不成立。")
     print("  说明问题**不在上下文完整性** —— A 路线（父块）不会解决 n005。")

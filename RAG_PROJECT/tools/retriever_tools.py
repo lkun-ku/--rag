@@ -221,7 +221,7 @@ class MultiCollectionRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun = None
     ) -> List[Document]:  # noqa: D102
-        ranked: List[tuple] = []   # (collection, rank, doc)
+        ranked: List[tuple] = []  # (collection, rank, doc)
         errors = []
         for name, r in self.retrievers.items():
             try:
@@ -268,9 +268,9 @@ def _discover_collections(only: Optional[set] = None) -> List[str]:
     return out
 
 
-def _build_multi_retriever(only_collections: Optional[set] = None,
-                           per_k: Optional[int] = None,
-                           final_k: Optional[int] = None) -> MultiCollectionRetriever:
+def _build_multi_retriever(
+    only_collections: Optional[set] = None, per_k: Optional[int] = None, final_k: Optional[int] = None
+) -> MultiCollectionRetriever:
     """为每个启用集合各建一个 retriever，组装成跨集合检索器。
 
     集合不存在时跳过（首次运行还没入库时的正常情况），只记 warning。
@@ -316,9 +316,7 @@ def _build_multi_retriever(only_collections: Optional[set] = None,
         try:
             mv = MilvusVectorSave(collection_name=coll)
             mv.create_connection()
-            built[coll] = mv.vector_store_saved.as_retriever(
-                search_type="similarity", search_kwargs=kwargs
-            )
+            built[coll] = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
         except Exception as e:  # noqa: BLE001
             log.warning(f"集合 {coll} 检索器构造失败，跳过: {type(e).__name__}: {e}")
 
@@ -334,12 +332,12 @@ def _build_multi_retriever(only_collections: Optional[set] = None,
         log.warning("未构造出任何集合检索器，回退到默认集合 COLLECTION_NAME")
         mv = MilvusVectorSave()
         mv.create_connection()
-        built[mv.collection_name] = mv.vector_store_saved.as_retriever(
-            search_type="similarity", search_kwargs=kwargs
-        )
+        built[mv.collection_name] = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
 
-    log.info(f"跨集合检索器已构造，覆盖集合: {list(built.keys())} "
-             f"per_k={per_k or PER_COLLECTION_K} final_k={final_k or FINAL_K}")
+    log.info(
+        f"跨集合检索器已构造，覆盖集合: {list(built.keys())} "
+        f"per_k={per_k or PER_COLLECTION_K} final_k={final_k or FINAL_K}"
+    )
     # **显式传参**：不传的话 pydantic 会用类定义时的默认值，改模块常量无效（见 docstring）
     return MultiCollectionRetriever(
         retrievers=built,
@@ -378,9 +376,7 @@ def tenant_collections(tenant: str) -> set:
     from utils.env_utils import TENANTS
 
     if tenant not in TENANTS:
-        raise PermissionError(
-            f"未知租户 {tenant!r}；已登记: {sorted(TENANTS.keys()) or '（未配置 KB_TENANTS）'}"
-        )
+        raise PermissionError(f"未知租户 {tenant!r}；已登记: {sorted(TENANTS.keys()) or '（未配置 KB_TENANTS）'}")
     wanted = set(TENANTS[tenant] or [])
     if not wanted:
         raise PermissionError(f"租户 {tenant!r} 未授权任何源")
@@ -388,10 +384,7 @@ def tenant_collections(tenant: str) -> set:
     name2coll = {s["name"]: s.get("collection") for s in DOC_SOURCES}
     unknown = wanted - set(name2coll)
     if unknown:
-        raise ValueError(
-            f"租户 {tenant!r} 配置了不存在的源 {sorted(unknown)}；"
-            f"可用源: {sorted(name2coll)}"
-        )
+        raise ValueError(f"租户 {tenant!r} 配置了不存在的源 {sorted(unknown)}；可用源: {sorted(name2coll)}")
     return {name2coll[n] for n in wanted if name2coll.get(n)}
 
 
@@ -400,7 +393,7 @@ def build_tenant_retriever(tenant: str) -> MultiCollectionRetriever:
     if tenant in _TENANT_RETRIEVERS:
         return _TENANT_RETRIEVERS[tenant]
     with _TENANT_LOCK:
-        if tenant in _TENANT_RETRIEVERS:      # 双检，避免并发重复构造
+        if tenant in _TENANT_RETRIEVERS:  # 双检，避免并发重复构造
             return _TENANT_RETRIEVERS[tenant]
         colls = tenant_collections(tenant)
         r = _build_multi_retriever(only_collections=colls)
@@ -448,9 +441,7 @@ def get_deep_retriever():
     """返回（必要时构造）深检索用的全局检索器。"""
     global _deep_retriever
     if _deep_retriever is None:
-        _deep_retriever = _build_multi_retriever(
-            per_k=PER_COLLECTION_K_DEEP, final_k=FINAL_K_DEEP
-        )
+        _deep_retriever = _build_multi_retriever(per_k=PER_COLLECTION_K_DEEP, final_k=FINAL_K_DEEP)
     return _deep_retriever
 
 

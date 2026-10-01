@@ -28,6 +28,7 @@
     在**表格/数字密集**处语义高度相似 -> **找不到断点**（`markdown_parser.py:135` 已记录）
     所以后续候选是「结构感知分块」，而不是更复杂的语义方案。
 """
+
 from __future__ import annotations
 
 from utils.log_utils import log
@@ -39,6 +40,7 @@ FALLBACK_CHUNK_OVERLAP = 100
 # import 探测（模块加载时一次性）
 try:
     from langchain_experimental.text_splitter import SemanticChunker  # noqa: F401
+
     _SEMANTIC_IMPORT_ERROR: str | None = None
 except Exception as e:  # noqa: BLE001
     SemanticChunker = None  # type: ignore[assignment]
@@ -58,9 +60,7 @@ def make_splitter(embedding=None, *, force_fallback: bool = False):
         一个 `TextSplitter`（有 `split_documents` / `split_text`）。
     """
     if SEMANTIC_AVAILABLE and not force_fallback:
-        return SemanticChunker(
-            embedding, breakpoint_threshold_type="percentile"
-        )
+        return SemanticChunker(embedding, breakpoint_threshold_type="percentile")
 
     # ---- 降级路径 ----
     from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -69,8 +69,7 @@ def make_splitter(embedding=None, *, force_fallback: bool = False):
     log.warning(
         "[splitter] langchain-experimental 不可用（%s），"
         "已降级为 RecursiveCharacterTextSplitter(size=%d, overlap=%d)。"
-        "**分块结果会变化**，如需重建索引请先做 A/B 对比。"
-        % (reason, FALLBACK_CHUNK_SIZE, FALLBACK_CHUNK_OVERLAP)
+        "**分块结果会变化**，如需重建索引请先做 A/B 对比。" % (reason, FALLBACK_CHUNK_SIZE, FALLBACK_CHUNK_OVERLAP)
     )
     return RecursiveCharacterTextSplitter(
         chunk_size=FALLBACK_CHUNK_SIZE,

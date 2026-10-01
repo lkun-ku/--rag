@@ -14,6 +14,7 @@
 本脚本把两者分开：先看块里有没有 Pinecone/流式写入/QPS 的那一行，
 再逐块打印判分结果与块的头部，让判定依据可见。
 """
+
 from __future__ import annotations
 
 import json
@@ -34,9 +35,11 @@ from tools.retriever_tools import retriever  # noqa: E402
 from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
 
 QID = "n004"
-cases = {json.loads(l).get("id"): json.loads(l)
-         for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
-         if l.strip()}
+cases = {
+    json.loads(l).get("id"): json.loads(l)
+    for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    if l.strip()
+}
 case = cases[QID]
 Q = case["q"]
 GOLD = set(case["source_blocks"])

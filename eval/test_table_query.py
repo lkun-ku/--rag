@@ -24,6 +24,7 @@ prompt 引导把命中率从 0/3 提到 1/3，但**不稳定** —— 因为「�
 | T7 | 非表格文档 -> None |
 | T8 | 结尾带 `%` 的值输出 `%.2f%%` 格式；不带 `%` 的原样输出 |
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -35,8 +36,11 @@ sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
 
 from langchain_core.documents import Document  # noqa: E402
 
-from tools.table_query import (_to_num, answer_aggregation,  # noqa: E402
-                               parse_markdown_table)
+from tools.table_query import (
+    _to_num,
+    answer_aggregation,  # noqa: E402
+    parse_markdown_table,
+)
 
 FAILED = []
 TOTAL = 0
@@ -59,8 +63,7 @@ TABLE = """表格：检索性能实测（第 1-4 行）
 | 带过滤向量检索 | Cohere Large | TurboPuffer | 98.00% | 382.53 | 48.1 | 61.35% |
 | 带过滤向量检索 | Cohere Medium | TurboPuffer | 98.00% | 184.54 | 53.4 | 96.81% |
 """
-DOC = Document(page_content=TABLE, metadata={"filename": "bench.xlsx.md",
-                                            "title": "检索性能实测"})
+DOC = Document(page_content=TABLE, metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"})
 
 print("=" * 100)
 print("T1 _to_num")
@@ -106,28 +109,32 @@ print()
 print("=" * 100)
 print("T6/T7 降级路径")
 print("=" * 100)
-check("T6 指标列不存在 -> None",
-      answer_aggregation("温度最低的是哪个？", [DOC]) is None,
-      answer_aggregation("温度最低的是哪个？", [DOC]))
-check("T7 非表格 -> None",
-      answer_aggregation("召回率最低的是哪个？",
-                         [Document(page_content="纯文本", metadata={})]) is None)
+check(
+    "T6 指标列不存在 -> None",
+    answer_aggregation("温度最低的是哪个？", [DOC]) is None,
+    answer_aggregation("温度最低的是哪个？", [DOC]),
+)
+check(
+    "T7 非表格 -> None",
+    answer_aggregation("召回率最低的是哪个？", [Document(page_content="纯文本", metadata={})]) is None,
+)
 check("T7b 空列表 -> None", answer_aggregation("召回率最低的是哪个？", []) is None)
-check("T7c 无聚合词 -> None",
-      answer_aggregation("Milvus 怎么安装？", [DOC]) is None)
+check("T7c 无聚合词 -> None", answer_aggregation("Milvus 怎么安装？", [DOC]) is None)
 
 print()
 print("=" * 100)
 print("T8 多块时取行数最多的那块（合并后的完整表）")
 print("=" * 100)
-half = Document(page_content="""表格：检索性能实测（第 1-2 行）
+half = Document(
+    page_content="""表格：检索性能实测（第 1-2 行）
 | 场景 | 数据集 | 产品与规格 | 过滤比例 | QPS | P99延迟(ms) | 召回率 |
 |---|---|---|---|---|---|---|
 | 静态向量检索 | Cohere Large | TurboPuffer | 0% | 649.88 | 55.2 | 89.93% |
-""", metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"})
+""",
+    metadata={"filename": "bench.xlsx.md", "title": "检索性能实测"},
+)
 r = answer_aggregation("召回率最低的是哪个？", [half, DOC])
-check("取更完整的表（3 行）而非 1 行",
-      r and "3 行" in r and "61.35" in r, r)
+check("取更完整的表（3 行）而非 1 行", r and "3 行" in r and "61.35" in r, r)
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

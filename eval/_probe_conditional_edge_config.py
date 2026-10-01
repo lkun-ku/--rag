@@ -20,6 +20,7 @@
 1. 两参数的**条件边**函数 -> 能否拿到 config？
 2. 三参数（state, config, runtime）？—— 排除「LangGraph 版本用了别的签名」
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -52,8 +53,7 @@ def node_start(state):
 def cond_two_args(state, config=None):
     """两参数条件边函数。"""
     cbs = (config or {}).get("callbacks") if isinstance(config, dict) else None
-    SEEN["cond_two_args"] = ("有 config" if config else "无 config",
-                             "有 callbacks" if cbs else "无 callbacks")
+    SEEN["cond_two_args"] = ("有 config" if config else "无 config", "有 callbacks" if cbs else "无 callbacks")
     return "next_node"
 
 

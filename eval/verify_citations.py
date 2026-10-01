@@ -6,6 +6,7 @@
     LLM 复述原文时会带上它们 -> 被判越界 -> graph_2 走 `not supported`
     -> **触发重生成（最多 2 次）**，白烧 LLM 调用且可能把正确答案改坏。
 """
+
 import os
 import pathlib
 import sys
@@ -56,14 +57,15 @@ print("=" * 100)
 n_ok = 0
 for name, answer, n_docs, ds, want_invalid, want_quoted in CASES:
     r = validate_citations(answer, n_docs, docs=ds)
-    ok = (sorted(r["invalid"]) == sorted(want_invalid)
-          and sorted(r["quoted"]) == sorted(want_quoted)
-          and r["valid"] == (not want_invalid))
+    ok = (
+        sorted(r["invalid"]) == sorted(want_invalid)
+        and sorted(r["quoted"]) == sorted(want_quoted)
+        and r["valid"] == (not want_invalid)
+    )
     n_ok += ok
     print()
     print("  [%s] %s" % ("OK  " if ok else "FAIL", name))
-    print("        cites=%s invalid=%s quoted=%s valid=%s"
-          % (r["cites"], r["invalid"], r["quoted"], r["valid"]))
+    print("        cites=%s invalid=%s quoted=%s valid=%s" % (r["cites"], r["invalid"], r["quoted"], r["valid"]))
     if not ok:
         print("        期望 invalid=%s quoted=%s" % (want_invalid, want_quoted))
 

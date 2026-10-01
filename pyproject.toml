@@ -1,0 +1,28 @@
+[tool.ruff]
+# 行宽 120：主流上限（black/ruff 默认 88，团队常见 100~120）。
+# **不用 300** —— 1080p 屏幕在 100% 缩放下约 120 字符宽，300 需要横向滚动；
+# 且 git diff 时会显示整行 300 字符，review 看不出改了哪里。
+line-length = 120
+target-version = "py312"
+
+# 排除：模型目录、虚拟环境、缓存
+extend-exclude = [
+    ".venv",
+    "RAG_PROJECT/models",
+    "**/__pycache__",
+    "scratch",
+]
+
+[tool.ruff.format]
+# 保留原有引号风格 —— 避免「纯格式化」提交里混入大量引号变更，让 diff 更难 review
+quote-style = "preserve"
+# 只格式化 `.py`，不碰 Markdown
+docstring-code-format = false
+
+[tool.ruff.lint]
+# 只开最基础的一组，避免一次性引入大量告警淹没真实问题
+select = ["E", "F"]  # pycodestyle 错误 + pyflakes（未使用变量/导入）
+ignore = [
+    "E501",  # 行宽由 formatter 处理，lint 不重复报
+    "E402",  # 本项目大量使用「先 sys.path 兜底再 import」，模块级 import 不在顶部是刻意的
+]

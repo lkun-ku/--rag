@@ -17,6 +17,7 @@ n026 的 8 个 golden 分布在 4 个文件、**至少跨 manuals 与 papers 两
 
 **这能直接回答**：召回不到是「配额截断」还是「相似度不够」（后者放大配额也没用）。
 """
+
 from __future__ import annotations
 
 import json
@@ -33,8 +34,7 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 import metrics  # noqa: E402
 import tools.retriever_tools as rt  # noqa: E402
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 
 TARGETS = ["n026", "n027", "n022", "n025"]
 GRID = [(8, 24), (16, 48), (32, 96)]
@@ -62,11 +62,11 @@ for cid in TARGETS:
         ids = [metrics.chunk_id(d.page_content) for d in docs]
         hit = gids & set(ids)
         ranks = {g: (ids.index(g) + 1) for g in gids if g in ids}
-        report[cid]["runs"].append({"per_k": pk, "final_k": fk, "n": len(ids),
-                                    "hit": len(hit), "ranks": ranks})
-        print("  %-6s %-8d %-8d %-10d %d/%-7d %s" % (
-            cid, len(gids), pk, len(ids), len(hit), len(gids),
-            "命中排名 %s" % sorted(ranks.values())))
+        report[cid]["runs"].append({"per_k": pk, "final_k": fk, "n": len(ids), "hit": len(hit), "ranks": ranks})
+        print(
+            "  %-6s %-8d %-8d %-10d %d/%-7d %s"
+            % (cid, len(gids), pk, len(ids), len(hit), len(gids), "命中排名 %s" % sorted(ranks.values()))
+        )
 
 print()
 print("=" * 104)
@@ -78,13 +78,16 @@ for cid, v in report.items():
         continue
     a, b = runs[0], runs[-1]
     if b["hit"] > a["hit"]:
-        print("  %-6s 命中 %d -> %d（per_k %d -> %d）=> **配额截断**是主因，放大配额有效"
-              % (cid, a["hit"], b["hit"], a["per_k"], b["per_k"]))
+        print(
+            "  %-6s 命中 %d -> %d（per_k %d -> %d）=> **配额截断**是主因，放大配额有效"
+            % (cid, a["hit"], b["hit"], a["per_k"], b["per_k"])
+        )
     elif b["hit"] == a["hit"]:
-        print("  %-6s 命中 %d -> %d（per_k %d -> %d）=> 放大配额**无改善**，"
-              "瓶颈在相似度/语料本身" % (cid, a["hit"], b["hit"], a["per_k"], b["per_k"]))
+        print(
+            "  %-6s 命中 %d -> %d（per_k %d -> %d）=> 放大配额**无改善**，"
+            "瓶颈在相似度/语料本身" % (cid, a["hit"], b["hit"], a["per_k"], b["per_k"])
+        )
 
-(HERE / "diag_n026_perk.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
-                                          encoding="utf-8")
+(HERE / "diag_n026_perk.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 print()
 print("  证据 -> eval/diag_n026_perk.json")

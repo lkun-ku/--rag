@@ -25,6 +25,7 @@
 方法：直接构造不同 fetch_k 的跨集合检索器，跑**当前评测集**的检索层指标
 （不调 LLM，秒级）。
 """
+
 import hashlib
 import json
 import os
@@ -40,8 +41,13 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 
 from documents.milvus_db import MilvusVectorSave  # noqa: E402
 from tools.retriever_tools import (  # noqa: E402
-    FETCH_K_PER_ROUTE, FINAL_K, PER_COLLECTION_K, RRF_K, MultiCollectionRetriever,
-    _build_search_kwargs, _discover_collections,
+    FETCH_K_PER_ROUTE,
+    FINAL_K,
+    PER_COLLECTION_K,
+    RRF_K,
+    MultiCollectionRetriever,
+    _build_search_kwargs,
+    _discover_collections,
 )
 
 E = ROOT / "eval"
@@ -64,8 +70,7 @@ def build(fetch_k):
         try:
             mv = MilvusVectorSave(collection_name=coll)
             mv.create_connection()
-            built[coll] = mv.vector_store_saved.as_retriever(
-                search_type="similarity", search_kwargs=kwargs)
+            built[coll] = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
         except Exception as e:  # noqa: BLE001
             print("  集合 %s 跳过: %s" % (coll, type(e).__name__))
     return MultiCollectionRetriever(retrievers=built)
@@ -100,8 +105,7 @@ def evaluate(retr):
 
 
 print("=" * 104)
-print("fetch_k 扫描（%d 题检索层，PER_COLLECTION_K=%d / FINAL_K=%d）"
-      % (len(cases), PER_COLLECTION_K, FINAL_K))
+print("fetch_k 扫描（%d 题检索层，PER_COLLECTION_K=%d / FINAL_K=%d）" % (len(cases), PER_COLLECTION_K, FINAL_K))
 print("=" * 104)
 print("  %-9s %-9s %-9s %-9s %s" % ("fetch_k", "recall", "hit_rate", "平均块数", "分源 recall"))
 print("  " + "-" * 100)
@@ -115,25 +119,32 @@ for fk in (None, 4, 8, 12, 16, 24, 32, 50, 80, 120):
     rows.append(r)
     label = "默认(4)" if fk is None else str(fk)
     src = " ".join("%s=%.3f" % (k[:9], v) for k, v in sorted(r["by_src"].items()))
-    print("  %-9s %-9.4f %-9.4f %-9.2f %s" % (
-        label, r["recall"], r["hit_rate"], r["avg_blocks"], src))
+    print("  %-9s %-9.4f %-9.4f %-9.2f %s" % (label, r["recall"], r["hit_rate"], r["avg_blocks"], src))
 
 best = max(rows, key=lambda r: (r["recall"], r["hit_rate"]))
 print()
 print("=" * 104)
 print("结论")
 print("=" * 104)
-print("  最佳 recall : fetch_k=%s -> %.4f（hit_rate %.4f，平均 %.1f 块，耗时 %.0fs）" % (
-    best["fetch_k"] if best["fetch_k"] else "默认",
-    best["recall"], best["hit_rate"], best["avg_blocks"], best["sec"]))
+print(
+    "  最佳 recall : fetch_k=%s -> %.4f（hit_rate %.4f，平均 %.1f 块，耗时 %.0fs）"
+    % (
+        best["fetch_k"] if best["fetch_k"] else "默认",
+        best["recall"],
+        best["hit_rate"],
+        best["avg_blocks"],
+        best["sec"],
+    )
+)
 # [FIX / P2-2] 不再写死「当前值 50」—— 直接从生产配置读，
 # 避免下次改了 FETCH_K_PER_ROUTE 又忘了改这里（这正是原先脱节的成因）。
 _cur = next((r["recall"] for r in rows if r["fetch_k"] == FETCH_K_PER_ROUTE), None)
-print("  当前值 %-4s: recall %s" % (
-    FETCH_K_PER_ROUTE, ("%.4f" % _cur) if _cur is not None else "（不在扫描点内）"))
+print("  当前值 %-4s: recall %s" % (FETCH_K_PER_ROUTE, ("%.4f" % _cur) if _cur is not None else "（不在扫描点内）"))
 print("  旧默认 4   : recall %.4f" % next(r["recall"] for r in rows if r["fetch_k"] is None))
 print()
 print("  各配置未满分题:")
 for r in rows:
-    print("    fetch_k=%-8s 未满分 %d 题: %s" % (
-        r["fetch_k"] if r["fetch_k"] else "默认(4)", len(r["miss"]), r["miss"][:12]))
+    print(
+        "    fetch_k=%-8s 未满分 %d 题: %s"
+        % (r["fetch_k"] if r["fetch_k"] else "默认(4)", len(r["miss"]), r["miss"][:12])
+    )

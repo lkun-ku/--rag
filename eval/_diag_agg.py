@@ -8,6 +8,7 @@
 
 同时打印 citations 的**真实键名**（build_citation_meta 返回的是 `n` 不是 `idx`）。
 """
+
 from __future__ import annotations
 
 import os
@@ -40,10 +41,11 @@ for i in range(1, 4):
     max_lines = max((len((d.page_content or "").splitlines()) for d in docs), default=0)
     n_with_6135 = sum(1 for d in docs if "61.35" in (d.page_content or ""))
     hit = "61.35" in gen
-    verdict = ("① 检索未覆盖" if not has_6135
-               else ("③ 表格完整但答错" if max_lines >= 80 else "② 表格未合并完整"))
-    print("  第%d次: 块数=%2d 含61.35块=%d 最大行数=%3d 答出61.35=%-3s | %s"
-          % (i, len(docs), n_with_6135, max_lines, "是" if hit else "否", verdict))
+    verdict = "① 检索未覆盖" if not has_6135 else ("③ 表格完整但答错" if max_lines >= 80 else "② 表格未合并完整")
+    print(
+        "  第%d次: 块数=%2d 含61.35块=%d 最大行数=%3d 答出61.35=%-3s | %s"
+        % (i, len(docs), n_with_6135, max_lines, "是" if hit else "否", verdict)
+    )
     print("         答案: %s" % gen[:110].replace("\n", " "))
 
 print()
@@ -55,6 +57,5 @@ cs = out.get("citations") or []
 print("  引用条数: %d" % len(cs))
 if cs:
     print("  实际键: %s" % sorted(cs[0].keys()))
-    print("  内容: n=%r filename=%r chars=%r" %
-          (cs[0].get("n"), str(cs[0].get("filename"))[:38], cs[0].get("chars")))
+    print("  内容: n=%r filename=%r chars=%r" % (cs[0].get("n"), str(cs[0].get("filename"))[:38], cs[0].get("chars")))
     print("  **注意：键是 `n` 不是 `idx`** —— 调用方若用 idx 会拿到 None")

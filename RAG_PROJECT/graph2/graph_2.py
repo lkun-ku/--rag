@@ -108,12 +108,10 @@ def grade_generation_v_documents_and_question(state, config=None):
     # > 它**没被回归抓到**，因为回归里没有「完整工作流」这一层覆盖（见 4.33）。
     _cfg = _sub_config(config)
     with ThreadPoolExecutor(max_workers=2) as _ex:
-        _f_hall = _ex.submit(hallucination_grader_chain.invoke,
-                             {"documents": documents, "generation": generation},
-                             config=_cfg)
-        _f_ans = _ex.submit(answer_grader_chain.invoke,
-                            {"question": question, "generation": generation},
-                            config=_cfg)
+        _f_hall = _ex.submit(
+            hallucination_grader_chain.invoke, {"documents": documents, "generation": generation}, config=_cfg
+        )
+        _f_ans = _ex.submit(answer_grader_chain.invoke, {"question": question, "generation": generation}, config=_cfg)
         hall_score = _f_hall.result()
 
     grade = getattr(hall_score, "binary_score", "")
@@ -128,8 +126,7 @@ def grade_generation_v_documents_and_question(state, config=None):
         except Exception as e:  # noqa: BLE001
             # 第 2 次判定失败 -> **按 not useful 处理**（保守：无法确认回答了问题，
             # 让上游走 transform_query / 收尾，而不是抛异常中断整次问答）。
-            log.warning(f"---判定：回答质量判定失败，按 not useful 处理: "
-                        f"{type(e).__name__}: {str(e)[:80]}---")
+            log.warning(f"---判定：回答质量判定失败，按 not useful 处理: {type(e).__name__}: {str(e)[:80]}---")
             return "not useful"
         if grade == "yes":  # 如果正确回答问题
             log.info("---判定：生成内容准确回答问题---")
@@ -188,8 +185,7 @@ def route_question(state, config=None):
     """
     log.info("---ROUTE QUESTION---")  # 阶段标识
     question = state["question"]  # 获取用户问题
-    source = question_router_chain.invoke({"question": question},
-                                          config=_sub_config(config))  # 调用问题路由器
+    source = question_router_chain.invoke({"question": question}, config=_sub_config(config))  # 调用问题路由器
 
     # 根据路由结果决定下一个节点
     if source.datasource == "web_search":
@@ -220,11 +216,8 @@ def _traced_router(name: str, fn):
     # config**（`def fn(state, *, config=None)`），否则那种签名会被静默丢 config。
     try:
         _params = list(inspect.signature(fn).parameters.values())
-        _n_pos = len([p for p in _params
-                      if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
-        _kwonly_cfg = any(
-            p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params
-        )
+        _n_pos = len([p for p in _params if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+        _kwonly_cfg = any(p.name == "config" and p.kind == p.KEYWORD_ONLY for p in _params)
     except (TypeError, ValueError):
         _n_pos, _kwonly_cfg = 1, False
 
@@ -245,11 +238,17 @@ def _traced_router(name: str, fn):
             if name == "grade_generation":
                 # 引用校验结果对排查最有用：越界/拒答/正常
                 from utils.citation import validate_citations
+
                 doc_list = docs if isinstance(docs, list) else [docs]
-                chk = validate_citations(state.get("generation", ""), len(doc_list) or 1,
-                                         docs=doc_list)
-                info.update({"cites": chk["cites"], "invalid_cites": chk["invalid"],
-                             "quoted_cites": chk["quoted"], "is_refusal": chk["is_refusal"]})
+                chk = validate_citations(state.get("generation", ""), len(doc_list) or 1, docs=doc_list)
+                info.update(
+                    {
+                        "cites": chk["cites"],
+                        "invalid_cites": chk["invalid"],
+                        "quoted_cites": chk["quoted"],
+                        "is_refusal": chk["is_refusal"],
+                    }
+                )
             t.step(name, elapsed=time.time() - t0, **info)
         return decision
 
@@ -295,12 +294,7 @@ def create_graph(checkpointer=None):
 
     # 起始路由判断
     workflow.add_conditional_edges(
-        START,
-        _traced_router("route_question", route_question),
-        {
-            "web_search": "web_search",
-            "vectorstore": "retrieve"
-        }
+        START, _traced_router("route_question", route_question), {"web_search": "web_search", "vectorstore": "retrieve"}
     )
 
     # 添加固定边
@@ -308,10 +302,7 @@ def create_graph(checkpointer=None):
     workflow.add_edge("retrieve", "grade_documents")  # 检索后评估文档相关性
 
     # 文档评估后的条件分支
-    workflow.add_conditional_edges(
-        'grade_documents',
-        _traced_router("decide_to_generate", decide_to_generate)
-    )
+    workflow.add_conditional_edges('grade_documents', _traced_router("decide_to_generate", decide_to_generate))
 
     # 生成结果评估后的条件分支
     workflow.add_conditional_edges(
@@ -358,12 +349,12 @@ def get_memory_graph():
     global _memory_graph
     if _memory_graph is None:
         from utils.checkpointer import create_checkpointer
+
         _memory_graph = create_graph(checkpointer=create_checkpointer())
     return _memory_graph
 
 
-def run_with_trace(question: str, enabled: bool = True, save: bool = True,
-                   thread_id: str | None = None) -> dict:
+def run_with_trace(question: str, enabled: bool = True, save: bool = True, thread_id: str | None = None) -> dict:
     """跑一次完整工作流，返回最终状态 + 执行轨迹（ROADMAP 3.1）。
 
     与直接 `graph.stream()` 的区别只在**观测**：
@@ -396,8 +387,7 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
         #
         # `messages=[]` 只是首轮的初值；`add_messages` reducer 会把它与
         # checkpoint 读回的历史合并（实测：传 [] 不会覆盖已有历史）。
-        inputs = {"question": question, "messages": [],
-                  "session_id": str(thread_id)}
+        inputs = {"question": question, "messages": [], "session_id": str(thread_id)}
         config = {**base_config, "configurable": {"thread_id": str(thread_id)}}
     else:
         g = graph
@@ -423,7 +413,7 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
             if _vals:
                 final_state = dict(_vals)
         except Exception:  # noqa: BLE001
-            pass          # 读不到就退回增量拼装的结果，不阻断主流程
+            pass  # 读不到就退回增量拼装的结果，不阻断主流程
 
     gen = final_state.get("generation", "")
     t.result = gen
@@ -442,19 +432,24 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True,
 
     if save:
         t.save()
-    return {"generation": gen, "trace": t.to_dict(),
-            "documents": final_state.get("documents", []),
-            # [FIX / 演示暴露] **必须返回 citations** —— `generate` 产出的
-            # 「编号 -> 原文块」映射（ROADMAP 2.1 引用溯源）此前没被带出来，
-            # 导致调用方拿到的引用列表**恒为空**，答案里的 `[1]` 无从校验来源。
-            "citations": final_state.get("citations", []),
-            # [ROADMAP 4.41] 供调用方检查多轮历史是否在累积（单轮模式下恒为空）
-            "messages": final_state.get("messages", []),
-            "session_id": thread_id}
+    return {
+        "generation": gen,
+        "trace": t.to_dict(),
+        "documents": final_state.get("documents", []),
+        # [FIX / 演示暴露] **必须返回 citations** —— `generate` 产出的
+        # 「编号 -> 原文块」映射（ROADMAP 2.1 引用溯源）此前没被带出来，
+        # 导致调用方拿到的引用列表**恒为空**，答案里的 `[1]` 无从校验来源。
+        "citations": final_state.get("citations", []),
+        # [ROADMAP 4.41] 供调用方检查多轮历史是否在累积（单轮模式下恒为空）
+        "messages": final_state.get("messages", []),
+        "session_id": thread_id,
+    }
+
 
 # draw_graph(graph, 'graph_rag2.png')
 
 # 执行工作流
+
 
 def main():
     """交互式运行入口。
@@ -471,9 +466,7 @@ def main():
             print('对话结束，拜拜！')
             break
         else:
-            inputs = {
-                "question": question
-            }
+            inputs = {"question": question}
             # 流式执行工作流
             for output in graph.stream(inputs):
                 for key, value in output.items():

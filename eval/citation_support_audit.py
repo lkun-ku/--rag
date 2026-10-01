@@ -17,6 +17,7 @@
 数据源：eval/citation_audit.json（已含每题答案与被引块文本，无需重跑检索与生成）。
 结果写 eval/citation_support.json。
 """
+
 import json
 import os
 import pathlib
@@ -73,8 +74,8 @@ for i, it in enumerate(detail, 1):
     # 根本没进判定上下文，LLM 只能判「不支持」-> 大量误报（实测 q033/q042/q046 等
     # 引用明显正确却被判指错）。这里放宽到 6000 字符。
     ctx = "\n\n".join(
-        "[%s] %s | %s\n%s" % (b.get("n"), b.get("filename", ""),
-                              str(b.get("title", ""))[:60], str(b.get("text", ""))[:6000])
+        "[%s] %s | %s\n%s"
+        % (b.get("n"), b.get("filename", ""), str(b.get("title", ""))[:60], str(b.get("text", ""))[:6000])
         for b in blocks
     )
     try:
@@ -87,17 +88,25 @@ for i, it in enumerate(detail, 1):
     ok = verdict == "yes"
     n_yes += 1 if ok else 0
     n_no += 0 if ok else 1
-    results.append({"id": qid, "q": it.get("q"), "cites": it.get("cites"),
-                    "verdict": verdict, "answer": answer[:200],
-                    "cited_files": [b.get("filename") for b in blocks]})
+    results.append(
+        {
+            "id": qid,
+            "q": it.get("q"),
+            "cites": it.get("cites"),
+            "verdict": verdict,
+            "answer": answer[:200],
+            "cited_files": [b.get("filename") for b in blocks],
+        }
+    )
     flag = "OK " if ok else ("ERR" if verdict.startswith("ERR") else "**指错**")
-    print("  %2d/%d [%s] %-6s cites=%-10s %s" % (
-        i, len(detail), flag, qid, it.get("cites"), str(it.get("q"))[:44]))
+    print("  %2d/%d [%s] %-6s cites=%-10s %s" % (i, len(detail), flag, qid, it.get("cites"), str(it.get("q"))[:44]))
     if not ok and not verdict.startswith("ERR"):
         print("        答案: %s" % answer[:110].replace("\n", " "))
         for b in blocks:
-            print("        引到: [%s] %s | %s" % (b.get("n"), b.get("filename"),
-                                                  str(b.get("text", ""))[:80].replace("\n", " ")))
+            print(
+                "        引到: [%s] %s | %s"
+                % (b.get("n"), b.get("filename"), str(b.get("text", ""))[:80].replace("\n", " "))
+            )
 
 print()
 print("=" * 100)
@@ -112,7 +121,17 @@ if tot:
 print("  耗时            : %.1fs" % (time.time() - t0))
 
 (E / "citation_support.json").write_text(
-    json.dumps({"n": tot, "support": n_yes, "not_support": n_no,
-                "support_rate": round(n_yes / tot, 4) if tot else None,
-                "detail": results}, ensure_ascii=False, indent=2), encoding="utf-8")
+    json.dumps(
+        {
+            "n": tot,
+            "support": n_yes,
+            "not_support": n_no,
+            "support_rate": round(n_yes / tot, 4) if tot else None,
+            "detail": results,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print("  结果 -> eval/citation_support.json")

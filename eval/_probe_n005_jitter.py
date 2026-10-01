@@ -26,6 +26,7 @@ n005 问：「参与评测的产品里，召回率最低的是哪个？召回率
 * 「golden 在但拒答」占多数    -> 生成问题（B）
 * 两者都出现                  -> 双重抖动（要分别处理）
 """
+
 from __future__ import annotations
 
 import json
@@ -46,9 +47,11 @@ from utils.citation import is_refusal  # noqa: E402
 ROUNDS = int(os.environ.get("N005_ROUNDS", "10"))
 QID = os.environ.get("N005_QID", "n005")
 
-cases = {json.loads(l).get("id"): json.loads(l)
-         for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
-         if l.strip()}
+cases = {
+    json.loads(l).get("id"): json.loads(l)
+    for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    if l.strip()
+}
 C = cases[QID]
 Q = C["q"]
 GOLD = set(C.get("source_blocks") or [])
@@ -75,15 +78,15 @@ for i in range(1, ROUNDS + 1):
     if not isinstance(docs, list):
         docs = [docs]
     ids = {metrics.chunk_id(d.page_content) for d in docs}
-    g_kept = len(GOLD & ids)          # **关键**：含答案的块有没有进上下文
+    g_kept = len(GOLD & ids)  # **关键**：含答案的块有没有进上下文
     gen = (out.get("generation") or "").strip()
     refused = is_refusal(gen)
-    r = {"i": i, "n_ctx": len(docs), "g_kept": g_kept, "refused": refused,
-         "gen": gen[:150].replace("\n", " ")}
+    r = {"i": i, "n_ctx": len(docs), "g_kept": g_kept, "refused": refused, "gen": gen[:150].replace("\n", " ")}
     rows.append(r)
-    print("  [%2d] 上下文 %2d 块 | **golden 保留 %d/%d** | %-8s | %s" % (
-        i, len(docs), g_kept, len(GOLD), "**拒答**" if refused else "作答",
-        gen[:78]))
+    print(
+        "  [%2d] 上下文 %2d 块 | **golden 保留 %d/%d** | %-8s | %s"
+        % (i, len(docs), g_kept, len(GOLD), "**拒答**" if refused else "作答", gen[:78])
+    )
 
 ok = [r for r in rows if "err" not in r]
 n_ref = sum(1 for r in ok if r["refused"])
@@ -127,10 +130,22 @@ if ok:
     print("  上下文规模：作答轮 %s 块 | 拒答轮 %s 块" % (a or "-", b or "-"))
     print("  golden 保留：作答轮 %s | 拒答轮 %s" % (ga or "-", gb or "-"))
 
-(HERE / "probe_n005_jitter.json").write_text(json.dumps(
-    {"qid": QID, "question": Q, "rounds": ROUNDS, "rows": rows,
-     "n_ans": n_ans, "n_ref": n_ref,
-     "ref_no_gold": n_ref_no_gold, "ref_has_gold": n_ref_has_gold},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "probe_n005_jitter.json").write_text(
+    json.dumps(
+        {
+            "qid": QID,
+            "question": Q,
+            "rounds": ROUNDS,
+            "rows": rows,
+            "n_ans": n_ans,
+            "n_ref": n_ref,
+            "ref_no_gold": n_ref_no_gold,
+            "ref_has_gold": n_ref_has_gold,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/probe_n005_jitter.json")

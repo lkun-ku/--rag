@@ -18,6 +18,7 @@
 **每组跑 3 次**，是为了区分「稳定」与「抖动」——
 之前踩过「单轮对比不可靠」的坑（见 `generate_node2.py` 注释里的教训）。
 """
+
 from __future__ import annotations
 
 import json
@@ -81,15 +82,13 @@ prod_docs = out.get("documents") or []
 if not isinstance(prod_docs, list):
     prod_docs = [prod_docs]
 prod_ctx = format_docs(prod_docs)
-print("  块数 %d / %d 字符 / 含 61.35: %s"
-      % (len(prod_docs), len(prod_ctx), "61.35" in prod_ctx))
+print("  块数 %d / %d 字符 / 含 61.35: %s" % (len(prod_docs), len(prod_ctx), "61.35" in prod_ctx))
 
 a_res = []
 for i in range(RUNS):
     r, h, txt = ask(prod_docs, "A")
     a_res.append((r, h))
-    print("  第%d次: 拒答=%-3s 命中=%-3s | %s"
-          % (i + 1, "是" if r else "否", "是" if h else "否", txt[:92]))
+    print("  第%d次: 拒答=%-3s 命中=%-3s | %s" % (i + 1, "是" if r else "否", "是" if h else "否", txt[:92]))
 
 # ---- B. 完整表 -------------------------------------------------------------
 print()
@@ -98,22 +97,19 @@ print("B. 完整表（该表全部切片拼接）")
 print("=" * 100)
 client = MilvusClient(uri=MILVUS_URI)
 parts = []
-for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-             "kb_manuals_bge_large_1024"):
+for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):
     try:
-        rows = client.query(collection_name=coll, filter="",
-                            output_fields=["filename", "title", "text"], limit=8000)
+        rows = client.query(collection_name=coll, filter="", output_fields=["filename", "title", "text"], limit=8000)
     except Exception:  # noqa: BLE001
         continue
     for r in rows:
-        if (r.get("filename") == TARGET_FILE
-                and (r.get("title") or "") == TARGET_TITLE):
+        if r.get("filename") == TARGET_FILE and (r.get("title") or "") == TARGET_TITLE:
             parts.append(r.get("text") or "")
 
 
 def _start_line(t: str) -> int:
     m = re.search(r"第\s*(\d+)\s*-\s*(\d+)\s*行", t)
-    return int(m.group(1)) if m else 10 ** 9
+    return int(m.group(1)) if m else 10**9
 
 
 parts.sort(key=_start_line)
@@ -132,17 +128,17 @@ for p in parts:
             seen.add("hdr")
         full_lines.append(l)
 full_text = "\n".join(full_lines)
-print("  切片 %d 个 -> 拼接 %d 行 / %d 字符 / 含 61.35: %s"
-      % (len(parts), len(full_lines), len(full_text), "61.35" in full_text))
+print(
+    "  切片 %d 个 -> 拼接 %d 行 / %d 字符 / 含 61.35: %s"
+    % (len(parts), len(full_lines), len(full_text), "61.35" in full_text)
+)
 
-b_docs = [Document(page_content=full_text,
-                   metadata={"filename": TARGET_FILE, "title": TARGET_TITLE})]
+b_docs = [Document(page_content=full_text, metadata={"filename": TARGET_FILE, "title": TARGET_TITLE})]
 b_res = []
 for i in range(RUNS):
     r, h, txt = ask(b_docs, "B")
     b_res.append((r, h))
-    print("  第%d次: 拒答=%-3s 命中=%-3s | %s"
-          % (i + 1, "是" if r else "否", "是" if h else "否", txt[:92]))
+    print("  第%d次: 拒答=%-3s 命中=%-3s | %s" % (i + 1, "是" if r else "否", "是" if h else "否", txt[:92]))
 
 # ---- 判读 ------------------------------------------------------------------
 print()

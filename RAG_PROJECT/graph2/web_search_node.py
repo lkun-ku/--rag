@@ -62,13 +62,15 @@ def web_search(state):
     # **为什么现在才敢改**：唯一的下游是 `generate`，而它**本来就防御了两种情况**
     # （`documents if isinstance(documents, list) else [documents]`）——
     # 所以改成 list 对它是**零影响**，而所有「假设 list」的代码都能因此工作。
-    web_results = [Document(
-        page_content=web_results,
-        metadata={
-            "source": "web",
-            "filename": "（网络搜索，非知识库）",
-            "title": "（网络搜索，非知识库）",
-        },
-    )]
+    web_results = [
+        Document(
+            page_content=web_results,
+            metadata={
+                "source": "web",
+                "filename": "（网络搜索，非知识库）",
+                "title": "（网络搜索，非知识库）",
+            },
+        )
+    ]
 
     return {"documents": web_results, "question": question}  # 返回更新状态

@@ -9,13 +9,13 @@ from utils.env_utils import LLM_STRUCTURED_METHOD
 class GradeHallucinations(BaseModel):
     """对生成回答中是否存在幻觉进行二元评分"""
 
-    binary_score: str = Field(
-        description="回答是否基于事实，取值为'yes'或'no'"
-    )
+    binary_score: str = Field(description="回答是否基于事实，取值为'yes'或'no'")
 
 
 # 带函数调用的LLM初始化
-structured_llm_grader = llm.with_structured_output(GradeHallucinations, method=LLM_STRUCTURED_METHOD)  # 绑定结构化输出到评分模型
+structured_llm_grader = llm.with_structured_output(
+    GradeHallucinations, method=LLM_STRUCTURED_METHOD
+)  # 绑定结构化输出到评分模型
 
 # 提示词模板
 system = """您是一个评估生成内容是否基于检索事实的评分器。\n
@@ -29,6 +29,6 @@ hallucination_prompt = ChatPromptTemplate.from_messages(
 
 # 构建幻觉检测工作流
 hallucination_grader_chain = (
-        hallucination_prompt  # 使用幻觉检测提示模板
-        | structured_llm_grader  # 调用结构化评分的LLM
+    hallucination_prompt  # 使用幻觉检测提示模板
+    | structured_llm_grader  # 调用结构化评分的LLM
 )

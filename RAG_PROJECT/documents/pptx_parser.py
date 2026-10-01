@@ -67,8 +67,7 @@ SPARSE_PAGE_CHARS = 80
 class PPTParser:
     """把 PPTX 解析成与 Markdown 路径完全一致的 Document 块（一页一块）。"""
 
-    def __init__(self, keep_temp_md: bool = False, ocr_images: bool = False,
-                 ocr_dpi: int = 200):
+    def __init__(self, keep_temp_md: bool = False, ocr_images: bool = False, ocr_dpi: int = 200):
         """
         Args:
             keep_temp_md: 保留中间 Markdown 供人工核对（默认 False）。
@@ -104,8 +103,9 @@ class PPTParser:
         为什么需要：**阅读顺序 != XML 顺序**，多栏页会串读。
         用 1e5 EMU（≈0.1 英寸）做行容差，避免轻微错位导致跨行误排。
         """
+
         def key(s):
-            top = s.top if s.top is not None else 10 ** 12
+            top = s.top if s.top is not None else 10**12
             left = s.left if s.left is not None else 0
             return (round(top / 100000), left)
 
@@ -202,7 +202,7 @@ class PPTParser:
             rel_ids = gd.find('dgm:relIds', _NS)
             if rel_ids is None:
                 continue
-            rid = rel_ids.get('{%s}dm' % _NS['r'])       # r:dm 指向 diagram data 部件
+            rid = rel_ids.get('{%s}dm' % _NS['r'])  # r:dm 指向 diagram data 部件
             if not rid:
                 continue
             try:
@@ -229,8 +229,7 @@ class PPTParser:
             # 痕迹（解析"成功"、块数为 0），排查时无从下手。降级本身是合理的（不该中断
             # 整份文档），但必须留痕。
             shapes = []
-            log.warning(f"幻灯片 {index} 形状排序失败，本页按空处理: "
-                        f"{type(e).__name__}: {str(e)[:80]}")
+            log.warning(f"幻灯片 {index} 形状排序失败，本页按空处理: {type(e).__name__}: {str(e)[:80]}")
 
         for shp in shapes:
             role = self._shape_role(shp)
@@ -251,6 +250,7 @@ class PPTParser:
 
             try:
                 from pptx.enum.shapes import MSO_SHAPE_TYPE
+
                 if shp.shape_type == MSO_SHAPE_TYPE.PICTURE:
                     has_image = True
                     if self.ocr_images:
@@ -313,7 +313,7 @@ class PPTParser:
             raw = RapidOCR()(arr)
             result = raw[0] if isinstance(raw, tuple) and len(raw) == 2 else raw
             texts = []
-            for item in (result or []):
+            for item in result or []:
                 t = str(item[1]).strip() if len(item) > 1 else ''
                 score = float(item[2]) if len(item) > 2 else 1.0
                 if t and score >= 0.5:
@@ -399,8 +399,7 @@ class PPTParser:
         except ImportError as e:
             # 显式回落，不静默降级（见 ROADMAP 1.3.6）
             raise ValueError(
-                f'PPTX 结构化解析需要 python-pptx：{e}。'
-                f'若确实无法安装，请在 OfficeParser 中改走 markitdown 路径。'
+                f'PPTX 结构化解析需要 python-pptx：{e}。若确实无法安装，请在 OfficeParser 中改走 markitdown 路径。'
             ) from e
 
         stripped = md_text.strip()

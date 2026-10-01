@@ -39,6 +39,7 @@
    `lookup_history` 返回 `[]`，**都不抛异常**（不因记忆层断掉问答主链）。
 3. **无 session_id 不动作**：单轮调用（无 `thread_id`）直接 no-op。
 """
+
 from __future__ import annotations
 
 import datetime
@@ -50,8 +51,7 @@ from utils.log_utils import log
 # ---------------------------------------------------------------------------
 # 配置
 # ---------------------------------------------------------------------------
-HISTORY_COLLECTION = os.getenv(
-    "HISTORY_COLLECTION", "kb_session_history_bge_large_1024")
+HISTORY_COLLECTION = os.getenv("HISTORY_COLLECTION", "kb_session_history_bge_large_1024")
 # [ROADMAP 4.44] **默认开启**（用户要求，为大数据量/长会话准备基础设施）。
 #
 # 影响面是**可控的**：只有「显式传 session_id 的请求」才会读写历史
@@ -68,8 +68,8 @@ HISTORY_MAX_CHARS = int(os.getenv("HISTORY_MAX_CHARS", "1500"))
 # （要按天/按小时精确 TTL，需给 schema 加 INT64 时间字段 —— 见 ROADMAP 4.44.6）。
 HISTORY_KEEP_MONTHS = int(os.getenv("HISTORY_KEEP_MONTHS", "3"))
 
-_impl = None            # 底层 store（真实或测试注入）
-_impl_failed = False    # 真实 store 初始化失败后不再重试
+_impl = None  # 底层 store（真实或测试注入）
+_impl_failed = False  # 真实 store 初始化失败后不再重试
 _override: dict = {}
 
 
@@ -99,6 +99,7 @@ class _MilvusHistoryStore:
 
     def _mv(self):
         from documents.milvus_db import MilvusVectorSave
+
         return MilvusVectorSave(collection_name=HISTORY_COLLECTION)
 
     def _ensure(self, mv):
@@ -113,13 +114,13 @@ class _MilvusHistoryStore:
         mv.create_connection()
         from pymilvus import MilvusClient
         from utils.env_utils import MILVUS_URI
+
         existing = MilvusClient(uri=MILVUS_URI).list_collections()
         if HISTORY_COLLECTION not in existing:
             log.info("[history] 集合 %s 不存在，创建之" % HISTORY_COLLECTION)
             mv.create_collection()
 
-    def write(self, session_id: str, turn: int, question: str,
-              answer: str) -> bool:
+    def write(self, session_id: str, turn: int, question: str, answer: str) -> bool:
         q = (question or "").strip()
         a = (answer or "").strip()
         if not q or not a:
@@ -128,16 +129,20 @@ class _MilvusHistoryStore:
         # `title` 带**月份桶**（"第 N 轮 @YYYY-MM"）：这是 TTL 的清理依据。
         # 不加 schema 字段就能按月归档删除（见 HISTORY_KEEP_MONTHS 的取舍说明）。
         _bucket = datetime.datetime.now().strftime("%Y-%m")
-        doc = Document(page_content=text[:HISTORY_MAX_CHARS],
-                       metadata={"category": "history",
-                                 "source": "session_history",
-                                 "filename": str(session_id),
-                                 "title": "第 %d 轮 @%s" % (int(turn), _bucket),
-                                 "filetype": "session",
-                                 # schema 里的 INT64 字段，**不提供会被 Milvus 拒收**
-                                 # （实测报 DataNotMatchException: missed an field `category_depth`）。
-                                 # 历史块没有标题层级，恒为 0。
-                                 "category_depth": 0})
+        doc = Document(
+            page_content=text[:HISTORY_MAX_CHARS],
+            metadata={
+                "category": "history",
+                "source": "session_history",
+                "filename": str(session_id),
+                "title": "第 %d 轮 @%s" % (int(turn), _bucket),
+                "filetype": "session",
+                # schema 里的 INT64 字段，**不提供会被 Milvus 拒收**
+                # （实测报 DataNotMatchException: missed an field `category_depth`）。
+                # 历史块没有标题层级，恒为 0。
+                "category_depth": 0,
+            },
+        )
         mv = self._mv()
         self._ensure(mv)
         # [FIX / ROADMAP 4.44] **必须调 `mv.add_documents`，不能调
@@ -149,22 +154,20 @@ class _MilvusHistoryStore:
         mv.add_documents([doc])
         return True
 
-    def search(self, session_id: str, query: str, top_k: int,
-               filter_expr: str = "") -> list:
+    def search(self, session_id: str, query: str, top_k: int, filter_expr: str = "") -> list:
         mv = self._mv()
         mv.create_connection()
         kwargs = {"k": int(top_k)}
         if filter_expr:
             kwargs["expr"] = filter_expr
-        retriever = mv.vector_store_saved.as_retriever(
-            search_type="similarity", search_kwargs=kwargs)
+        retriever = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
         return list(retriever.invoke(query or ""))
-
 
     def purge(self, filter_expr: str) -> int:
         """按过滤条件删除历史块，返回删除条数。"""
         from pymilvus import MilvusClient
         from utils.env_utils import MILVUS_URI
+
         cli = MilvusClient(uri=MILVUS_URI)
         return cli.delete(HISTORY_COLLECTION, filter=filter_expr)
 
@@ -181,8 +184,7 @@ def _get_impl():
         _impl = _MilvusHistoryStore()
     except Exception as e:  # noqa: BLE001
         _impl_failed = True
-        log.warning("[history] 存储层初始化失败，记忆检索将降级为无: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        log.warning("[history] 存储层初始化失败，记忆检索将降级为无: %s: %s" % (type(e).__name__, str(e)[:120]))
         return None
     return _impl
 
@@ -213,13 +215,11 @@ def record_turn(session_id: str, turn: int, question: str, answer: str) -> bool:
     try:
         return bool(impl.write(session_id, turn, question, answer))
     except Exception as e:  # noqa: BLE001
-        log.warning("[history] 写入失败（不影响本次问答）: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        log.warning("[history] 写入失败（不影响本次问答）: %s: %s" % (type(e).__name__, str(e)[:120]))
         return False
 
 
-def lookup_history(session_id: str, query: str,
-                   top_k: int | None = None) -> list:
+def lookup_history(session_id: str, query: str, top_k: int | None = None) -> list:
     """按语义检索该会话的历史轮次。失败返回 `[]`，**不抛异常**。
 
     无 session_id / 未启用 -> 直接返回 `[]`（单轮零影响）。
@@ -231,11 +231,9 @@ def lookup_history(session_id: str, query: str,
         return []
     k = HISTORY_TOP_K if top_k is None else top_k
     try:
-        return list(impl.search(session_id, query or "", k,
-                                filter_expr=build_filter_expr(session_id)))
+        return list(impl.search(session_id, query or "", k, filter_expr=build_filter_expr(session_id)))
     except Exception as e:  # noqa: BLE001
-        log.warning("[history] 检索失败，降级为无历史: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        log.warning("[history] 检索失败，降级为无历史: %s: %s" % (type(e).__name__, str(e)[:120]))
         return []
 
 
@@ -278,17 +276,15 @@ def purge_expired(keep_months: int | None = None) -> int:
     today = datetime.datetime.now()
     # 需要删掉的月份桶：从当月往前推 keep+1 个月开始，一直到最早
     total = 0
-    for back in range(keep + 1, keep + 25):        # 最多回看 2 年
+    for back in range(keep + 1, keep + 25):  # 最多回看 2 年
         y, m = today.year, today.month - back
         while m <= 0:
             m += 12
             y -= 1
         bucket = "%04d-%02d" % (y, m)
         try:
-            total += int(impl.purge(
-                'category == "history" and title like "%%@%s"' % bucket))
+            total += int(impl.purge('category == "history" and title like "%%@%s"' % bucket))
         except Exception as e:  # noqa: BLE001
-            log.warning("[history] 清理桶 %s 失败: %s: %s"
-                        % (bucket, type(e).__name__, str(e)[:100]))
+            log.warning("[history] 清理桶 %s 失败: %s: %s" % (bucket, type(e).__name__, str(e)[:100]))
             break
     return total

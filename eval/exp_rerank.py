@@ -19,6 +19,7 @@ reranker **不改变检索返回的集合**，只改变**顺序** —— 因此�
 
 CPU 推理约 0.5~1s/块，57 题 × 18 块 ≈ 15~20 分钟。
 """
+
 import hashlib
 import json
 import os
@@ -53,7 +54,7 @@ print("  完成 %.1fs" % (time.time() - t0), flush=True)
 
 CUTOFFS = (3, 6, 9, 12, 18)
 agg = {n: {"rec": 0.0, "prec": 0.0, "hit": 0} for n in CUTOFFS}
-agg["base"] = {"rec": 0.0, "prec": 0.0, "hit": 0}      # 不 rerank 的基线
+agg["base"] = {"rec": 0.0, "prec": 0.0, "hit": 0}  # 不 rerank 的基线
 per_case = []
 
 t0 = time.time()
@@ -79,8 +80,7 @@ for i, c in enumerate(cases, 1):
     order = sorted(range(len(docs)), key=lambda k: -float(scores[k]))
     ranked = [rids[k] for k in order]
 
-    row = {"id": c["id"], "source": c.get("source"), "n_docs": len(docs),
-           "base_recall": found / len(gid), "ranks": {}}
+    row = {"id": c["id"], "source": c.get("source"), "n_docs": len(docs), "base_recall": found / len(gid), "ranks": {}}
     for n in CUTOFFS:
         top = ranked[:n]
         f = len(gid & set(top))
@@ -92,8 +92,7 @@ for i, c in enumerate(cases, 1):
 
     if i % 5 == 0 or i == len(cases):
         el = time.time() - t0
-        print("  %2d/%d  已用 %.0fs  预计剩余 %.0fs" % (
-            i, len(cases), el, el / i * (len(cases) - i)), flush=True)
+        print("  %2d/%d  已用 %.0fs  预计剩余 %.0fs" % (i, len(cases), el, el / i * (len(cases) - i)), flush=True)
 
 N = len(per_case)
 print()
@@ -105,8 +104,7 @@ print("  " + "-" * 88)
 
 
 def show(label, d, note=""):
-    print("  %-14s %-12.4f %-12.4f %-10.4f %s" % (
-        label, d["rec"] / N, d["prec"] / N, d["hit"] / N, note))
+    print("  %-14s %-12.4f %-12.4f %-10.4f %s" % (label, d["rec"] / N, d["prec"] / N, d["hit"] / N, note))
 
 
 show("基线(不重排)", agg["base"], "18 块全给下游")

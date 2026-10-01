@@ -13,6 +13,7 @@
 
 检索层是确定性的（不调 LLM），所以顺序跑三配置即可，无需交替。
 """
+
 from __future__ import annotations
 
 import json
@@ -31,14 +32,12 @@ import metrics  # noqa: E402
 import tools.retriever_tools as rt  # noqa: E402
 
 GRID = [(6, 18), (8, 24), (12, 36), (16, 48)]
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 
 print("=" * 104)
 print("per_k 配额的全集 recall 对比（口径与 run_eval 一致）")
 print("=" * 104)
-print("  题数 %d（含 golden %d）" % (
-    len(cases), sum(1 for c in cases if c.get("source_blocks"))))
+print("  题数 %d（含 golden %d）" % (len(cases), sum(1 for c in cases if c.get("source_blocks"))))
 print()
 
 out = {}
@@ -55,16 +54,24 @@ for pk, fk in GRID:
             errs.append("%s: %s" % (c.get("id"), type(e).__name__))
             s = {"recall": 0.0, "precision": 0.0, "hit": False, "missed_ids": []}
             rids = []
-        per_case.append({"id": c.get("id"), "source": c.get("source", "?"),
-                         "recall": s["recall"], "precision": s["precision"],
-                         "hit": s["hit"], "retrieved_n": len(rids)})
+        per_case.append(
+            {
+                "id": c.get("id"),
+                "source": c.get("source", "?"),
+                "recall": s["recall"],
+                "precision": s["precision"],
+                "hit": s["hit"],
+                "retrieved_n": len(rids),
+            }
+        )
     l0 = metrics.aggregate_layer0(per_case)
     avg_n = sum(x["retrieved_n"] for x in per_case) / len(per_case)
     out[(pk, fk)] = {"l0": l0, "per_case": per_case, "avg_n": avg_n, "errs": errs}
-    print("  per_k=%-3d final_k=%-3d  recall=%.4f  hit=%.4f  precision=%.4f  "
-          "平均块数=%.1f  (%.1fs)" % (
-              pk, fk, l0["context_recall"], l0["hit_rate"],
-              l0["context_precision"], avg_n, time.time() - t0))
+    print(
+        "  per_k=%-3d final_k=%-3d  recall=%.4f  hit=%.4f  precision=%.4f  "
+        "平均块数=%.1f  (%.1fs)"
+        % (pk, fk, l0["context_recall"], l0["hit_rate"], l0["context_precision"], avg_n, time.time() - t0)
+    )
 
 print()
 print("=" * 104)
@@ -76,20 +83,36 @@ base = out[(8, 24)]
 for pk, fk in GRID:
     v = out[(pk, fk)]
     d = v["l0"]["context_recall"] - base["l0"]["context_recall"]
-    tag = "" if (pk, fk) == (8, 24) else ("基准" if abs(d) < 1e-9 else
-                                          "有效" if d > 0.01 else
-                                          "无明显收益" if d > -0.005 else "**下降**")
-    print("  %-12s %-10.4f %+-10.4f %-12.1f %s" % (
-        "%d/%d" % (pk, fk), v["l0"]["context_recall"], d, v["avg_n"],
-        "**基准（当前）**" if (pk, fk) == (8, 24) else tag))
+    tag = (
+        ""
+        if (pk, fk) == (8, 24)
+        else ("基准" if abs(d) < 1e-9 else "有效" if d > 0.01 else "无明显收益" if d > -0.005 else "**下降**")
+    )
+    print(
+        "  %-12s %-10.4f %+-10.4f %-12.1f %s"
+        % (
+            "%d/%d" % (pk, fk),
+            v["l0"]["context_recall"],
+            d,
+            v["avg_n"],
+            "**基准（当前）**" if (pk, fk) == (8, 24) else tag,
+        )
+    )
 
 print()
 print("  判读要点：放大配额只在「Δrecall 明显 > 0」时值得，因为块数增加的代价是")
 print("  **判分的 LLM 调用量同比例上升**（每块一次判分）。")
 
-(HERE / "compare_perk_recall.json").write_text(json.dumps(
-    {"%d/%d" % k: {"l0": v["l0"], "avg_n": v["avg_n"], "errs": v["errs"],
-                   "per_case": v["per_case"]} for k, v in out.items()},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "compare_perk_recall.json").write_text(
+    json.dumps(
+        {
+            "%d/%d" % k: {"l0": v["l0"], "avg_n": v["avg_n"], "errs": v["errs"], "per_case": v["per_case"]}
+            for k, v in out.items()
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/compare_perk_recall.json")

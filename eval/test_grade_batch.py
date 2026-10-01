@@ -31,6 +31,7 @@
 本文件的测试只覆盖 C1/C2/C3；一致率与 token 节省由
 `eval/measure_grade_batch_saving.py` 实测。
 """
+
 from __future__ import annotations
 
 import os
@@ -64,17 +65,18 @@ Q = "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？"
 
 # 极端样本：前两块**明显相关**（含问题里的型号 + QPS 数值），后两块**明显无关**
 DOCS = [
-    Document(page_content="表格：检索性能实测（第 1-30 行）\n"
-                          "| 场景 | 产品与规格 | QPS |\n"
-                          "| 静态向量检索 | Milvus-16c64g-sq4u-fp16-force_merge | 9575.69 |",
-             metadata={"filename": "t.md"}),
-    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 在静态向量检索场景下"
-                          "QPS 为 9575.69，P99 延迟 2.3ms。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="春天是万物复苏的季节，诗人们常用柳树与桃花来描写它。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="本公司的报销流程如下：先填写申请单，再交由部门主管审批。",
-             metadata={"filename": "t.md"}),
+    Document(
+        page_content="表格：检索性能实测（第 1-30 行）\n"
+        "| 场景 | 产品与规格 | QPS |\n"
+        "| 静态向量检索 | Milvus-16c64g-sq4u-fp16-force_merge | 9575.69 |",
+        metadata={"filename": "t.md"},
+    ),
+    Document(
+        page_content="Milvus-16c64g-sq4u-fp16-force_merge 在静态向量检索场景下QPS 为 9575.69，P99 延迟 2.3ms。",
+        metadata={"filename": "t.md"},
+    ),
+    Document(page_content="春天是万物复苏的季节，诗人们常用柳树与桃花来描写它。", metadata={"filename": "t.md"}),
+    Document(page_content="本公司的报销流程如下：先填写申请单，再交由部门主管审批。", metadata={"filename": "t.md"}),
 ]
 
 print("=" * 96)
@@ -130,21 +132,14 @@ except Exception as e:  # noqa: BLE001
 print()
 print("[C4·并发] 12 块（> BATCH_SIZE，必然多批）-> 长度/类型/顺序都不变")
 MANY = DOCS + [
-    Document(page_content="Milvus 的索引类型包括 FLAT、IVF_FLAT、HNSW 等。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="本店营业时间为每天上午九点到晚上十点。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是 9575.69。",
-             metadata={"filename": "t.md"}),
+    Document(page_content="Milvus 的索引类型包括 FLAT、IVF_FLAT、HNSW 等。", metadata={"filename": "t.md"}),
+    Document(page_content="本店营业时间为每天上午九点到晚上十点。", metadata={"filename": "t.md"}),
+    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是 9575.69。", metadata={"filename": "t.md"}),
     Document(page_content="今天天气晴朗，适合外出散步。", metadata={"filename": "t.md"}),
-    Document(page_content="Python 的 GIL 限制了多线程的并行计算能力。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 P99 延迟为 2.3ms。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="火锅的底料通常由牛油、辣椒和花椒组成。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="向量数据库的召回率与索引参数 nlist、nprobe 有关。",
-             metadata={"filename": "t.md"}),
+    Document(page_content="Python 的 GIL 限制了多线程的并行计算能力。", metadata={"filename": "t.md"}),
+    Document(page_content="Milvus-16c64g-sq4u-fp16-force_merge 的 P99 延迟为 2.3ms。", metadata={"filename": "t.md"}),
+    Document(page_content="火锅的底料通常由牛油、辣椒和花椒组成。", metadata={"filename": "t.md"}),
+    Document(page_content="向量数据库的召回率与索引参数 nlist、nprobe 有关。", metadata={"filename": "t.md"}),
 ]
 try:
     out_many = grade_batch(Q, MANY)

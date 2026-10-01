@@ -26,6 +26,7 @@
 用法：
     .venv\\Scripts\\python.exe eval\\verify_integration.py
 """
+
 from __future__ import annotations
 
 import json
@@ -117,14 +118,19 @@ def run_scenario(scen: str, with_tenants: bool) -> dict:
     else:
         env.pop("KB_TENANTS", None)
     code = PROBE.format(root=str(ROOT), scen=scen)
-    r = subprocess.run([sys.executable, "-c", code], capture_output=True,
-                       text=True, encoding="utf-8", errors="replace", env=env,
-                       cwd=str(ROOT))
+    r = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        cwd=str(ROOT),
+    )
     for line in (r.stdout or "").splitlines():
         if line.startswith("__RESULT__"):
-            return json.loads(line[len("__RESULT__"):])
-    return {"scenario": scen, "ok": False,
-            "detail": {"error": "no result", "stderr": (r.stderr or "")[-200:]}}
+            return json.loads(line[len("__RESULT__") :])
+    return {"scenario": scen, "ok": False, "detail": {"error": "no result", "stderr": (r.stderr or "")[-200:]}}
 
 
 SCENARIOS = [
@@ -164,7 +170,12 @@ print("=" * 100)
 print("合计 %d/%d 通过" % (n_ok, len(results)))
 print("=" * 100)
 
-(HERE / "integration_verify.json").write_text(json.dumps(
-    [{"scenario": s, "label": l, "ok": g.get("ok"), "detail": g.get("detail")}
-     for s, l, g in results], ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "integration_verify.json").write_text(
+    json.dumps(
+        [{"scenario": s, "label": l, "ok": g.get("ok"), "detail": g.get("detail")} for s, l, g in results],
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print("  结果 -> eval/integration_verify.json")

@@ -18,6 +18,7 @@
    为「要不要给 `ChatOpenAI` 显式设 timeout」提供依据
    （代码审查提到过：`all_llm.py` 的 `ChatOpenAI` 未设 timeout）。
 """
+
 from __future__ import annotations
 
 import os
@@ -30,8 +31,12 @@ sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from utils.env_utils import (DEEPSEEK_API_KEY, LLM_BASE_URL, LLM_MODEL,  # noqa: E402
-                             OPENAI_API_KEY)
+from utils.env_utils import (
+    DEEPSEEK_API_KEY,
+    LLM_BASE_URL,
+    LLM_MODEL,  # noqa: E402
+    OPENAI_API_KEY,
+)
 
 print("=" * 100)
 print("探针：区分「连不上」与「响应慢」")
@@ -46,8 +51,7 @@ print("[1] 裸 openai SDK，timeout=120s")
 try:
     from openai import OpenAI
 
-    client = OpenAI(api_key=DEEPSEEK_API_KEY or OPENAI_API_KEY or OPENAI_API_KEY,
-                    base_url=LLM_BASE_URL, timeout=120.0)
+    client = OpenAI(api_key=DEEPSEEK_API_KEY or OPENAI_API_KEY or OPENAI_API_KEY, base_url=LLM_BASE_URL, timeout=120.0)
     t0 = time.time()
     resp = client.chat.completions.create(
         model=LLM_MODEL,
@@ -57,8 +61,7 @@ try:
     el = time.time() - t0
     text = (resp.choices[0].message.content or "").strip()
     usage = getattr(resp, "usage", None)
-    print("    成功 ✅ 耗时 %.1fs | 回复=%r | usage=%s" % (
-        el, text[:40], usage))
+    print("    成功 ✅ 耗时 %.1fs | 回复=%r | usage=%s" % (el, text[:40], usage))
     print("    -> **端点可用**，此前 20s 超时过短（真实耗时 %.1fs）" % el)
 except Exception as e:  # noqa: BLE001
     el = time.time() - t0 if 't0' in dir() else -1

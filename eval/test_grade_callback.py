@@ -33,6 +33,7 @@
 探针先行：`eval/_probe_langgraph_config.py` 已实测确认「LangGraph 会把 config
 传给两参数节点」（`config['callbacks']` 是 `CallbackManager` 对象）。
 """
+
 from __future__ import annotations
 
 import os
@@ -75,12 +76,12 @@ class CountingCallback(BaseCallbackHandler):
 
 Q = "Milvus-16c7c-sq4u-fp16-force_merge 的 QPS 是多少？"
 DOCS = [
-    Document(page_content="表格：检索性能实测（第 1-30 行）\n| 场景 | QPS |\n| 静态向量检索 | 9575.69 |",
-             metadata={"filename": "t.md"}),
-    Document(page_content="Milvus 是一个向量数据库，支持混合检索与稀疏向量。",
-             metadata={"filename": "t.md"}),
-    Document(page_content="本文讨论 RAG 系统的七个常见失败点，与向量检索无关。",
-             metadata={"filename": "t.md"}),
+    Document(
+        page_content="表格：检索性能实测（第 1-30 行）\n| 场景 | QPS |\n| 静态向量检索 | 9575.69 |",
+        metadata={"filename": "t.md"},
+    ),
+    Document(page_content="Milvus 是一个向量数据库，支持混合检索与稀疏向量。", metadata={"filename": "t.md"}),
+    Document(page_content="本文讨论 RAG 系统的七个常见失败点，与向量检索无关。", metadata={"filename": "t.md"}),
 ]
 
 print("=" * 96)
@@ -115,8 +116,7 @@ if out1 is not None:
     check("仍返回 filtered documents", isinstance(out1.get("documents"), list), True)
 
 print()
-print("[用例1b] 批量模式（USE_BATCH_GRADE=True）-> 期望 on_llm_end 触发 1 次"
-      "（3 块 < BATCH_SIZE，合成 1 批）")
+print("[用例1b] 批量模式（USE_BATCH_GRADE=True）-> 期望 on_llm_end 触发 1 次（3 块 < BATCH_SIZE，合成 1 批）")
 gdn.USE_BATCH_GRADE = True
 cb1b = CountingCallback()
 try:

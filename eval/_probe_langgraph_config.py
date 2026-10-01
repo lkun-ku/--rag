@@ -12,6 +12,7 @@
 
 **这条决定整个修法，必须先探明，不能猜。**
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -27,6 +28,7 @@ print("=" * 96)
 
 try:
     import langgraph
+
     print("  langgraph 版本: %s" % getattr(langgraph, "__version__", "未知"))
 except Exception as e:  # noqa: BLE001
     print("  [!] import langgraph 失败: %s" % e)
@@ -119,6 +121,7 @@ SEEN2 = {}
 def node_get_config(state, config=None):
     try:
         from langchain_core.runnables.config import get_config
+
         c = get_config()
         SEEN2["callbacks"] = c.get("callbacks")
     except Exception as e:  # noqa: BLE001
@@ -131,5 +134,4 @@ g2.add_node("n", node_get_config)
 g2.set_entry_point("n")
 g2.add_edge("n", END)
 g2.compile().invoke({"x": 1}, config={"callbacks": FAKE})
-print("  节点内 get_config() -> callbacks=%r  error=%r" % (
-    SEEN2.get("callbacks"), SEEN2.get("error")))
+print("  节点内 get_config() -> callbacks=%r  error=%r" % (SEEN2.get("callbacks"), SEEN2.get("error")))

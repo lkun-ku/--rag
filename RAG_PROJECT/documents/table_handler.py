@@ -207,9 +207,9 @@ def parse_table_html(html: str) -> List[List[str]]:
     return [r + [''] * (width - len(r)) for r in rows]
 
 
-def grid_to_markdown(rows: Sequence[Sequence[str]],
-                     table_name: str = '',
-                     row_range: Optional[Tuple[int, int]] = None) -> str:
+def grid_to_markdown(
+    rows: Sequence[Sequence[str]], table_name: str = '', row_range: Optional[Tuple[int, int]] = None
+) -> str:
     """二维网格 -> 自解释的 Markdown 文本块。
 
     前缀三个要素（表名 / 行范围 / 列名）是刻意的：
@@ -230,7 +230,7 @@ def grid_to_markdown(rows: Sequence[Sequence[str]],
     lines.append('| ' + ' | '.join(header) + ' |')
     lines.append('|' + '|'.join(['---'] * len(header)) + '|')
     for r in body:
-        lines.append('| ' + ' | '.join(r[:len(header)]) + ' |')
+        lines.append('| ' + ' | '.join(r[: len(header)]) + ' |')
     return '\n'.join(lines).strip()
 
 
@@ -239,10 +239,9 @@ def _nbytes(s: str) -> int:
     return len(s.encode('utf-8'))
 
 
-def build_table_chunks(html: str,
-                       table_name: str = '',
-                       max_rows: int = DEFAULT_MAX_ROWS,
-                       max_bytes: int = DEFAULT_MAX_BYTES) -> List[str]:
+def build_table_chunks(
+    html: str, table_name: str = '', max_rows: int = DEFAULT_MAX_ROWS, max_bytes: int = DEFAULT_MAX_BYTES
+) -> List[str]:
     """HTML 表格 -> 1~N 个自解释文本块（L1 + L2 + L3 的完整实现）。
 
     决策流程（ROADMAP 2.4.2）：
@@ -273,13 +272,11 @@ def build_table_chunks(html: str,
         end = min(start + max_rows, len(body))
         # 在行数上限内按**字节**上限收缩（至少保留 1 行，避免死循环）
         while end > start + 1:
-            cand = grid_to_markdown([header] + body[start:end], table_name,
-                                    (start + 1, end))
+            cand = grid_to_markdown([header] + body[start:end], table_name, (start + 1, end))
             if _nbytes(cand) <= max_bytes:
                 break
             end -= 1
-        chunks.append(grid_to_markdown([header] + body[start:end], table_name,
-                                       (start + 1, end)))
+        chunks.append(grid_to_markdown([header] + body[start:end], table_name, (start + 1, end)))
         start = end
     return chunks
 
@@ -332,8 +329,7 @@ _FLAT_TWIN_MIN_VALUE_CHARS = 4
 _FLAT_TWIN_MIN_WORD_CHARS = 6
 
 _NUMERICISH_RE = re.compile(r'^[\d.,%\s/\-]+$')
-_FLAT_TWIN_WORD_RE = re.compile(
-    r'[A-Za-z\u4e00-\u9fff0-9./_-]{%d,}' % _FLAT_TWIN_MIN_WORD_CHARS)
+_FLAT_TWIN_WORD_RE = re.compile(r'[A-Za-z\u4e00-\u9fff0-9./_-]{%d,}' % _FLAT_TWIN_MIN_WORD_CHARS)
 _HAS_LETTER_RE = re.compile(r'[A-Za-z\u4e00-\u9fff]')
 
 
@@ -410,9 +406,7 @@ def has_restorable_table(doc: Document) -> bool:
     return bool(doc.metadata.get('text_as_html'))
 
 
-def restore_table_documents(doc: Document,
-                            table_name: str = '',
-                            max_rows: int = DEFAULT_MAX_ROWS) -> List[Document]:
+def restore_table_documents(doc: Document, table_name: str = '', max_rows: int = DEFAULT_MAX_ROWS) -> List[Document]:
     """把一个 Table 元素转换成 1~N 个「结构已恢复」的内容块。
 
     Args:
@@ -430,9 +424,7 @@ def restore_table_documents(doc: Document,
     if table_name:
         table_name = table_name.strip()[:MAX_TABLE_NAME_CHARS]
 
-    chunks = build_table_chunks(doc.metadata.get('text_as_html', ''),
-                                table_name=table_name,
-                                max_rows=max_rows)
+    chunks = build_table_chunks(doc.metadata.get('text_as_html', ''), table_name=table_name, max_rows=max_rows)
     if not chunks:
         return []
 
@@ -440,7 +432,7 @@ def restore_table_documents(doc: Document,
     # [FIX / P1-8] 原先用 `enumerate(chunks, 1)`，但那个序号 `i` **从未被使用**。
     for text in chunks:
         meta = dict(doc.metadata)
-        meta.pop('text_as_html', None)   # schema 无此字段；且已还原进正文，无需再存
+        meta.pop('text_as_html', None)  # schema 无此字段；且已还原进正文，无需再存
         meta['category'] = 'content'
         # 保留原有 title（若有），否则用表名兜底 —— Milvus schema 要求非空。
         if table_name and not meta.get('title'):

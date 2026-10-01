@@ -12,6 +12,7 @@
 | T6 | `DOC_SOURCES` 有 `web` 源（html），且**默认 `enabled=False`**（避免空集合影响检索）|
 | T7 | 转换后的 `filename` 元数据是**真实文件名**（不是临时文件名）|
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -62,11 +63,12 @@ try:
     alltext = "\n".join(d.page_content for d in docs)
     check("T1 保留标题文本", "Milvus 检索性能" in alltext, alltext[:60])
     check("T1 保留表格数值", "61.35" in alltext, alltext[:80])
-    check("T7 filename 是真实名（含 .md 后缀）",
-          all(d.metadata.get("filename", "").endswith(".md") for d in docs),
-          [d.metadata.get("filename") for d in docs[:2]])
-    check("T7 filename 不含临时前缀 conv_",
-          all("conv_" not in d.metadata.get("filename", "") for d in docs))
+    check(
+        "T7 filename 是真实名（含 .md 后缀）",
+        all(d.metadata.get("filename", "").endswith(".md") for d in docs),
+        [d.metadata.get("filename") for d in docs[:2]],
+    )
+    check("T7 filename 不含临时前缀 conv_", all("conv_" not in d.metadata.get("filename", "") for d in docs))
 finally:
     pathlib.Path(p).unlink(missing_ok=True)
 
@@ -89,8 +91,7 @@ try:
     t2 = "\n".join(d.page_content for d in docs2)
     stem = pathlib.Path(p2).stem
     check("T2 文件名作为一级标题", stem in t2 or "标题" in t2, t2[:60])
-    check("T3「一、安装步骤」被提升为标题",
-          "安装步骤" in t2, t2[:100])
+    check("T3「一、安装步骤」被提升为标题", "安装步骤" in t2, t2[:100])
     check("T3 普通段落保留", "普通段落文字" in t2)
 finally:
     pathlib.Path(p2).unlink(missing_ok=True)
@@ -116,9 +117,11 @@ print("T5 write_milvus 分支")
 print("=" * 100)
 src = (ROOT / "RAG_PROJECT/documents/write_milvus.py").read_text(encoding="utf-8")
 check("T5 有 html 分支", "parser_type == 'html'" in src)
-check("T5 text 分支不再抛 NotImplementedError",
-      "raise NotImplementedError" not in src.split("if parser_type == 'text'")[1][:600],
-      "仍是 NotImplementedError")
+check(
+    "T5 text 分支不再抛 NotImplementedError",
+    "raise NotImplementedError" not in src.split("if parser_type == 'text'")[1][:600],
+    "仍是 NotImplementedError",
+)
 check("T5 引用了 TextDocParser", "TextDocParser" in src)
 check("T5 引用了 HTMLDocParser", "HTMLDocParser" in src)
 
@@ -133,8 +136,7 @@ check("T6 存在 web 源", web is not None)
 if web:
     check("T6 格式含 .html", ".html" in web["formats"], web["formats"])
     check("T6 parser='html'", web["parser"] == "html", web["parser"])
-    check("T6 **默认 enabled=False**（避免空集合影响检索）",
-          web.get("enabled") is False, web.get("enabled"))
+    check("T6 **默认 enabled=False**（避免空集合影响检索）", web.get("enabled") is False, web.get("enabled"))
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

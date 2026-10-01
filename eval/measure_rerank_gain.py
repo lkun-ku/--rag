@@ -32,6 +32,7 @@ K 取 **12**（≈ 判分实际保留数 7 的 1.7 倍，给判分留余量）�
 
 CPU 上 reranker 约 1s/块 → 36 块 ≈ 36s/题。取 LIMIT 题（默认 8）≈ 5 分钟。
 """
+
 from __future__ import annotations
 
 import json
@@ -58,8 +59,7 @@ LIMIT = int(os.environ.get("RERANK_LIMIT", "8"))
 TOPK = int(os.environ.get("RERANK_TOPK", "12"))
 MODEL = os.environ.get("RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 cases = [c for c in cases if c.get("source_blocks")][:LIMIT]
 
 print("=" * 104)
@@ -72,6 +72,7 @@ print()
 t0 = time.time()
 try:
     from sentence_transformers import CrossEncoder
+
     reranker = CrossEncoder(MODEL, max_length=512, device="cpu")
     print("  reranker 加载完成（%.1fs，CPU）" % (time.time() - t0))
 except Exception as e:  # noqa: BLE001
@@ -89,7 +90,7 @@ def grade_keep(q, docs):
             sc = retrieval_grader_chain.invoke({"question": q, "document": d.page_content})
             ok = str(getattr(sc, "binary_score", "")).strip().lower() == "yes"
         except Exception:  # noqa: BLE001
-            ok = True      # 与生产一致：异常保守保留
+            ok = True  # 与生产一致：异常保守保留
         if ok:
             keep_ids.add(cid)
     return keep_ids
@@ -119,18 +120,40 @@ for i, c in enumerate(cases, 1):
     gb = len(gids & keep_base)
     gr = len(gids & keep_rr)
 
-    rows.append({"id": c.get("id"), "n_golden": len(gids), "g_in_ret": g_in_ret,
-                 "n_ret": len(docs), "base_keep": len(keep_base),
-                 "rr_keep": len(keep_rr), "g_base": gb, "g_rr": gr,
-                 "rerank_sec": round(rerank_sec, 1)})
-    print("  [%d/%d] %-6s golden=%2d（检索命中 %d）| 基线前%d: 保留%2d/golden %d"
-          "  ->  rerank前%d: 保留%2d/golden **%d**  (rerank %.0fs)" % (
-              i, len(cases), c.get("id"), len(gids), g_in_ret, TOPK,
-              len(keep_base), gb, TOPK, len(keep_rr), gr, rerank_sec))
+    rows.append(
+        {
+            "id": c.get("id"),
+            "n_golden": len(gids),
+            "g_in_ret": g_in_ret,
+            "n_ret": len(docs),
+            "base_keep": len(keep_base),
+            "rr_keep": len(keep_rr),
+            "g_base": gb,
+            "g_rr": gr,
+            "rerank_sec": round(rerank_sec, 1),
+        }
+    )
+    print(
+        "  [%d/%d] %-6s golden=%2d（检索命中 %d）| 基线前%d: 保留%2d/golden %d"
+        "  ->  rerank前%d: 保留%2d/golden **%d**  (rerank %.0fs)"
+        % (
+            i,
+            len(cases),
+            c.get("id"),
+            len(gids),
+            g_in_ret,
+            TOPK,
+            len(keep_base),
+            gb,
+            TOPK,
+            len(keep_rr),
+            gr,
+            rerank_sec,
+        )
+    )
 
 print()
-print("  rerank 总耗时 %.0fs（平均 %.1fs/题）" % (
-    time.time() - t_all, (time.time() - t_all) / max(len(cases), 1)))
+print("  rerank 总耗时 %.0fs（平均 %.1fs/题）" % (time.time() - t_all, (time.time() - t_all) / max(len(cases), 1)))
 
 # ---- 汇总 ------------------------------------------------------------------
 n = len(rows)
@@ -145,17 +168,19 @@ print()
 print("=" * 104)
 print("汇总（%d 题）" % n)
 print("=" * 104)
-print("  golden 总数            : %d（其中被检索命中 %d = %.0f%%）" % (
-    g_all, g_ret, 100 * g_ret / max(g_all, 1)))
+print("  golden 总数            : %d（其中被检索命中 %d = %.0f%%）" % (g_all, g_ret, 100 * g_ret / max(g_all, 1)))
 print("  **基线**前%d 且判分后保留 : **%d**" % (TOPK, g_base))
 print("  **rerank**后前%d 且判分保留: **%d**" % (TOPK, g_rr))
-print("  -> 增益 **%+d 块**（%.1f%%）| 提升 %d 题 / 下降 %d 题" % (
-    g_rr - g_base, 100 * (g_rr - g_base) / max(g_base, 1), better, worse))
+print(
+    "  -> 增益 **%+d 块**（%.1f%%）| 提升 %d 题 / 下降 %d 题"
+    % (g_rr - g_base, 100 * (g_rr - g_base) / max(g_base, 1), better, worse)
+)
 print()
 print("  **天花板**：检索命中的 golden 共 %d 块 —— 这是 reranker 无论如何排都超不过的上限。" % g_ret)
-print("             当前基线已拿到 %d（%.0f%%），**剩余空间只有 %d 块（%.1f%%）**。" % (
-    g_base, 100 * g_base / max(g_ret, 1), g_ret - g_base,
-    100 * (g_ret - g_base) / max(g_ret, 1)))
+print(
+    "             当前基线已拿到 %d（%.0f%%），**剩余空间只有 %d 块（%.1f%%）**。"
+    % (g_base, 100 * g_base / max(g_ret, 1), g_ret - g_base, 100 * (g_ret - g_base) / max(g_ret, 1))
+)
 print()
 print("  判读：")
 if g_rr - g_base <= max(1, int(0.03 * max(g_base, 1))):
@@ -165,10 +190,24 @@ else:
     print("    **增益显著** -> 值得推进：装 CUDA 版 torch（本机 4060 可用），")
     print("    并按 4.17 的设想改造 MultiCollectionRetriever 的内部实现。")
 
-(HERE / "measure_rerank_gain.json").write_text(json.dumps(
-    {"model": MODEL, "topk": TOPK, "n_cases": n, "rows": rows,
-     "g_all": g_all, "g_in_ret": g_ret, "g_base": g_base, "g_rr": g_rr,
-     "gain": g_rr - g_base, "ceiling_left": g_ret - g_base},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "measure_rerank_gain.json").write_text(
+    json.dumps(
+        {
+            "model": MODEL,
+            "topk": TOPK,
+            "n_cases": n,
+            "rows": rows,
+            "g_all": g_all,
+            "g_in_ret": g_ret,
+            "g_base": g_base,
+            "g_rr": g_rr,
+            "gain": g_rr - g_base,
+            "ceiling_left": g_ret - g_base,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/measure_rerank_gain.json")

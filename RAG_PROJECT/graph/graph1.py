@@ -28,8 +28,6 @@ from utils.print_utils import _print_event
 from utils.env_utils import LLM_STRUCTURED_METHOD
 
 
-
-
 def grade_documents(state) -> Literal["generate", "rewrite"]:
     """
     判断检索到的文档是否与问题相关。
@@ -74,6 +72,7 @@ def grade_documents(state) -> Literal["generate", "rewrite"]:
         print(score)
         return "rewrite"
 
+
 def create_graph():
     """构建并编译工作流图，返回已编译的图对象。
 
@@ -95,14 +94,7 @@ def create_graph():
     workflow.add_node('generate', generate)
 
     workflow.add_edge(START, 'agent')
-    workflow.add_conditional_edges(
-        'agent',
-        tools_condition,
-        {
-            'tools': 'retrieve',
-            END: END
-        }
-    )
+    workflow.add_conditional_edges('agent', tools_condition, {'tools': 'retrieve', END: END})
 
     workflow.add_conditional_edges(
         'retrieve',

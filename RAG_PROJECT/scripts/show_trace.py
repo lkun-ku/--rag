@@ -47,9 +47,11 @@ def load(path: pathlib.Path):
     if not path.exists():
         print("没有找到 trace 文件：%s" % path)
         print("先跑一次 run_with_trace()，例如：")
-        print("  python -c \"import sys; sys.path.insert(0,'RAG_PROJECT');"
-              " from graph2.graph_2 import run_with_trace;"
-              " print(run_with_trace('Milvus 支持哪些索引？')['generation'])\"")
+        print(
+            "  python -c \"import sys; sys.path.insert(0,'RAG_PROJECT');"
+            " from graph2.graph_2 import run_with_trace;"
+            " print(run_with_trace('Milvus 支持哪些索引？')['generation'])\""
+        )
         return []
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -66,23 +68,23 @@ def show_one(r: dict, idx: int):
     print("=" * 96)
     print("[%d] %s" % (idx, r.get("question", "")[:88]))
     tk = r.get("tokens", {})
-    tok = ("in %d / out %d" % (tk.get("input_tokens", 0), tk.get("output_tokens", 0))
-           if tk.get("available") else "不可用")
-    print("    总耗时 %.2fs | 步骤 %d | tokens %s" % (
-        r.get("total_sec", 0), r.get("n_steps", 0), tok))
+    tok = (
+        "in %d / out %d" % (tk.get("input_tokens", 0), tk.get("output_tokens", 0)) if tk.get("available") else "不可用"
+    )
+    print("    总耗时 %.2fs | 步骤 %d | tokens %s" % (r.get("total_sec", 0), r.get("n_steps", 0), tok))
     print("-" * 96)
     print("    %-6s %-16s %-9s %s" % ("t(s)", "节点/边", "耗时", "信息"))
     for s in r.get("steps", []):
-        info = {k: v for k, v in s.items()
-                if k not in ("node", "t", "elapsed_sec")}
+        info = {k: v for k, v in s.items() if k not in ("node", "t", "elapsed_sec")}
         bits = []
         for k, v in info.items():
             if isinstance(v, list):
                 v = "[" + ",".join(map(str, v[:6])) + ("…" if len(v) > 6 else "") + "]"
             bits.append("%s=%s" % (k, v))
-        print("    %-6s %-16s %-9s %s" % (
-            s.get("t"), s.get("node"), "%.2fs" % s.get("elapsed_sec", 0),
-            " ".join(bits)[:60]))
+        print(
+            "    %-6s %-16s %-9s %s"
+            % (s.get("t"), s.get("node"), "%.2fs" % s.get("elapsed_sec", 0), " ".join(bits)[:60])
+        )
     prev = r.get("result_preview", "")
     if prev:
         print("-" * 96)
@@ -100,22 +102,21 @@ def show_stats(rows):
     print("  %-18s %-8s %-12s %-12s %s" % ("节点/边", "出现次数", "平均耗时", "最大耗时", "占比"))
     total_all = sum(sum(v) for v in by_node.values()) or 1
     for node, vals in sorted(by_node.items(), key=lambda kv: -sum(kv[1])):
-        print("  %-18s %-8d %-12s %-12s %.1f%%" % (
-            node, len(vals), "%.2fs" % (sum(vals) / len(vals)),
-            "%.2fs" % max(vals), sum(vals) / total_all * 100))
+        print(
+            "  %-18s %-8d %-12s %-12s %.1f%%"
+            % (node, len(vals), "%.2fs" % (sum(vals) / len(vals)), "%.2fs" % max(vals), sum(vals) / total_all * 100)
+        )
     print()
     tk_in = sum(r.get("tokens", {}).get("input_tokens", 0) for r in rows)
     tk_out = sum(r.get("tokens", {}).get("output_tokens", 0) for r in rows)
     print("  token 合计: 输入 %d / 输出 %d / 总计 %d" % (tk_in, tk_out, tk_in + tk_out))
     tot = [r.get("total_sec", 0) for r in rows]
     if tot:
-        print("  单次耗时: 平均 %.2fs | 最快 %.2fs | 最慢 %.2fs" % (
-            sum(tot) / len(tot), min(tot), max(tot)))
+        print("  单次耗时: 平均 %.2fs | 最快 %.2fs | 最慢 %.2fs" % (sum(tot) / len(tot), min(tot), max(tot)))
     # 路由分布
     routes = defaultdict(int)
     for r in rows:
-        d = next((s.get("decision") for s in r.get("steps", [])
-                  if s["node"] == "route_question"), None)
+        d = next((s.get("decision") for s in r.get("steps", []) if s["node"] == "route_question"), None)
         if d:
             routes[d] += 1
     if routes:
@@ -148,7 +149,7 @@ def main() -> int:
     if args.slow:
         rows = sorted(rows, key=lambda r: -r.get("total_sec", 0))
 
-    for i, r in enumerate(rows[-args.n:] if not args.slow else rows[:args.n], 1):
+    for i, r in enumerate(rows[-args.n :] if not args.slow else rows[: args.n], 1):
         show_one(r, i)
     return 0
 

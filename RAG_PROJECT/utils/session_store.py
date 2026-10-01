@@ -32,6 +32,7 @@
     ② checkpoints / writes 表里 thread_id = sid 的行（LangGraph 状态）
     ③ sessions 表里的元数据行
 """
+
 from __future__ import annotations
 
 import os
@@ -48,8 +49,8 @@ SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "21600"))
 # 所以「过期」与「被清理」之间的延迟对用户不可感知。
 SESSION_JANITOR_INTERVAL = int(os.getenv("SESSION_JANITOR_INTERVAL", "1800"))
 
-_conn = None          # 进程级单例连接
-_override_db = None   # 仅供测试注入（用临时 DB，避免污染真实数据）
+_conn = None  # 进程级单例连接
+_override_db = None  # 仅供测试注入（用临时 DB，避免污染真实数据）
 
 
 def _reset_for_test(db_path=None):
@@ -73,7 +74,8 @@ def _get_conn():
             "  created_at   INTEGER NOT NULL,"
             "  last_active  INTEGER NOT NULL,"
             "  title        TEXT NOT NULL DEFAULT ''"
-            ")")
+            ")"
+        )
         c.commit()
         _conn = c
     return _conn
@@ -91,8 +93,10 @@ def create_session(title: str = "") -> str:
     sid = uuid.uuid4().hex
     now = int(time.time())
     c = _get_conn()
-    c.execute("INSERT INTO sessions (id, created_at, last_active, title) "
-              "VALUES (?, ?, ?, ?)", (sid, now, now, (title or "")[:200]))
+    c.execute(
+        "INSERT INTO sessions (id, created_at, last_active, title) VALUES (?, ?, ?, ?)",
+        (sid, now, now, (title or "")[:200]),
+    )
     c.commit()
     log.info("[session] 新建会话 %s" % sid[:8])
     return sid
@@ -103,8 +107,7 @@ def touch_session(sid: str) -> bool:
     if not sid:
         return False
     c = _get_conn()
-    cur = c.execute("UPDATE sessions SET last_active = ? WHERE id = ?",
-                    (int(time.time()), sid))
+    cur = c.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (int(time.time()), sid))
     c.commit()
     return cur.rowcount > 0
 
@@ -122,17 +125,16 @@ def ensure_session(sid: str, title: str = "") -> str:
     if not touch_session(sid):
         now = int(time.time())
         c = _get_conn()
-        c.execute("INSERT OR IGNORE INTO sessions "
-                  "(id, created_at, last_active, title) VALUES (?, ?, ?, ?)",
-                  (sid, now, now, (title or "")[:200]))
+        c.execute(
+            "INSERT OR IGNORE INTO sessions (id, created_at, last_active, title) VALUES (?, ?, ?, ?)",
+            (sid, now, now, (title or "")[:200]),
+        )
         c.commit()
     return sid
 
 
 def get_session(sid: str):
-    cur = _get_conn().execute(
-        "SELECT id, created_at, last_active, title FROM sessions WHERE id = ?",
-        (sid,))
+    cur = _get_conn().execute("SELECT id, created_at, last_active, title FROM sessions WHERE id = ?", (sid,))
     r = cur.fetchone()
     return _row_to_dict(r) if r else None
 
@@ -140,8 +142,8 @@ def get_session(sid: str):
 def list_sessions(limit: int = 50) -> list:
     """按最后活跃倒序返回会话列表（最近聊的在前）。"""
     cur = _get_conn().execute(
-        "SELECT id, created_at, last_active, title FROM sessions "
-        "ORDER BY last_active DESC LIMIT ?", (int(limit),))
+        "SELECT id, created_at, last_active, title FROM sessions ORDER BY last_active DESC LIMIT ?", (int(limit),)
+    )
     return [_row_to_dict(r) for r in cur.fetchall()]
 
 
@@ -158,6 +160,7 @@ def delete_session(sid: str) -> bool:
         # ① 历史向量集合
         try:
             from tools import history_store
+
             history_store.purge_session(sid)
         except Exception as e:  # noqa: BLE001
             log.warning("[session] 历史集合清理失败（继续删检查点）: %s" % str(e)[:100])
@@ -166,7 +169,7 @@ def delete_session(sid: str) -> bool:
         try:
             c.execute("DELETE FROM writes WHERE thread_id = ?", (sid,))
         except Exception:  # noqa: BLE001
-            pass          # 老版本可能没有 writes 表
+            pass  # 老版本可能没有 writes 表
         # ③ 元数据
         cur = c.execute("DELETE FROM sessions WHERE id = ?", (sid,))
         c.commit()
@@ -184,17 +187,14 @@ def purge_expired_sessions(ttl_seconds: int | None = None) -> list:
     """
     ttl = SESSION_TTL_SECONDS if ttl_seconds is None else ttl_seconds
     now = int(time.time())
-    cur = _get_conn().execute(
-        "SELECT id, last_active FROM sessions WHERE ? - last_active > ?",
-        (now, int(ttl)))
+    cur = _get_conn().execute("SELECT id, last_active FROM sessions WHERE ? - last_active > ?", (now, int(ttl)))
     stale = cur.fetchall()
     removed = []
     for sid, last in stale:
         if delete_session(sid):
             removed.append(sid)
     if removed:
-        log.info("[session] TTL 清理：删除 %d 个过期会话（TTL=%ds）"
-                 % (len(removed), ttl))
+        log.info("[session] TTL 清理：删除 %d 个过期会话（TTL=%ds）" % (len(removed), ttl))
     return removed
 
 
@@ -212,16 +212,14 @@ def run_janitor_once(ttl_seconds: int | None = None) -> list:
     try:
         return purge_expired_sessions(ttl_seconds)
     except Exception as e:  # noqa: BLE001
-        log.warning("[session] 清理任务异常（不影响服务）: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        log.warning("[session] 清理任务异常（不影响服务）: %s: %s" % (type(e).__name__, str(e)[:120]))
         return []
 
 
 def janitor_loop(interval: int | None = None, stop_event=None):
     """后台清理循环（由 API 的 startup 钩子以 daemon 线程启动）。"""
     gap = SESSION_JANITOR_INTERVAL if interval is None else interval
-    log.info("[session] 清理线程启动：每 %ds 轮询一次，TTL=%ds"
-             % (gap, SESSION_TTL_SECONDS))
+    log.info("[session] 清理线程启动：每 %ds 轮询一次，TTL=%ds" % (gap, SESSION_TTL_SECONDS))
     while True:
         if stop_event is not None and stop_event.is_set():
             log.info("[session] 清理线程收到停止信号，退出")
@@ -243,15 +241,12 @@ def janitor_loop(interval: int | None = None, stop_event=None):
     """
     ttl = SESSION_TTL_SECONDS if ttl_seconds is None else ttl_seconds
     now = int(time.time())
-    cur = _get_conn().execute(
-        "SELECT id, last_active FROM sessions WHERE ? - last_active > ?",
-        (now, int(ttl)))
+    cur = _get_conn().execute("SELECT id, last_active FROM sessions WHERE ? - last_active > ?", (now, int(ttl)))
     stale = cur.fetchall()
     removed = []
     for sid, last in stale:
         if delete_session(sid):
             removed.append(sid)
     if removed:
-        log.info("[session] TTL 清理：删除 %d 个过期会话（TTL=%ds）"
-                 % (len(removed), ttl))
+        log.info("[session] TTL 清理：删除 %d 个过期会话（TTL=%ds）" % (len(removed), ttl))
     return removed

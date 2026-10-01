@@ -60,13 +60,13 @@ def load_golden(limit: int = 0):
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="RAG 项目评测（Golden Dataset）")
-    ap.add_argument("--with-generation", action="store_true",
-                    help="额外评测生成层（Faithfulness / Answer Relevancy），需要 LLM")
+    ap.add_argument(
+        "--with-generation", action="store_true", help="额外评测生成层（Faithfulness / Answer Relevancy），需要 LLM"
+    )
     ap.add_argument("--limit", type=int, default=0, help="只跑前 N 条（调试用）")
     ap.add_argument("--verbose", action="store_true", help="打印每题详情")
     ap.add_argument("--no-cache", action="store_true", help="忽略判定缓存")
-    ap.add_argument("--no-save", action="store_true",
-                    help="不写 baseline/history（用于验证性测试，避免污染正式基线）")
+    ap.add_argument("--no-save", action="store_true", help="不写 baseline/history（用于验证性测试，避免污染正式基线）")
     args = ap.parse_args()
 
     if not GOLDEN.exists():
@@ -112,8 +112,7 @@ def main() -> int:
     for i, case in enumerate(cases, 1):
         q = case["q"]
         golden_ids = case["source_blocks"]
-        row = {"id": case.get("id", f"#{i}"), "source": case.get("source", "?"),
-               "q": q, "golden_blocks": golden_ids}
+        row = {"id": case.get("id", f"#{i}"), "source": case.get("source", "?"), "q": q, "golden_blocks": golden_ids}
 
         # Layer 0
         try:
@@ -126,15 +125,20 @@ def main() -> int:
             per_case.append(row)
             continue
 
-        row.update({"recall": s["recall"], "precision": s["precision"],
-                    "hit": s["hit"], "retrieved_n": len(rids),
-                    "missed": s["missed_ids"]})
+        row.update(
+            {
+                "recall": s["recall"],
+                "precision": s["precision"],
+                "hit": s["hit"],
+                "retrieved_n": len(rids),
+                "missed": s["missed_ids"],
+            }
+        )
         per_case.append(row)
 
         if args.verbose:
             flag = "OK " if s["recall"] == 1.0 else ("部分" if s["recall"] > 0 else "未命中")
-            print(f"  [{row['id']}] R={s['recall']:.2f} P={s['precision']:.2f} "
-                  f"({flag}) | {q[:44]}")
+            print(f"  [{row['id']}] R={s['recall']:.2f} P={s['precision']:.2f} ({flag}) | {q[:44]}")
             if s["missed_ids"]:
                 print(f"        漏召回: {s['missed_ids']}")
 
@@ -148,10 +152,12 @@ def main() -> int:
                 l1["faithfulness"].append(f["value"])
                 l1["answer_relevancy"].append(r["value"])
                 if args.verbose:
-                    print(f"        faith={f['raw']}({f['value']:.0f}) "
-                          f"relev={r['raw']}({r['value']:.0f})"
-                          f"{' [生成缓存]' if gen_cached else ''}"
-                          f"{' [判定缓存]' if f['cached'] else ''}")
+                    print(
+                        f"        faith={f['raw']}({f['value']:.0f}) "
+                        f"relev={r['raw']}({r['value']:.0f})"
+                        f"{' [生成缓存]' if gen_cached else ''}"
+                        f"{' [判定缓存]' if f['cached'] else ''}"
+                    )
             except metrics.LLMUnavailable as e:
                 l1_errors.append(str(e)[:140])
             except Exception as e:  # noqa: BLE001
@@ -165,10 +171,10 @@ def main() -> int:
         "context_recall": l0["context_recall"],
         "hit_rate": l0["hit_rate"],
         "context_precision": l0["context_precision"],
-        "faithfulness": (sum(l1["faithfulness"]) / len(l1["faithfulness"])
-                         if l1["faithfulness"] else None),
-        "answer_relevancy": (sum(l1["answer_relevancy"]) / len(l1["answer_relevancy"])
-                             if l1["answer_relevancy"] else None),
+        "faithfulness": (sum(l1["faithfulness"]) / len(l1["faithfulness"]) if l1["faithfulness"] else None),
+        "answer_relevancy": (
+            sum(l1["answer_relevancy"]) / len(l1["answer_relevancy"]) if l1["answer_relevancy"] else None
+        ),
     }
 
     print()
@@ -226,10 +232,14 @@ def main() -> int:
         "with_generation": bool(args.with_generation),
         "llm_available": llm_ok,
         "collections": covered,
-        "per_source": {s: {"n": len(rows),
-                           "recall": sum(r["recall"] for r in rows) / len(rows),
-                           "precision": sum(r["precision"] for r in rows) / len(rows)}
-                       for s, rows in by_src.items()},
+        "per_source": {
+            s: {
+                "n": len(rows),
+                "recall": sum(r["recall"] for r in rows) / len(rows),
+                "precision": sum(r["precision"] for r in rows) / len(rows),
+            }
+            for s, rows in by_src.items()
+        },
         "per_case": per_case,
     }
     if args.no_save:
@@ -238,8 +248,7 @@ def main() -> int:
     else:
         BASELINE.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         with open(HISTORY, "a", encoding="utf-8") as f:
-            f.write(json.dumps({k: v for k, v in result.items() if k != "per_case"},
-                               ensure_ascii=False) + "\n")
+            f.write(json.dumps({k: v for k, v in result.items() if k != "per_case"}, ensure_ascii=False) + "\n")
         print()
         print(f"已写入 {BASELINE.name} 与追加 {HISTORY.name}")
 

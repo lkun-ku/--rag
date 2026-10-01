@@ -8,6 +8,7 @@
 本脚本跑**真实链路**（`run_with_trace`），跑 3 次，记录：
 块数变化（合并是否生效）、是否拒答、是否命中 61.35%。
 """
+
 from __future__ import annotations
 
 import json
@@ -56,9 +57,10 @@ for i in range(RUNS):
     hit = ("61.35" in gen) and ("turbopuffer" in gen.lower())
     ctx = format_docs(docs)
     results.append((refused, hit))
-    print("  第%d次: 块数=%d 字符=%d 拒答=%-3s 命中=%-3s"
-          % (i + 1, len(docs), len(ctx), "是" if refused else "否",
-             "是" if hit else "否"))
+    print(
+        "  第%d次: 块数=%d 字符=%d 拒答=%-3s 命中=%-3s"
+        % (i + 1, len(docs), len(ctx), "是" if refused else "否", "是" if hit else "否")
+    )
     print("         %s" % gen[:150].replace("\n", " "))
 
 print()

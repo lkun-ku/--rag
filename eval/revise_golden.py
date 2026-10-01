@@ -23,6 +23,7 @@
     python eval/revise_golden.py              # dry-run：只输出预览，不改文件
     python eval/revise_golden.py --apply      # 真正写入（会先备份原文件）
 """
+
 from __future__ import annotations
 
 import argparse
@@ -43,8 +44,7 @@ from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 import metrics  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 _WORD_RE = re.compile(r"[A-Za-z\u4e00-\u9fff0-9._/:#@\-]{4,}")
 
 ap = argparse.ArgumentParser(description="按重建后的块集合修订 golden 的 source_blocks")
@@ -53,11 +53,10 @@ args = ap.parse_args()
 
 # ---- 新库索引 ----
 client = MilvusClient(uri=MILVUS_URI)
-new_blocks = []          # [(chunk_id, filename, text)]
+new_blocks = []  # [(chunk_id, filename, text)]
 new_ids = set()
 for coll in COLLECTIONS:
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "text"], limit=8000):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "text"], limit=8000):
         t = r.get("text") or ""
         cid = metrics.chunk_id(t)
         new_ids.add(cid)
@@ -81,6 +80,7 @@ def best_match(old_text: str, old_fn: str):
     ow = words(old_text)
     if not ow:
         return None, 0.0
+
     def scan(pool):
         best, best_r = None, 0.0
         for cid, fn, t in pool:
@@ -91,6 +91,7 @@ def best_match(old_text: str, old_fn: str):
             if r > best_r:
                 best, best_r = (cid, fn, t), r
         return best, best_r
+
     same = [b for b in new_blocks if b[1] == old_fn]
     best, r = scan(same) if same else (None, 0.0)
     if best is None or r < 0.5:
@@ -101,8 +102,7 @@ def best_match(old_text: str, old_fn: str):
 
 
 golden_path = HERE / "golden_dataset.jsonl"
-cases = [json.loads(l) for l in golden_path.read_text(encoding="utf-8").splitlines()
-         if l.strip()]
+cases = [json.loads(l) for l in golden_path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 # 人工指定的补块（自动匹配失效、但内容确实还在的情形）。
 #
@@ -156,12 +156,13 @@ for cc in cases:
     cc["source_blocks"] = kept
     n_changed += 1
     n_removed += len(gone)
-    print("  [%s] golden %d -> %d  摘掉 %d %s" % (
-        cc.get("id"), len(gids), len(kept), len(gone), note))
+    print("  [%s] golden %d -> %d  摘掉 %d %s" % (cc.get("id"), len(gids), len(kept), len(gone), note))
 
 print()
-print("  汇总：修订 %d 题 / 摘掉 %d 个失效 ID / 补块 %d 题 / 补块失败 %d 题"
-      % (n_changed, n_removed, n_refilled, n_emptied))
+print(
+    "  汇总：修订 %d 题 / 摘掉 %d 个失效 ID / 补块 %d 题 / 补块失败 %d 题"
+    % (n_changed, n_removed, n_refilled, n_emptied)
+)
 if refills:
     print()
     print("  补块明细:")

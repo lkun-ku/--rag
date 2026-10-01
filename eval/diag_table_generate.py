@@ -22,6 +22,7 @@
 若 A 就能答对 -> 生成层没问题，**3.5.1 应当否决**；
 若 A 答错、B 答对 -> 问题在「形态不完整」，**方向应是「同表多形态合并」而非父子块**。
 """
+
 from __future__ import annotations
 
 import json
@@ -41,23 +42,21 @@ import metrics  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 from pymilvus import MilvusClient  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 client = MilvusClient(uri=MILVUS_URI)
 by_id: dict = {}
 for coll in COLLECTIONS:
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "text", "title"], limit=4000):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "text", "title"], limit=4000):
         by_id[metrics.chunk_id(r.get("text") or "")] = r.get("text") or ""
 
 QUESTION = "参与评测的产品里，召回率最低的是哪个？召回率是多少？"
 
 # n005 的 4 个 golden（实测得到的 ID，见 diag_table_parent_child.json）
-G_TABLE_1_30 = "af0fc19664f3"      # 表格：检索性能实测（第 1-30 行）
-G_TABLE_31_60 = "f1e2ce7777cf"     # 表格：检索性能实测（第 31-60 行）
-G_FLAT = "94e09c6a8006"            # 检索性能实测 场景 数据集 …（扁平平铺版）
-G_PS = "3e7f9a39fdb1"              # PS 流式写入下的检索 Cohere …（PS 版）
+G_TABLE_1_30 = "af0fc19664f3"  # 表格：检索性能实测（第 1-30 行）
+G_TABLE_31_60 = "f1e2ce7777cf"  # 表格：检索性能实测（第 31-60 行）
+G_FLAT = "94e09c6a8006"  # 检索性能实测 场景 数据集 …（扁平平铺版）
+G_PS = "3e7f9a39fdb1"  # PS 流式写入下的检索 Cohere …（PS 版）
 
 # 61-85 段（golden 之外的第三段，但属于同一张表）
 from tools.retriever_tools import retriever  # noqa: E402
@@ -106,10 +105,14 @@ for name, ids in GROUPS.items():
     texts = [by_id[i] for i in ids if i in by_id]
     missing = [i for i in ids if i not in by_id]
     if missing:
-        print("  [%s] 缺块 %s" % (name, missing)); continue
+        print("  [%s] 缺块 %s" % (name, missing))
+        continue
     ctx = format_context([Document(page_content=t, metadata={}) for t in texts])
-    prompt = CITE_PROMPT.format(context=ctx, question=QUESTION) if "{context}" in CITE_PROMPT \
+    prompt = (
+        CITE_PROMPT.format(context=ctx, question=QUESTION)
+        if "{context}" in CITE_PROMPT
         else CITE_PROMPT + "\n\n资料：\n" + ctx + "\n\n问题：" + QUESTION
+    )
     try:
         ans = llm.invoke(prompt)
         text = getattr(ans, "content", str(ans))
@@ -132,12 +135,13 @@ for name, r in results.items():
     a = r["answer"]
     ok_p = "TurboPuffer" in a or "Turbo" in a
     ok_n = "61.35" in a
-    print("    %-30s 产品名=%-5s 数值=%-5s  拒答=%s" % (
-        name[:30], "有" if ok_p else "**无**", "有" if ok_n else "**无**",
-        "是" if "未找到依据" in a else "否"))
+    print(
+        "    %-30s 产品名=%-5s 数值=%-5s  拒答=%s"
+        % (name[:30], "有" if ok_p else "**无**", "有" if ok_n else "**无**", "是" if "未找到依据" in a else "否")
+    )
 
 (HERE / "diag_table_generate.json").write_text(
-    json.dumps({"question": QUESTION, "results": results}, ensure_ascii=False, indent=2),
-    encoding="utf-8")
+    json.dumps({"question": QUESTION, "results": results}, ensure_ascii=False, indent=2), encoding="utf-8"
+)
 print()
 print("  证据 -> eval/diag_table_generate.json")

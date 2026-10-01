@@ -26,6 +26,7 @@
 用户要求「先本地验证再重建」。重建是**不可逆**的（要重测全部基线），
 所以先用现有数据把逻辑验穿。
 """
+
 from __future__ import annotations
 
 import collections
@@ -44,16 +45,14 @@ from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI, MD_DIR  # noqa: E402
 from documents.table_handler import is_flat_twin, _norm_ws  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 failures = []
 
 
 def check(name, got, want, extra=""):
     ok = got == want
-    print("  [%s] %-52s 期望=%-5s 实际=%-5s %s" % (
-        "OK " if ok else "**FAIL**", name, want, got, extra))
+    print("  [%s] %-52s 期望=%-5s 实际=%-5s %s" % ("OK " if ok else "**FAIL**", name, want, got, extra))
     if not ok:
         failures.append(name)
 
@@ -85,19 +84,17 @@ measured = {("%s|%s" % (r["filename"], r["title"])): r for r in _records}
 client = MilvusClient(uri=MILVUS_URI)
 rows = []
 for coll in COLLECTIONS:
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "title", "text"], limit=4000):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "title", "text"], limit=4000):
         rows.append((r.get("filename", "?"), r.get("title", "?"), r.get("text") or ""))
 
 groups = collections.defaultdict(list)
 for fn, ti, t in rows:
     groups[(fn, ti)].append(t)
 
-print("  %-34s %-6s %-8s %-10s %-10s %s" % (
-    "filename", "块数", "反向cov", "期望", "实际", "说明"))
+print("  %-34s %-6s %-8s %-10s %-10s %s" % ("filename", "块数", "反向cov", "期望", "实际", "说明"))
 print("  " + "-" * 100)
 n_pure = n_mixed = n_skipped = 0
-n_agree = 0      # [FIX] A 段改为「观察」后用于统计一致率
+n_agree = 0  # [FIX] A 段改为「观察」后用于统计一致率
 for (fn, ti), ts in groups.items():
     st = [t for t in ts if is_structured(t)]
     fl = [t for t in ts if not is_structured(t)]
@@ -140,20 +137,22 @@ for (fn, ti), ts in groups.items():
     #
     # 现在只**统计**，并在末尾报告一致率；一致性由「方向」衡量，
     # 元素级的精确验证交给 **B 段**（真实 md 解析，配对天然正确）。
-    agree = (got == want)
+    agree = got == want
     if agree:
         n_agree += 1
     else:
-        print("  [差异] %-46s 组级期望=%-5s 元素级实际=%-5s (组级反向 %.2f)"
-              % ("%s / %s" % (fn[:34], ti[:12]), want, got, rc))
+        print(
+            "  [差异] %-46s 组级期望=%-5s 元素级实际=%-5s (组级反向 %.2f)"
+            % ("%s / %s" % (fn[:34], ti[:12]), want, got, rc)
+        )
         print("         ^ 口径不同（组级 vs 元素级），差异属预期；见 4.33.6")
 
 print()
-print("  纯孪生（组级期望 True）%d 组；含额外正文（组级期望 False）%d 组；"
-      "多元素组跳过 %d 组（库里无元素级关联，改由 B 段验证）"
-      % (n_pure, n_mixed, n_skipped))
-print("  **组级期望 vs 元素级实际的一致率: %d/%d**（口径不同，差异属预期）"
-      % (n_agree, max(n_pure + n_mixed, 1)))
+print(
+    "  纯孪生（组级期望 True）%d 组；含额外正文（组级期望 False）%d 组；"
+    "多元素组跳过 %d 组（库里无元素级关联，改由 B 段验证）" % (n_pure, n_mixed, n_skipped)
+)
+print("  **组级期望 vs 元素级实际的一致率: %d/%d**（口径不同，差异属预期）" % (n_agree, max(n_pure + n_mixed, 1)))
 print("  注：A 段只作**方向性观察**（组级是近似、元素级才是生产口径）；")
 print("      元素级的硬验证在 B 段 —— 那里用真实 md 跑解析，配对天然正确。")
 
@@ -196,8 +195,7 @@ else:
         removed = old_set - new_set
         added = new_set - old_set
         print()
-        print("  [%s]  旧 %d 块 -> 新 %d 块（少 %d、多 %d）" % (
-            md.name, len(old), len(new), len(removed), len(added)))
+        print("  [%s]  旧 %d 块 -> 新 %d 块（少 %d、多 %d）" % (md.name, len(old), len(new), len(removed), len(added)))
 
         # 不丢内容的核对：每个被移除的块，其内容是否已被「新集合里某个块」覆盖
         lost = []

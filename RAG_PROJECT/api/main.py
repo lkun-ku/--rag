@@ -62,9 +62,7 @@ class AskRequest(BaseModel):
     # [ROADMAP 4.41] 多轮会话标识。**不传 = 单轮（行为与改造前完全一致）**；
     # 传同一个值 -> 该会话的问答历史会被持久化并在后续轮次注入 prompt
     # （例如第二轮问「它的 QPS 是多少」，模型能知道「它」指上一轮的产品）。
-    session_id: Optional[str] = Field(
-        None, max_length=128,
-        description="多轮会话 ID；不传则按单轮处理（无记忆）")
+    session_id: Optional[str] = Field(None, max_length=128, description="多轮会话 ID；不传则按单轮处理（无记忆）")
 
 
 class Citation(BaseModel):
@@ -110,6 +108,7 @@ def _warmup():
     try:
         import tools.retriever_tools  # noqa: F401  触发检索器 + 嵌入模型加载
         import graph2.graph_2  # noqa: F401        触发工作流图编译
+
         log.info(f"[api] 预热完成，耗时 {time.time() - t0:.1f}s")
     except Exception as e:  # noqa: BLE001
         # 预热失败不阻断启动：具体问题留给 /health 暴露，便于区分
@@ -133,8 +132,7 @@ def health() -> Dict[str, Any]:
         from pymilvus import MilvusClient
 
         cols = MilvusClient(uri=MILVUS_URI).list_collections()
-        out["checks"]["milvus"] = {"ok": True, "uri": MILVUS_URI,
-                                   "collections": sorted(cols)}
+        out["checks"]["milvus"] = {"ok": True, "uri": MILVUS_URI, "collections": sorted(cols)}
     except Exception as e:  # noqa: BLE001
         out["checks"]["milvus"] = {"ok": False, "error": f"{type(e).__name__}: {str(e)[:160]}"}
         out["ok"] = False
@@ -156,8 +154,7 @@ def health() -> Dict[str, Any]:
         from llm_models.all_llm import llm
 
         resp = llm.invoke("回复一个字：好")
-        out["checks"]["llm"] = {"ok": True,
-                                "reply": str(getattr(resp, "content", resp))[:20]}
+        out["checks"]["llm"] = {"ok": True, "reply": str(getattr(resp, "content", resp))[:20]}
     except Exception as e:  # noqa: BLE001
         # LLM 不可用时刻意保留 ok=False 但**不抛异常** —— 健康检查本身要能返回
         out["checks"]["llm"] = {"ok": False, "error": f"{type(e).__name__}: {str(e)[:160]}"}
@@ -188,11 +185,9 @@ def _resolve_tenant(x_tenant_id: Optional[str]) -> Optional[str]:
         return None
     if not x_tenant_id:
         # 配置了多租户但请求未带租户头 -> 拒绝，而不是悄悄放行到全部集合
-        raise HTTPException(status_code=400,
-                            detail="服务已启用多租户，请在 X-Tenant-Id 头中指定租户")
+        raise HTTPException(status_code=400, detail="服务已启用多租户，请在 X-Tenant-Id 头中指定租户")
     if x_tenant_id not in TENANTS:
-        raise HTTPException(status_code=403,
-                            detail="未知租户 %r" % x_tenant_id)
+        raise HTTPException(status_code=403, detail="未知租户 %r" % x_tenant_id)
     return x_tenant_id
 
 
@@ -226,6 +221,7 @@ def sessions_new(req: NewSessionRequest) -> Dict[str, Any]:
     `/ask/stream` 同理。
     """
     from utils import session_store
+
     sid = session_store.create_session(req.title)
     return {"session_id": sid, "ttl_seconds": session_store.SESSION_TTL_SECONDS}
 
@@ -234,6 +230,7 @@ def sessions_new(req: NewSessionRequest) -> Dict[str, Any]:
 def sessions_list() -> Dict[str, Any]:
     """会话列表（按最后活跃倒序）。"""
     from utils import session_store
+
     items = session_store.list_sessions()
     return {"count": len(items), "sessions": items}
 
@@ -242,6 +239,7 @@ def sessions_list() -> Dict[str, Any]:
 def sessions_delete(session_id: str) -> Dict[str, Any]:
     """删除会话：历史向量块 + LangGraph 检查点 + 元数据，三处一起清。"""
     from utils import session_store
+
     ok = session_store.delete_session(session_id)
     if not ok:
         raise HTTPException(status_code=404, detail="会话不存在或删除失败")
@@ -262,16 +260,16 @@ def _start_session_janitor():
     import threading
 
     from utils import session_store
-    t = threading.Thread(target=session_store.janitor_loop,
-                         name="session-janitor", daemon=True)
+
+    t = threading.Thread(target=session_store.janitor_loop, name="session-janitor", daemon=True)
     t.start()
-    log.info("[api] 会话清理线程已启动（TTL=%ds，间隔=%ds）"
-             % (session_store.SESSION_TTL_SECONDS,
-                session_store.SESSION_JANITOR_INTERVAL))
+    log.info(
+        "[api] 会话清理线程已启动（TTL=%ds，间隔=%ds）"
+        % (session_store.SESSION_TTL_SECONDS, session_store.SESSION_JANITOR_INTERVAL)
+    )
 
 
-def _run_once(question: str, with_trace: bool,
-              session_id: Optional[str] = None) -> Dict[str, Any]:
+def _run_once(question: str, with_trace: bool, session_id: Optional[str] = None) -> Dict[str, Any]:
     """跑一次完整工作流并组装响应（同步接口）。
 
     [ROADMAP 4.41] `session_id` 透传给 `run_with_trace(thread_id=...)`：
@@ -291,9 +289,13 @@ def _run_once(question: str, with_trace: bool,
         "answer": answer,
         "refused": is_refusal(answer),
         "citations": [
-            {"n": m.get("n"), "filename": m.get("filename", ""),
-             "title": m.get("title", ""), "chars": m.get("chars", 0),
-             "from_web": m.get("from_web", False)}
+            {
+                "n": m.get("n"),
+                "filename": m.get("filename", ""),
+                "title": m.get("title", ""),
+                "chars": m.get("chars", 0),
+                "from_web": m.get("from_web", False),
+            }
             for m in meta
         ],
         "elapsed_sec": round(time.time() - t0, 2),
@@ -304,9 +306,9 @@ def _run_once(question: str, with_trace: bool,
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(req: AskRequest,
-        x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")
-        ) -> Dict[str, Any]:
+def ask(
+    req: AskRequest, x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")
+) -> Dict[str, Any]:
     """同步问答：返回答案 + 引用溯源（+ 可选轨迹）。
 
     多租户：请求头 `X-Tenant-Id` 指定租户，检索被限制在该租户授权的集合内。
@@ -325,13 +327,11 @@ def ask(req: AskRequest,
     except Exception as e:  # noqa: BLE001
         # 显式 500 而不是返回空答案 —— 见 ROADMAP 1.3.6「不得静默降级」
         log.error(f"[api] /ask 失败: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500,
-                            detail=f"问答失败: {type(e).__name__}: {str(e)[:200]}") from e
+        raise HTTPException(status_code=500, detail=f"问答失败: {type(e).__name__}: {str(e)[:200]}") from e
 
 
 @app.post("/ask/stream")
-def ask_stream(req: AskRequest,
-               x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")):
+def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")):
     """SSE 流式问答：逐节点推送进度，最后推 event=answer。
 
     为什么值得流式：完整链路实测可达 42s（含 multi-round 的判分与改写），
@@ -355,14 +355,14 @@ def ask_stream(req: AskRequest,
         if req.session_id:
             from utils import session_store
             from tools import history_store
+
             g = get_memory_graph()
             # [FIX / 文档审计] 必须同时注入 `session_id` —— `generate` 用它判断
             # 「是否处于记忆模式」（`has_memory = bool(state.get("session_id"))`）。
             # 首版只传了 `messages`，导致流式路径下三层记忆**完全不生效**
             # （既不注入历史，也不写历史）。与 `/ask` 保持一致。
             session_store.ensure_session(req.session_id, req.question[:200])
-            inputs: Dict[str, Any] = {"question": req.question, "messages": [],
-                                      "session_id": req.session_id}
+            inputs: Dict[str, Any] = {"question": req.question, "messages": [], "session_id": req.session_id}
             config = {**config, "configurable": {"thread_id": req.session_id}}
         else:
             g = graph
@@ -389,8 +389,8 @@ def ask_stream(req: AskRequest,
                     if isinstance(value, dict):
                         final.update(value)
                     yield "event: step\ndata: %s\n\n" % json.dumps(
-                        {"node": node, "t": round(time.time() - t.t0, 2)},
-                        ensure_ascii=False)
+                        {"node": node, "t": round(time.time() - t.t0, 2)}, ensure_ascii=False
+                    )
 
             answer = final.get("generation", "") or ""
 
@@ -406,28 +406,38 @@ def ask_stream(req: AskRequest,
             docs = final.get("documents") or []
             cites = parse_citations(answer)
             meta = build_citation_meta(docs, cites) if cites and docs else []
-            yield "event: answer\ndata: %s\n\n" % json.dumps({
-                "answer": answer,
-                "refused": is_refusal(answer),
-                "tenant": tenant,
-                "citations": [{"n": m.get("n"), "filename": m.get("filename", ""),
-                               "title": m.get("title", ""), "chars": m.get("chars", 0),
-                               "from_web": m.get("from_web", False)}
-                              for m in meta],
-                "elapsed_sec": round(time.time() - t.t0, 2),
-            }, ensure_ascii=False)
+            yield "event: answer\ndata: %s\n\n" % json.dumps(
+                {
+                    "answer": answer,
+                    "refused": is_refusal(answer),
+                    "tenant": tenant,
+                    "citations": [
+                        {
+                            "n": m.get("n"),
+                            "filename": m.get("filename", ""),
+                            "title": m.get("title", ""),
+                            "chars": m.get("chars", 0),
+                            "from_web": m.get("from_web", False),
+                        }
+                        for m in meta
+                    ],
+                    "elapsed_sec": round(time.time() - t.t0, 2),
+                },
+                ensure_ascii=False,
+            )
         except Exception as e:  # noqa: BLE001
             yield "event: error\ndata: %s\n\n" % json.dumps(
-                {"error": f"{type(e).__name__}: {str(e)[:200]}"}, ensure_ascii=False)
+                {"error": f"{type(e).__name__}: {str(e)[:200]}"}, ensure_ascii=False
+            )
         finally:
             # 归零租户。用 `set(None)` 而不是 token.reset()（跨上下文会抛，见上）。
             # 不归零的后果很严重：同一 worker 的**后续请求会继承上一个租户** ——
             # 那是越权风险（租户 A 的查询会被限制到租户 B 的集合上）。
             set_tenant(None)
 
-    return StreamingResponse(gen(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache",
-                                      "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -455,8 +465,7 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
         # 这里显式拒绝并说明原因。
         raise HTTPException(
             status_code=400,
-            detail="源 %r 在 DOC_SOURCES 中已禁用（enabled=False），不会入库；"
-                   "如需启用请改配置并重启服务" % key,
+            detail="源 %r 在 DOC_SOURCES 中已禁用（enabled=False），不会入库；如需启用请改配置并重启服务" % key,
         )
 
     try:
@@ -468,17 +477,25 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
         # 而 HTTP 接口的 reset 默认 **False** —— 这是刻意的：入库是不可逆操作，
         # 默认必须是「增量追加」，清空集合要显式传 reset=true。
         stats = ingest_main(sources=[src], recreate=bool(req.reset))
-        return {"ok": True, "source": key, "collection": src.get("collection"),
-                "recreate": bool(req.reset), "stats": stats}
+        return {
+            "ok": True,
+            "source": key,
+            "collection": src.get("collection"),
+            "recreate": bool(req.reset),
+            "stats": stats,
+        }
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
         log.error(f"[api] /ingest 失败: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500,
-                            detail=f"入库失败: {type(e).__name__}: {str(e)[:200]}") from e
+        raise HTTPException(status_code=500, detail=f"入库失败: {type(e).__name__}: {str(e)[:200]}") from e
 
 
 @app.get("/")
 def root() -> Dict[str, Any]:
-    return {"service": "RAG 企业知识库", "version": APP_VERSION,
-            "docs": "/docs", "endpoints": ["/health", "/ask", "/ask/stream", "/ingest"]}
+    return {
+        "service": "RAG 企业知识库",
+        "version": APP_VERSION,
+        "docs": "/docs",
+        "endpoints": ["/health", "/ask", "/ask/stream", "/ingest"],
+    }

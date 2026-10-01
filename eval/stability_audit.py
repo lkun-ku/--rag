@@ -23,6 +23,7 @@ P0-1 复核时踩到：**同一 prompt、同一问题（n005），4 轮里作答
     .venv\\Scripts\\python.exe eval\\stability_audit.py --rounds 3
     .venv\\Scripts\\python.exe eval\\stability_audit.py --rounds 3 --limit 8   # 快速试点
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,7 +57,7 @@ def main() -> int:
 
     cases = [json.loads(l) for l in GOLDEN.read_text(encoding="utf-8").splitlines() if l.strip()]
     if args.limit:
-        cases = cases[:args.limit]
+        cases = cases[: args.limit]
     print("=" * 96)
     print("评测稳定性审计：题数 %d | 轮数 %d" % (len(cases), args.rounds))
     print("=" * 96)
@@ -128,8 +129,11 @@ def main() -> int:
             dims.append("answer_text")
         critical = [d for d in dims if d != "answer_text"]
         detail[cid] = {
-            "q": c["q"][:110], "n_docs": n_docs[cid], "dims": dims,
-            "refusals": refusals, "cites": [list(x) for x in cites],
+            "q": c["q"][:110],
+            "n_docs": n_docs[cid],
+            "dims": dims,
+            "refusals": refusals,
+            "cites": [list(x) for x in cites],
             "answers": [a[:150] for a in answers],
         }
         if critical:
@@ -145,15 +149,14 @@ def main() -> int:
 
     print("  稳定（三轮全一致）      : %d 题" % len(stable_ids))
     print("  仅措辞不同（answer_text）: %d 题  <- 不影响指标，单独统计" % len(text_only_ids))
-    print("  **critical 抖动**        : %d 题  <- 拒答或引用编号跨轮不一致，会污染指标"
-          % len(critical_ids))
+    print("  **critical 抖动**        : %d 题  <- 拒答或引用编号跨轮不一致，会污染指标" % len(critical_ids))
     print()
     print("  按维度拆分（两者可能重叠）：")
-    print("      拒答状态抖动: %d 题%s" % (
-        len(refusal_unstable),
-        "  <- 直接污染「拒答率」，最需警惕" if refusal_unstable else "  （稳定）"))
-    print("      引用编号抖动: %d 题  （形态通常是「多标/少标一个来源」，"
-          "会污染「引用支持度」）" % len(cites_unstable))
+    print(
+        "      拒答状态抖动: %d 题%s"
+        % (len(refusal_unstable), "  <- 直接污染「拒答率」，最需警惕" if refusal_unstable else "  （稳定）")
+    )
+    print("      引用编号抖动: %d 题  （形态通常是「多标/少标一个来源」，会污染「引用支持度」）" % len(cites_unstable))
 
     if critical_ids:
         print()
@@ -179,31 +182,47 @@ def main() -> int:
         all_ref = sum(1 for cid in [c["id"] for c in cases] if rounds[r][cid]["refused"])
         st_ref = sum(1 for cid in stable_ids if rounds[r][cid]["refused"])
         per_round.append({"all": all_ref, "stable": st_ref})
-        print("  %-10d %-16s %-16s %s" % (
-            r + 1,
-            "%d/%d" % (all_ref, len(cases)),
-            "%d/%d" % (st_ref, len(stable_ids)),
-            len(stable_ids)))
+        print(
+            "  %-10d %-16s %-16s %s"
+            % (r + 1, "%d/%d" % (all_ref, len(cases)), "%d/%d" % (st_ref, len(stable_ids)), len(stable_ids))
+        )
 
     print()
-    print("  **全体拒答率的跨轮波动: %d ~ %d 题（相差 %d）**" % (
-        min(p["all"] for p in per_round), max(p["all"] for p in per_round),
-        max(p["all"] for p in per_round) - min(p["all"] for p in per_round)))
-    print("  稳定子集拒答率的跨轮波动: %d ~ %d 题" % (
-        min(p["stable"] for p in per_round), max(p["stable"] for p in per_round)))
+    print(
+        "  **全体拒答率的跨轮波动: %d ~ %d 题（相差 %d）**"
+        % (
+            min(p["all"] for p in per_round),
+            max(p["all"] for p in per_round),
+            max(p["all"] for p in per_round) - min(p["all"] for p in per_round),
+        )
+    )
+    print(
+        "  稳定子集拒答率的跨轮波动: %d ~ %d 题"
+        % (min(p["stable"] for p in per_round), max(p["stable"] for p in per_round))
+    )
     print()
     print("  => 后续 A/B 应看**稳定子集**的指标；critical 抖动题须单独跟踪。")
 
-    (OUT).write_text(json.dumps({
-        "n_cases": len(cases), "rounds": args.rounds,
-        "stable_ids": stable_ids, "answer_text_only_ids": text_only_ids,
-        "critical_ids": critical_ids,
-        "refusal_unstable_ids": refusal_unstable, "cites_unstable_ids": cites_unstable,
-        "per_round_refusals": per_round,
-        "retrieval": {"n_docs": n_docs, "errors": retr_err},
-        "detail": detail,
-        "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    (OUT).write_text(
+        json.dumps(
+            {
+                "n_cases": len(cases),
+                "rounds": args.rounds,
+                "stable_ids": stable_ids,
+                "answer_text_only_ids": text_only_ids,
+                "critical_ids": critical_ids,
+                "refusal_unstable_ids": refusal_unstable,
+                "cites_unstable_ids": cites_unstable,
+                "per_round_refusals": per_round,
+                "retrieval": {"n_docs": n_docs, "errors": retr_err},
+                "detail": detail,
+                "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print()
     print("  结果 -> eval/stability_audit.json")
     return 0

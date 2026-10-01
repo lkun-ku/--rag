@@ -46,9 +46,7 @@ def format_context(docs: Sequence[Document], start: int = 1) -> str:
         docs: 检索到的文档块。
         start: 起始编号（默认 1，即 [1] 对应 docs[0]）。
     """
-    return "\n\n".join(
-        f"[{i}] {d.page_content}" for i, d in enumerate(docs, start)
-    )
+    return "\n\n".join(f"[{i}] {d.page_content}" for i, d in enumerate(docs, start))
 
 
 def parse_citations(answer: str) -> List[int]:
@@ -84,8 +82,7 @@ def _numbers_in_docs(docs: Sequence[Document]) -> set:
     return out
 
 
-def validate_citations(answer: str, n_docs: int, start: int = 1,
-                       docs: Sequence[Document] = None) -> Dict:
+def validate_citations(answer: str, n_docs: int, start: int = 1, docs: Sequence[Document] = None) -> Dict:
     """校验引用编号是否落在实际上下文范围内。
 
     为什么必须校验：模型可能引用不存在的编号（幻觉的一种形式）。
@@ -149,8 +146,7 @@ def is_refusal(answer: str) -> bool:
     return REFUSAL_TEXT in (answer or "")
 
 
-def build_citation_meta(docs: Sequence[Document], cites: Sequence[int],
-                        start: int = 1) -> List[Dict]:
+def build_citation_meta(docs: Sequence[Document], cites: Sequence[int], start: int = 1) -> List[Dict]:
     """构造「编号 -> 原文块信息」的映射，供前端/调用方渲染溯源。
 
     Returns:
@@ -162,15 +158,17 @@ def build_citation_meta(docs: Sequence[Document], cites: Sequence[int],
         idx = n - start
         if 0 <= idx < len(docs):
             d = docs[idx]
-            out.append({
-                "n": n,
-                "filename": d.metadata.get("filename", ""),
-                # 表格块的行范围信息藏在正文前缀里（如「表格：X（第 31-60 行）」），
-                # 这里透传正文首行，便于前端展示「引用的是哪张表的哪一段」。
-                "title": d.metadata.get("title", ""),
-                "chars": len(d.page_content),
-                # [FIX / P0-9] 该来源是否来自**网络搜索**而非知识库。
-                # 不区分的话，网页内容会被当成知识库文档展示给用户。
-                "from_web": d.metadata.get("source") == "web",
-            })
+            out.append(
+                {
+                    "n": n,
+                    "filename": d.metadata.get("filename", ""),
+                    # 表格块的行范围信息藏在正文前缀里（如「表格：X（第 31-60 行）」），
+                    # 这里透传正文首行，便于前端展示「引用的是哪张表的哪一段」。
+                    "title": d.metadata.get("title", ""),
+                    "chars": len(d.page_content),
+                    # [FIX / P0-9] 该来源是否来自**网络搜索**而非知识库。
+                    # 不区分的话，网页内容会被当成知识库文档展示给用户。
+                    "from_web": d.metadata.get("source") == "web",
+                }
+            )
     return out

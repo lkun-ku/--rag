@@ -20,6 +20,7 @@
 > 所以现在改为从 `eval/golden_dataset.jsonl` 读题：**评测集是随语料重建的**，
 > 用它的题做端到端测试，才能保证「问的问题在当前语料里真的有答案」。
 """
+
 import json
 import os
 import pathlib
@@ -34,9 +35,11 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 from graph2.graph_2 import run_with_trace  # noqa: E402
 
 # 取评测集里**有 golden 块**的前两题（库外题不算端到端问答的典型路径）
-_cases = [json.loads(l) for l in
-          (ROOT / "eval" / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
-          if l.strip()]
+_cases = [
+    json.loads(l)
+    for l in (ROOT / "eval" / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    if l.strip()
+]
 _cases = [c for c in _cases if c.get("source_blocks")]
 QUESTIONS = [c["q"] for c in _cases[:2]]
 print("取自 eval/golden_dataset.jsonl 的题目: %s" % [c["id"] for c in _cases[:2]])
@@ -48,9 +51,10 @@ for q in QUESTIONS:
     print("#" * 100)
     r = run_with_trace(q, save=False)
     t = r["trace"]
-    print("  总耗时 %.2fs | 步骤 %d | tokens in=%s out=%s" % (
-        t["total_sec"], t["n_steps"], t["tokens"].get("input_tokens"),
-        t["tokens"].get("output_tokens")))
+    print(
+        "  总耗时 %.2fs | 步骤 %d | tokens in=%s out=%s"
+        % (t["total_sec"], t["n_steps"], t["tokens"].get("input_tokens"), t["tokens"].get("output_tokens"))
+    )
     for s in t["steps"]:
         extra = {k: v for k, v in s.items() if k not in ("node", "t", "elapsed_sec")}
         print("    %6.2fs  %-18s %6.2fs  %s" % (s["t"], s["node"], s["elapsed_sec"], str(extra)[:88]))

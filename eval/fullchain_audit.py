@@ -40,6 +40,7 @@
 这是**测量**脚本，没有代码契约要守，因此不适用 TDD
 （TDD 用于「实现新逻辑」，此处只观测既有链路的真实行为）。
 """
+
 from __future__ import annotations
 
 import json
@@ -58,8 +59,8 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 import metrics  # noqa: E402
 from utils.citation import is_refusal  # noqa: E402
 
-LIMIT_IN = int(os.environ.get("FC_LIMIT_IN", "0"))       # 0 = 全部库内题
-LIMIT_OUT = int(os.environ.get("FC_LIMIT_OUT", "0"))     # 0 = 全部库外题
+LIMIT_IN = int(os.environ.get("FC_LIMIT_IN", "0"))  # 0 = 全部库内题
+LIMIT_OUT = int(os.environ.get("FC_LIMIT_OUT", "0"))  # 0 = 全部库外题
 
 # 与 refusal_audit.py 用同一批库外题（保证可比）
 OUT_OF_SCOPE = [
@@ -77,8 +78,7 @@ OUT_OF_SCOPE = [
 
 from graph2.graph_2 import run_with_trace  # noqa: E402
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 if LIMIT_IN:
     cases = cases[:LIMIT_IN]
 if LIMIT_OUT:
@@ -112,7 +112,7 @@ def probe(q: str) -> dict:
         return {"q": q, "error": "%s: %s" % (type(e).__name__, str(e)[:80])}
     steps = [s.get("node") for s in (out.get("trace", {}).get("steps") or [])]
     dec = ""
-    for s in (out.get("trace", {}).get("steps") or []):
+    for s in out.get("trace", {}).get("steps") or []:
         if s.get("node") == "route_question":
             dec = s.get("decision", "")
     gen = out.get("generation") or ""
@@ -150,9 +150,10 @@ for i, q in enumerate(OUT_OF_SCOPE, 1):
         print("  [%2d] %-30s **失败** %s" % (i, q[:30], r["error"]))
         continue
     tag = "拒答" if r["refused"] else ("走网络搜索" if r["n_web_search"] else "库内作答")
-    print("  [%2d] %-30s %-10s 路由=%-11s 判分后=%2d 检索%d次 网络搜索%d次 %.1fs" % (
-        i, q[:30], tag, r["route"], r["n_kept"], r["n_retrieve"],
-        r["n_web_search"], r["sec"]))
+    print(
+        "  [%2d] %-30s %-10s 路由=%-11s 判分后=%2d 检索%d次 网络搜索%d次 %.1fs"
+        % (i, q[:30], tag, r["route"], r["n_kept"], r["n_retrieve"], r["n_web_search"], r["sec"])
+    )
 
 print()
 print("─" * 108)
@@ -166,8 +167,10 @@ for i, c in enumerate(cases, 1):
         print("  [%2d] %-6s **失败** %s" % (i, c.get("id"), r["error"]))
         continue
     tag = "**拒答**" if r["refused"] else "作答"
-    print("  [%2d] %-6s %-10s 路由=%-11s 判分后=%2d %.1fs | %s" % (
-        i, c.get("id"), tag, r["route"], r["n_kept"], r["sec"], c["q"][:34]))
+    print(
+        "  [%2d] %-6s %-10s 路由=%-11s 判分后=%2d %.1fs | %s"
+        % (i, c.get("id"), tag, r["route"], r["n_kept"], r["sec"], c["q"][:34])
+    )
 
 # ---- 汇总 ----
 print()
@@ -207,42 +210,47 @@ if _ref_path.exists():
         _ref_out = _ref_in = None
 
 if _ref_out and _ref_in and _ref_out.get("n"):
-    _ro_rate = "%.1f%% (%d/%d)" % (100 * _ref_out["rate"], _ref_out["refused"],
-                                   _ref_out["n"])
-    _ri_rate = "%.1f%% (%d/%d)" % (100 * _ref_in["rate"], _ref_in["refused"],
-                                   _ref_in["n"])
-    _note = "（读自 refusal_audit.json，本次运行于 %s）" % _d.get("stamp", "未知时间") \
-        if isinstance(_d, dict) and _d.get("stamp") else "（读自 refusal_audit.json）"
-    print("  %-22s %-16s %-16s %s" % ("refusal_audit（跳过判分）", _ro_rate,
-                                      "—（不经路由）", _ri_rate))
+    _ro_rate = "%.1f%% (%d/%d)" % (100 * _ref_out["rate"], _ref_out["refused"], _ref_out["n"])
+    _ri_rate = "%.1f%% (%d/%d)" % (100 * _ref_in["rate"], _ref_in["refused"], _ref_in["n"])
+    _note = (
+        "（读自 refusal_audit.json，本次运行于 %s）" % _d.get("stamp", "未知时间")
+        if isinstance(_d, dict) and _d.get("stamp")
+        else "（读自 refusal_audit.json）"
+    )
+    print("  %-22s %-16s %-16s %s" % ("refusal_audit（跳过判分）", _ro_rate, "—（不经路由）", _ri_rate))
     print("  %s" % _note)
 else:
-    print("  %-22s %-16s %-16s %s" % (
-        "refusal_audit（跳过判分）", "**未找到 refusal_audit.json**",
-        "—（不经路由）", "**无法对照**"))
+    print(
+        "  %-22s %-16s %-16s %s"
+        % ("refusal_audit（跳过判分）", "**未找到 refusal_audit.json**", "—（不经路由）", "**无法对照**")
+    )
 
-print("  %-22s %-16s %-16s %s" % (
-    "**全链路（本脚本）**",
-    "%.1f%% (%d/%d)" % (100 * o_ref / max(len(o), 1), o_ref, len(o)),
-    "%.1f%% (%d/%d)" % (100 * o_web / max(len(o), 1), o_web, len(o)),
-    "%.1f%% (%d/%d)" % (100 * n_ref / max(len(n), 1), n_ref, len(n))))
+print(
+    "  %-22s %-16s %-16s %s"
+    % (
+        "**全链路（本脚本）**",
+        "%.1f%% (%d/%d)" % (100 * o_ref / max(len(o), 1), o_ref, len(o)),
+        "%.1f%% (%d/%d)" % (100 * o_web / max(len(o), 1), o_web, len(o)),
+        "%.1f%% (%d/%d)" % (100 * n_ref / max(len(n), 1), n_ref, len(n)),
+    )
+)
 print()
-print("  注：**两组口径不同**（本脚本走完整链路含判分/路由/联网；refusal_audit 跳过判分"
-      "直接给全量块），所以差异本身不是\"对错\"，而是\"两种问法\"。")
+print(
+    "  注：**两组口径不同**（本脚本走完整链路含判分/路由/联网；refusal_audit 跳过判分"
+    "直接给全量块），所以差异本身不是\"对错\"，而是\"两种问法\"。"
+)
 print()
-print("  库内题中「判分后 0 块」的: %d/%d（这些会走 transform_query / web_search）"
-      % (n_zero, len(n)))
+print("  库内题中「判分后 0 块」的: %d/%d（这些会走 transform_query / web_search）" % (n_zero, len(n)))
 if n_ref:
     print()
     print("  库内被拒答的题（可用性受损）:")
     for r in n:
         if r["refused"]:
             print("     [%s] %s" % (r.get("id"), r["q"][:56]))
-            print("        判分后 %d 块，路由 %s，步骤 %s" % (
-                r["n_kept"], r["route"], r["steps"][:80]))
+            print("        判分后 %d 块，路由 %s，步骤 %s" % (r["n_kept"], r["route"], r["steps"][:80]))
 
-(HERE / "fullchain_audit.json").write_text(json.dumps(
-    {"out_of_scope": res["out"], "in_scope": res["in"]},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "fullchain_audit.json").write_text(
+    json.dumps({"out_of_scope": res["out"], "in_scope": res["in"]}, ensure_ascii=False, indent=2), encoding="utf-8"
+)
 print()
 print("  证据 -> eval/fullchain_audit.json")

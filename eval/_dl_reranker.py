@@ -7,6 +7,7 @@ HF 官方站在本网络不可达；`hf-mirror.com` 虽可连，但实测 **20 �
 
 下载后把路径打印出来（供 `measure_rerank_gain.py` 通过环境变量 `RERANK_MODEL` 指向）。
 """
+
 from __future__ import annotations
 
 import pathlib

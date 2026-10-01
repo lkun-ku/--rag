@@ -112,8 +112,7 @@ def main() -> int:
         lines.append("")
 
         n = len(docs)
-        entry = {"id": row.get("id"), "q": q, "cites": cites, "n_docs": n,
-                 "answer": ans[:400], "blocks": []}
+        entry = {"id": row.get("id"), "q": q, "cites": cites, "n_docs": n, "answer": ans[:400], "blocks": []}
         for c in cites:
             if c < 1 or c > n:
                 stats["invalid"] += 1
@@ -123,13 +122,16 @@ def main() -> int:
             d = docs[c - 1]
             meta = d.metadata
             body = d.page_content.replace("\n", " ").strip()
-            lines.append("    [%d] %s | %s" % (
-                c, meta.get("filename", "?"), str(meta.get("title", ""))[:34]))
-            lines.append("        %s" % body[:args.block_chars])
-            entry["blocks"].append({
-                "n": c, "filename": meta.get("filename", ""),
-                "title": str(meta.get("title", ""))[:60], "text": body[:600],
-            })
+            lines.append("    [%d] %s | %s" % (c, meta.get("filename", "?"), str(meta.get("title", ""))[:34]))
+            lines.append("        %s" % body[: args.block_chars])
+            entry["blocks"].append(
+                {
+                    "n": c,
+                    "filename": meta.get("filename", ""),
+                    "title": str(meta.get("title", ""))[:60],
+                    "text": body[:600],
+                }
+            )
         lines.append("")
         detail.append(entry)
 
@@ -147,8 +149,8 @@ def main() -> int:
     OUT.write_text(text, encoding="utf-8")
     # 同时写一份结构化数据，便于后续比对
     (HERE / "citation_audit.json").write_text(
-        json.dumps({"stats": stats, "detail": detail}, ensure_ascii=False, indent=2),
-        encoding="utf-8")
+        json.dumps({"stats": stats, "detail": detail}, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     print(text[:4000])
     print("...")

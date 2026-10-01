@@ -1,4 +1,5 @@
 """统计：本项目能处理哪些数据类型、边界在哪。**全部来自代码事实**。"""
+
 from __future__ import annotations
 
 import pathlib
@@ -14,12 +15,18 @@ print("1. DOC_SOURCES 声明的格式（唯一权威配置）")
 print("=" * 100)
 from utils.env_utils import DOC_SOURCES  # noqa: E402
 
-print("  %-12s %-10s %-34s %-9s %s"
-      % ("源名", "格式", "集合", "parser", "启用"))
+print("  %-12s %-10s %-34s %-9s %s" % ("源名", "格式", "集合", "parser", "启用"))
 for s in DOC_SOURCES:
-    print("  %-12s %-10s %-34s %-9s %s"
-          % (s["name"], ",".join(s["formats"]), s["collection"],
-             s["parser"], "是" if s.get("enabled", True) else "**否**"))
+    print(
+        "  %-12s %-10s %-34s %-9s %s"
+        % (
+            s["name"],
+            ",".join(s["formats"]),
+            s["collection"],
+            s["parser"],
+            "是" if s.get("enabled", True) else "**否**",
+        )
+    )
 
 print()
 print("=" * 100)
@@ -70,13 +77,13 @@ from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 
 cli = MilvusClient(uri=MILVUS_URI)
-for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-             "kb_manuals_bge_large_1024"):
+for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):
     try:
         rows = cli.query(coll, filter="", output_fields=["filename"], limit=8000)
     except Exception:  # noqa: BLE001
         continue
     from collections import Counter
+
     c = Counter()
     for r in rows:
         fn = str(r.get("filename") or "")

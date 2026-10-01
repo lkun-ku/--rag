@@ -139,7 +139,7 @@ class MarkdownParser:
     #      于是整块原样保留；
     #   ② `table_handler` 的闸原先也是**字符**（P0-5，已改为字节）。
     # 所以这里补一道**与切分器无关的最终兜底**：无论前面怎么切，出管道前一定 ≤ 上限。
-    MAX_CONTENT_BYTES = 5800        # 留 200 字节余量给 metadata 拼接与换行
+    MAX_CONTENT_BYTES = 5800  # 留 200 字节余量给 metadata 拼接与换行
 
     @staticmethod
     def _split_by_bytes(text: str, limit: int) -> List[str]:
@@ -157,7 +157,7 @@ class MarkdownParser:
             # 回退到字符边界（UTF-8 续字节的高两位是 10）
             while end < len(raw) and (raw[end] & 0xC0) == 0x80:
                 end -= 1
-            if end <= start:                    # 单个字符就超限的极端情况
+            if end <= start:  # 单个字符就超限的极端情况
                 end = min(start + limit, len(raw))
             out.append(raw[start:end].decode('utf-8', errors='ignore'))
             start = end
@@ -171,8 +171,7 @@ class MarkdownParser:
             if len(d.page_content.encode('utf-8')) <= MarkdownParser.MAX_CONTENT_BYTES:
                 out.append(d)
                 continue
-            for piece in MarkdownParser._split_by_bytes(
-                    d.page_content, MarkdownParser.MAX_CONTENT_BYTES):
+            for piece in MarkdownParser._split_by_bytes(d.page_content, MarkdownParser.MAX_CONTENT_BYTES):
                 out.append(Document(page_content=piece, metadata=dict(d.metadata)))
         return out
 
@@ -216,16 +215,12 @@ class MarkdownParser:
                 continue
             new_docs.append(d)
         return new_docs
-        
+
     def parse_markdown(self, md_file: str) -> List[Document]:
         # [UPGRADE ] 由 UnstructuredMarkdownLoader 换成 UTF8MarkdownLoader：
         # 前者会让 unstructured 自动猜测文件编码，实测把 PDF 转出的 Markdown 误判成
         # hp_roman8，把 U+2013 等非 ASCII 字符解成乱码（详见 UTF8MarkdownLoader 说明）。
-        loader = UTF8MarkdownLoader(
-            file_path=md_file,
-            mode='elements',
-            strategy='fast'
-        )
+        loader = UTF8MarkdownLoader(file_path=md_file, mode='elements', strategy='fast')
         docs = []
         for doc in loader.lazy_load():
             docs.append(doc)
@@ -252,7 +247,7 @@ class MarkdownParser:
 
     # [ROADMAP 2.6] 带「结构前缀」的块：它们是明确的独立语义单元
     # （表格按行切分的分片、PPTX 的每页块），**不参与**超短块合并。
-    STRUCT_PREFIXES = ('\u8868\u683c\uff1a', '\u5e7b\u706f\u7247 ')   # "表格：" / "幻灯片 "
+    STRUCT_PREFIXES = ('\u8868\u683c\uff1a', '\u5e7b\u706f\u7247 ')  # "表格：" / "幻灯片 "
 
     # [ROADMAP 2.5] 超短块合并阈值（字符）。
     #
@@ -267,8 +262,7 @@ class MarkdownParser:
     MIN_CHUNK_CHARS = 50
 
     @staticmethod
-    def _merge_short_chunks(datas: List[Document],
-                            min_chars: int = MIN_CHUNK_CHARS) -> List[Document]:
+    def _merge_short_chunks(datas: List[Document], min_chars: int = MIN_CHUNK_CHARS) -> List[Document]:
         """把过短的块并入**同一来源文件**的相邻块。
 
         设计约束：
@@ -315,12 +309,14 @@ class MarkdownParser:
             #     **永远不出现在结果里**。实测把 pptx 的 3 个块吞成 1 个。
             #     只往前合并则天然无此风险：被合并者必然已安全落在 out 中。
             def _joinable(d):
-                return (d is not None
-                        and d.metadata.get("filename") == fname
-                        and d.metadata.get("category") == "content"
-                        # 结构块既不被合并，也**不作为合并目标**（否则页码/表名会被
-                        # 混入一段无关文本，破坏其结构语义）
-                        and not d.page_content.startswith(prefixes))
+                return (
+                    d is not None
+                    and d.metadata.get("filename") == fname
+                    and d.metadata.get("category") == "content"
+                    # 结构块既不被合并，也**不作为合并目标**（否则页码/表名会被
+                    # 混入一段无关文本，破坏其结构语义）
+                    and not d.page_content.startswith(prefixes)
+                )
 
             prev_doc = out[-1] if out and _joinable(out[-1]) else None
             if prev_doc is None:
@@ -330,10 +326,7 @@ class MarkdownParser:
                 continue
 
             prev_doc.page_content = (prev_doc.page_content + " " + text).strip()
-            log.info(
-                f'[合并超短块] {fname}: {len(text)} 字符的块并入前一块 '
-                f'(合并后 {len(prev_doc.page_content)} 字符)'
-            )
+            log.info(f'[合并超短块] {fname}: {len(text)} 字符的块并入前一块 (合并后 {len(prev_doc.page_content)} 字符)')
             i += 1
         return out
 
@@ -395,9 +388,7 @@ class MarkdownParser:
                 if parent_id and parent_id in parent_dict:
                     # 父标题可能已是面包屑（"A -> B"），表名取最后一段
                     table_name = parent_dict[parent_id].page_content.split(' -> ')[-1]
-                table_chunks = restore_table_documents(
-                    document, table_name=table_name, max_rows=self.table_max_rows
-                )
+                table_chunks = restore_table_documents(document, table_name=table_name, max_rows=self.table_max_rows)
                 if table_chunks:
                     extra_table_docs.extend(table_chunks)
                     # 注意 `restore_table_documents()` 返回的是 **List[Document]**，
@@ -406,8 +397,7 @@ class MarkdownParser:
                     # attribute 'splitlines'`（由 B 段管道验证抓到 —— 见
                     # eval/verify_flat_twin_pipeline.py；单元测试测不到，因为
                     # 那里传的是裸字符串）。
-                    if is_flat_twin(document.page_content,
-                                    [d.page_content for d in table_chunks]):
+                    if is_flat_twin(document.page_content, [d.page_content for d in table_chunks]):
                         continue
 
             # [ROADMAP 2.7] 顶层正文块（无父标题）独立成块。
@@ -424,10 +414,13 @@ class MarkdownParser:
             # 另：Milvus schema 中 title 是非空 VARCHAR，不补齐会在 add_documents 时报
             # DataNotMatchException: Insert missed an field `title`。
             # 这里只补 metadata，不改动任何正文内容；取值用文件名，缺失时退化为空串。
-            if (category != 'Title' and parent_id is None
-                    and category not in self.NOISE_CATEGORIES
-                    # frontmatter 不是正文内容，且与正文冗余（见 _FRONTMATTER_RE 的说明）
-                    and not self._FRONTMATTER_RE.match(document.page_content)):
+            if (
+                category != 'Title'
+                and parent_id is None
+                and category not in self.NOISE_CATEGORIES
+                # frontmatter 不是正文内容，且与正文冗余（见 _FRONTMATTER_RE 的说明）
+                and not self._FRONTMATTER_RE.match(document.page_content)
+            ):
                 document.metadata.setdefault('title', document.metadata.get('filename', ''))
                 # 必须**直接赋值**而非 setdefault：`category` 键本来就存在
                 # （值是 unstructured 的元素类型，如 UncategorizedText / NarrativeText），
@@ -488,8 +481,7 @@ class MarkdownParser:
         n_before = len(chunk_documents)
         chunk_documents = self._enforce_byte_limit(chunk_documents)
         if len(chunk_documents) != n_before:
-            log.warning(f'超长块切分: {n_before} -> {len(chunk_documents)} '
-                        f'（按 {self.MAX_CONTENT_BYTES} 字节上限）')
+            log.warning(f'超长块切分: {n_before} -> {len(chunk_documents)} （按 {self.MAX_CONTENT_BYTES} 字节上限）')
 
         # 补齐 Milvus schema 必需但 unstructured 未必产出的字段（见 _ensure_required_fields）
         chunk_documents = self._ensure_required_fields(chunk_documents)

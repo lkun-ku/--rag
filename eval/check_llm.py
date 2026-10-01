@@ -22,6 +22,7 @@ A/B 那次是**跑了 8 分钟**才在日志里发现全是超时。本检查作
     .venv\\Scripts\\python.exe eval\\check_llm.py              # 默认 20s 超时
     .venv\\Scripts\\python.exe eval\\check_llm.py --timeout 8   # 快速档用
 """
+
 from __future__ import annotations
 
 import argparse
@@ -38,8 +39,16 @@ os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-              "http_proxy", "https_proxy", "all_proxy", "no_proxy")
+PROXY_KEYS = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+)
 
 
 def main() -> int:
@@ -63,8 +72,9 @@ def main() -> int:
 
         # **必须 `max_retries=0`**：openai SDK 默认重试 2 次，会让「12s 超时」
         # 实际耗时 ~75s（12s x 3 + 连接开销）—— 实测踩到，本检查的全部意义就是「快」。
-        client = OpenAI(base_url=LLM_BASE_URL, api_key=OPENAI_API_KEY or "sk-placeholder",
-                        timeout=args.timeout, max_retries=0)
+        client = OpenAI(
+            base_url=LLM_BASE_URL, api_key=OPENAI_API_KEY or "sk-placeholder", timeout=args.timeout, max_retries=0
+        )
         r = client.chat.completions.create(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": "回复一个字：好"}],
@@ -75,15 +85,14 @@ def main() -> int:
         return 0
     except Exception as e:  # noqa: BLE001
         print()
-        print("  结果: **不可用** —— %s: %s（耗时 %.1fs）" % (
-            type(e).__name__, str(e)[:150], time.time() - t0))
+        print("  结果: **不可用** —— %s: %s（耗时 %.1fs）" % (type(e).__name__, str(e)[:150], time.time() - t0))
         print()
         print("  排查建议：")
         print("    1) 该端点是否需要**代理**？SDK 只读上面列出的环境变量；")
-        print("       若你的代理客户端监听在某个本地端口，请设 "
-              "HTTPS_PROXY=http://127.0.0.1:<port> 再跑。")
-        print("    2) 注意 `.env` 里的 LLM_BASE_URL 优先级高于进程环境变量"
-              "（load_dotenv 为覆盖模式），改端点要改 `.env`。")
+        print("       若你的代理客户端监听在某个本地端口，请设 HTTPS_PROXY=http://127.0.0.1:<port> 再跑。")
+        print(
+            "    2) 注意 `.env` 里的 LLM_BASE_URL 优先级高于进程环境变量（load_dotenv 为覆盖模式），改端点要改 `.env`。"
+        )
         return 1
 
 

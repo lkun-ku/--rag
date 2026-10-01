@@ -23,6 +23,7 @@
 **为什么只跑 1 题**：冒烟测试的目标是「通路有没有断」，不是「质量好不好」——
 质量由 `run_eval` 负责。1 题约 5s，可以放心进快速档回归。
 """
+
 from __future__ import annotations
 
 import os
@@ -52,9 +53,8 @@ def check(name, got, want):
 
 import json  # noqa: E402
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
-case = next(c for c in cases if c.get("source_blocks"))     # 取第一道有 golden 的题
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+case = next(c for c in cases if c.get("source_blocks"))  # 取第一道有 golden 的题
 
 print("=" * 96)
 print("完整工作流冒烟：%s" % case.get("id"))

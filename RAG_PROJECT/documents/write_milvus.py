@@ -84,6 +84,7 @@ def build_parser(parser_type: str):
         # 用文件名当标题是因为 TXT 无结构，而「标题合并」依赖标题；
         # 文件名通常描述内容主题，比自动生成的弱标题可靠（这是当初 1.3.3 未启用的原因）。
         from documents.plain_converters import TextDocParser
+
         p = TextDocParser()
         return p, p.parse
     if parser_type == 'html':
@@ -92,6 +93,7 @@ def build_parser(parser_type: str):
         # `table_handler` 早就用标准库 `html.parser` 解析表格，
         # 且 `markitdown` 本来就在处理 Office，转 HTML 是顺手的事。
         from documents.plain_converters import HTMLDocParser
+
         p = HTMLDocParser()
         return p, p.parse
     raise ValueError(f'未知的 parser 类型: {parser_type!r}')
@@ -151,8 +153,9 @@ def source_parser_process(source: dict, output_queue: Queue, stats_queue: Queue,
 
     output_queue.put((_MSG_EOF, None))
     stats_queue.put(stats)
-    log.info(f'[解析进程] 源 {name} 完成：{stats["files"]} 个文件 / {stats["blocks"]} 个块 / '
-             f'{len(stats["errors"])} 个失败')
+    log.info(
+        f'[解析进程] 源 {name} 完成：{stats["files"]} 个文件 / {stats["blocks"]} 个块 / {len(stats["errors"])} 个失败'
+    )
 
 
 def milvus_writer_process(input_queue: Queue, stats_queue: Queue, collection_name: str, dim: int):
@@ -180,8 +183,7 @@ def milvus_writer_process(input_queue: Queue, stats_queue: Queue, collection_nam
             log.exception(e)
             write_errors.append(f'{type(e).__name__}: {str(e)[:120]}')
 
-    stats_queue.put({'source': collection_name, 'written': total_count,
-                     'write_errors': write_errors})
+    stats_queue.put({'source': collection_name, 'written': total_count, 'write_errors': write_errors})
     log.info(f'[写入进程] 结束，集合 {collection_name} 总计写入 {total_count} 个块')
 
 
@@ -215,12 +217,19 @@ def _run_single_process(source: dict, mv, files: list, collection: str) -> dict:
             log.error(f'[单进程] 写入失败 {basename}: {type(e).__name__}: {e}')
             errors.append(f'{basename}(写入): {type(e).__name__}: {str(e)[:120]}')
     log.info(f'[单进程] 源 {name} 完成：{len(files)} 文件 / {total_blocks} 块 / 写入 {written}')
-    return {'source': name, 'collection': collection, 'files': len(files),
-            'blocks': total_blocks, 'written': written, 'errors': errors}
+    return {
+        'source': name,
+        'collection': collection,
+        'files': len(files),
+        'blocks': total_blocks,
+        'written': written,
+        'errors': errors,
+    }
 
 
-def ingest_source(source: dict, batch_size: int = 20, recreate: bool = True,
-                  dim: int = None, single_process: bool = None) -> dict:
+def ingest_source(
+    source: dict, batch_size: int = 20, recreate: bool = True, dim: int = None, single_process: bool = None
+) -> dict:
     """处理单个源：建集合 -> 多进程解析 -> 写入。返回统计 dict。
 
     Args:
@@ -242,8 +251,15 @@ def ingest_source(source: dict, batch_size: int = 20, recreate: bool = True,
     files = list_source_files(source)
     if not files:
         log.warning(f'源 {name} 目录无匹配文件，跳过（目录: {source["dir"]}）')
-        return {'source': name, 'collection': collection, 'files': 0,
-                'blocks': 0, 'written': 0, 'errors': [], 'skipped': '目录无匹配文件'}
+        return {
+            'source': name,
+            'collection': collection,
+            'files': 0,
+            'blocks': 0,
+            'written': 0,
+            'errors': [],
+            'skipped': '目录无匹配文件',
+        }
 
     mv = MilvusVectorSave(collection_name=collection, dim=dim)
     if recreate:
@@ -252,8 +268,7 @@ def ingest_source(source: dict, batch_size: int = 20, recreate: bool = True,
         log.info(f'源 {name} recreate=False，沿用现有集合 {collection}')
 
     if use_single:
-        log.info(f'源 {name} 使用单进程模式'
-                 f'（Milvus Lite 用文件锁保护数据目录，不允许多进程同时打开）')
+        log.info(f'源 {name} 使用单进程模式（Milvus Lite 用文件锁保护数据目录，不允许多进程同时打开）')
         # 单进程下连接由本进程建立（多进程时由写入子进程各自建立，连接不可跨进程传递）
         mv.create_connection()
         return _run_single_process(source, mv, files, collection)
@@ -291,8 +306,10 @@ def ingest_source(source: dict, batch_size: int = 20, recreate: bool = True,
         'written': write_stats.get('written', 0),
         'errors': parse_stats.get('errors', []) + write_stats.get('write_errors', []),
     }
-    log.info(f'===== 源 {name} 完成：文件 {summary["files"]} / 块 {summary["blocks"]} / '
-             f'写入 {summary["written"]} / 失败 {len(summary["errors"])} =====')
+    log.info(
+        f'===== 源 {name} 完成：文件 {summary["files"]} / 块 {summary["blocks"]} / '
+        f'写入 {summary["written"]} / 失败 {len(summary["errors"])} ====='
+    )
     return summary
 
 
@@ -308,9 +325,16 @@ def main(sources=None, batch_size: int = 20, recreate: bool = True):
         except Exception as e:  # noqa: BLE001
             log.error(f'源 {source["name"]} 处理失败: {type(e).__name__}: {e}')
             log.exception(e)
-            all_stats.append({'source': source['name'], 'collection': source.get('collection'),
-                              'files': 0, 'blocks': 0, 'written': 0,
-                              'errors': [f'{type(e).__name__}: {str(e)[:120]}']})
+            all_stats.append(
+                {
+                    'source': source['name'],
+                    'collection': source.get('collection'),
+                    'files': 0,
+                    'blocks': 0,
+                    'written': 0,
+                    'errors': [f'{type(e).__name__}: {str(e)[:120]}'],
+                }
+            )
 
     print()
     print('=' * 78)
@@ -319,8 +343,10 @@ def main(sources=None, batch_size: int = 20, recreate: bool = True):
     print('%-16s %-34s %8s %8s %8s' % ('源', '集合', '文件', '块', '写入'))
     print('-' * 78)
     for s in all_stats:
-        print('%-16s %-34s %8s %8s %8s' % (
-            s['source'], s['collection'], s.get('files', 0), s.get('blocks', 0), s.get('written', 0)))
+        print(
+            '%-16s %-34s %8s %8s %8s'
+            % (s['source'], s['collection'], s.get('files', 0), s.get('blocks', 0), s.get('written', 0))
+        )
     total_errors = sum(len(s.get('errors', [])) for s in all_stats)
     print('-' * 78)
     print(f'总计失败项: {total_errors}')
@@ -335,11 +361,11 @@ if __name__ == '__main__':
     import argparse
 
     ap = argparse.ArgumentParser(description='多源多格式入库管线')
-    ap.add_argument('--sources', nargs='*', default=None,
-                    help='只处理指定的源名（默认处理 DOC_SOURCES 中所有 enabled 的源）')
+    ap.add_argument(
+        '--sources', nargs='*', default=None, help='只处理指定的源名（默认处理 DOC_SOURCES 中所有 enabled 的源）'
+    )
     ap.add_argument('--batch-size', type=int, default=20, help='每批写入的块数')
-    ap.add_argument('--no-recreate', action='store_true',
-                    help='不重建集合（默认会先删除重建，即全量重灌）')
+    ap.add_argument('--no-recreate', action='store_true', help='不重建集合（默认会先删除重建，即全量重灌）')
     ap.add_argument('--list', action='store_true', help='只列出源与文件数，不入库')
     args = ap.parse_args()
 
@@ -348,9 +374,10 @@ if __name__ == '__main__':
         print('-' * 78)
         for s in DOC_SOURCES:
             n = len(list_source_files(s))
-            print('%-14s %-34s %-9s %-5d %s' % (
-                s['name'], s['collection'], s['parser'], n,
-                '' if s.get('enabled', True) else '(disabled)'))
+            print(
+                '%-14s %-34s %-9s %-5d %s'
+                % (s['name'], s['collection'], s['parser'], n, '' if s.get('enabled', True) else '(disabled)')
+            )
     else:
         selected = DOC_SOURCES
         if args.sources:

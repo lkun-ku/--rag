@@ -17,6 +17,7 @@
 结构与 `MilvusClient.query` 的字段一致（filename / title / text / category / source），
 外加每块的 `chunk_id`（= `metrics.chunk_id(text)`，与 golden 同一套指纹）。
 """
+
 from __future__ import annotations
 
 import datetime
@@ -35,8 +36,7 @@ from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 import metrics  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 out_dir = HERE / "_backup_collections"
 out_dir.mkdir(exist_ok=True)
@@ -51,9 +51,12 @@ print("=" * 96)
 total = 0
 for coll in COLLECTIONS:
     try:
-        rows = client.query(collection_name=coll, filter="",
-                            output_fields=["filename", "title", "text", "category", "source"],
-                            limit=8000)
+        rows = client.query(
+            collection_name=coll,
+            filter="",
+            output_fields=["filename", "title", "text", "category", "source"],
+            limit=8000,
+        )
     except Exception as e:  # noqa: BLE001
         print("  %-30s 查询失败: %s: %s" % (coll, type(e).__name__, e))
         payload["collections"][coll] = {"error": "%s: %s" % (type(e).__name__, e)}
@@ -61,9 +64,16 @@ for coll in COLLECTIONS:
     items = []
     for r in rows:
         t = r.get("text") or ""
-        items.append({"chunk_id": metrics.chunk_id(t), "filename": r.get("filename", ""),
-                      "title": r.get("title", ""), "category": r.get("category", ""),
-                      "source": r.get("source", ""), "text": t})
+        items.append(
+            {
+                "chunk_id": metrics.chunk_id(t),
+                "filename": r.get("filename", ""),
+                "title": r.get("title", ""),
+                "category": r.get("category", ""),
+                "source": r.get("source", ""),
+                "text": t,
+            }
+        )
     payload["collections"][coll] = {"n": len(items), "items": items}
     total += len(items)
     print("  %-30s %5d 块" % (coll, len(items)))

@@ -97,7 +97,7 @@ COLLECTION_NAME = os.getenv('COLLECTION_NAME') or 'kb_milvus_bge_large_1024'
 # 多文档源清单（一源目录 ↔ 一集合）
 #
 # 核心是「语义域隔离」，不是「格式隔离」：同一语义域的文档放同一目录
-#（可含多种格式），不同语义域用不同目录 → 不同集合。
+# （可含多种格式），不同语义域用不同目录 → 不同集合。
 #
 # parser 取值：
 #   markdown —— 原生 .md，直接走 MarkdownParser
@@ -175,6 +175,8 @@ DOC_SOURCES = [
 # 格式（.env 或环境变量）：
 #   KB_TENANTS={"acme": ["milvus_docs", "manuals"], "beta": ["papers"]}
 KB_TENANTS_JSON = os.getenv('KB_TENANTS')
+
+
 # 未配置时为空 dict -> 退化为「单租户模式」（可访问全部 enabled 源）。
 # 这是**刻意的默认**：不设置该环境变量时，行为与引入本功能前完全一致。
 def _parse_tenants(raw: str) -> dict:
@@ -199,10 +201,7 @@ def _parse_tenants(raw: str) -> dict:
             "（键名与字符串都要用双引号）"
         ) from e
     if not isinstance(parsed, dict):
-        raise ValueError(
-            f"KB_TENANTS 必须是 JSON 对象（租户名 -> 源名列表），"
-            f"收到 {type(parsed).__name__}: {parsed!r}"
-        )
+        raise ValueError(f"KB_TENANTS 必须是 JSON 对象（租户名 -> 源名列表），收到 {type(parsed).__name__}: {parsed!r}")
     return parsed
 
 

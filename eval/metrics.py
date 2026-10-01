@@ -40,8 +40,7 @@ def chunk_id(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
 
 
-def score_retrieval(golden_blocks: Sequence[str],
-                    retrieved_blocks: Sequence[str]) -> Dict:
+def score_retrieval(golden_blocks: Sequence[str], retrieved_blocks: Sequence[str]) -> Dict:
     """检索层指标（纯集合运算）。
 
     Args:
@@ -173,15 +172,29 @@ def llm_health_check() -> Tuple[bool, str]:
 def _is_llm_env_error(e: Exception) -> bool:
     """区分「LLM 环境不可用」与「代码 bug」。"""
     txt = f"{type(e).__name__} {e}".lower()
-    return any(k in txt for k in (
-        "insufficient balance", "402", "401", "429", "403",
-        "connection", "timeout", "unreachable", "refused", "dns",
-        "api key", "apikey", "credential", "unavailable", "rate limit",
-    ))
+    return any(
+        k in txt
+        for k in (
+            "insufficient balance",
+            "402",
+            "401",
+            "429",
+            "403",
+            "connection",
+            "timeout",
+            "unreachable",
+            "refused",
+            "dns",
+            "api key",
+            "apikey",
+            "credential",
+            "unavailable",
+            "rate limit",
+        )
+    )
 
 
-def judge_faithfulness(question: str, generation: str, contexts: str,
-                       cache: Optional[JudgeCache] = None) -> Dict:
+def judge_faithfulness(question: str, generation: str, contexts: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Faithfulness（抗幻觉）：答案是否**只**基于给定上下文。
 
     复用项目现有的幻觉判分器（graph2/grade_hallucinations_chain.py），
@@ -201,9 +214,7 @@ def judge_faithfulness(question: str, generation: str, contexts: str,
     try:
         from graph2.grade_hallucinations_chain import hallucination_grader_chain
 
-        score = hallucination_grader_chain.invoke(
-            {"documents": contexts, "generation": generation}
-        )
+        score = hallucination_grader_chain.invoke({"documents": contexts, "generation": generation})
         raw = str(getattr(score, "binary_score", "")).strip().lower()
         value = 1.0 if raw == "yes" else 0.0
     except Exception as e:  # noqa: BLE001
@@ -212,13 +223,11 @@ def judge_faithfulness(question: str, generation: str, contexts: str,
         raise
 
     if cache:
-        cache.put(key, {"kind": "faith", "value": value, "raw": raw,
-                        "question": question[:120]})
+        cache.put(key, {"kind": "faith", "value": value, "raw": raw, "question": question[:120]})
     return {"value": value, "raw": raw, "cached": False}
 
 
-def judge_answer_relevancy(question: str, generation: str,
-                           cache: Optional[JudgeCache] = None) -> Dict:
+def judge_answer_relevancy(question: str, generation: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Answer Relevancy：答案是否**真的回答了**问题。
 
     复用 graph2/grade_answer_chain.py。
@@ -244,13 +253,11 @@ def judge_answer_relevancy(question: str, generation: str,
         raise
 
     if cache:
-        cache.put(key, {"kind": "relev", "value": value, "raw": raw,
-                        "question": question[:120]})
+        cache.put(key, {"kind": "relev", "value": value, "raw": raw, "question": question[:120]})
     return {"value": value, "raw": raw, "cached": False}
 
 
-def generate_answer(question: str, docs: Sequence,
-                    cache: Optional[JudgeCache] = None) -> Tuple[str, bool]:
+def generate_answer(question: str, docs: Sequence, cache: Optional[JudgeCache] = None) -> Tuple[str, bool]:
     """用项目自身的生成链产出答案（复用 graph2/generate_node2.generate）。
 
     为什么直接调 generate() 而不是跑完整工作流：
@@ -324,8 +331,7 @@ THRESHOLDS = {
 _WARN_ELIGIBLE = {"context_recall", "hit_rate", "faithfulness", "answer_relevancy"}
 
 
-def gate(scores: Dict[str, Optional[float]],
-         gen_requested: bool = False) -> Tuple[str, List[str]]:
+def gate(scores: Dict[str, Optional[float]], gen_requested: bool = False) -> Tuple[str, List[str]]:
     """门禁判定。
 
     关键设计（ROADMAP 1.5.3）：**区分「未完成」与「不合格」**
@@ -386,11 +392,9 @@ def gate(scores: Dict[str, Optional[float]],
         # 时看到这句，第一反应是「LLM 挂了」，于是去查端点，浪费了排查时间。
         #   * gen_requested=True  -> LLM 探活失败（余额/网络/服务故障）
         #   * gen_requested=False -> 本次根本没启用生成层评测
-        why = ("LLM 不可用导致" if gen_requested
-               else "本次未启用生成层评测（未传 --with-generation）")
+        why = "LLM 不可用导致" if gen_requested else "本次未启用生成层评测（未传 --with-generation）"
         return "INCONCLUSIVE", reasons + [
-            f"生成层指标缺失（{', '.join(llm_skipped)}）—— {why}，"
-            f"**不得据此判定质量回退**"
+            f"生成层指标缺失（{', '.join(llm_skipped)}）—— {why}，**不得据此判定质量回退**"
         ]
     if warned:
         return "WARN", reasons

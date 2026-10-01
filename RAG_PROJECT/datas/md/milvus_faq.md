@@ -212,11 +212,8 @@ Currently, there is no direct method to achieve this. As a workaround, we recomm
 
 ```python
 # set up iterator
-iterator = client.query_iterator(
-    collection_name="demo_collection",
-    output_fields=["target"]
-)
-# do iteration and store target values into value_set 
+iterator = client.query_iterator(collection_name="demo_collection", output_fields=["target"])
+# do iteration and store target values into value_set
 value_set = set()
 while True:
     res = iterator.next()
@@ -227,7 +224,7 @@ while True:
     for i in range(len(res)):
         value_set.add(res[i]["target"])
 
-# value_set will contain unique values for target column    
+# value_set will contain unique values for target column
 ```
 
 ## What are the limitations of using dynamic fields? For example, are there size limits, modification methods, or indexing restrictions?

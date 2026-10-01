@@ -13,6 +13,7 @@
 
 **不吞异常**：失败计数并打印，绝不静默变成空结果。
 """
+
 import hashlib
 import json
 import os
@@ -58,7 +59,7 @@ errs = []
 print()
 print("采集候选中（%d 题 × %d 集合）..." % (len(cases), len(COLLS)))
 t0 = time.time()
-samples = []          # list of dict(q, src, blocks=[(score, key, filename, text)], gold=set)
+samples = []  # list of dict(q, src, blocks=[(score, key, filename, text)], gold=set)
 for c in cases:
     q = c["q"]
     qv = bge_embedding.embed_query(q)
@@ -66,24 +67,25 @@ for c in cases:
     for coll in COLLS:
         try:
             reqs = [
-                AnnSearchRequest(data=[qv], anns_field="dense",
-                                 param={"metric_type": "IP"}, limit=FETCH_K_PER_ROUTE, expr=EXPR),
-                AnnSearchRequest(data=[q], anns_field="sparse",
-                                 param={"metric_type": "BM25"}, limit=FETCH_K_PER_ROUTE, expr=EXPR),
+                AnnSearchRequest(
+                    data=[qv], anns_field="dense", param={"metric_type": "IP"}, limit=FETCH_K_PER_ROUTE, expr=EXPR
+                ),
+                AnnSearchRequest(
+                    data=[q], anns_field="sparse", param={"metric_type": "BM25"}, limit=FETCH_K_PER_ROUTE, expr=EXPR
+                ),
             ]
             # expr 只放在各 AnnSearchRequest 里（生产也是这么传的：
             # as_retriever 的 search_kwargs["expr"] 最终落到每个 request）
-            res = client.hybrid_search(collection_name=coll, reqs=reqs,
-                                       ranker=RRFRanker(100), limit=PER_COLLECTION_K,
-                                       output_fields=OUT)
-            for h in (res[0] if res else []):
+            res = client.hybrid_search(
+                collection_name=coll, reqs=reqs, ranker=RRFRanker(100), limit=PER_COLLECTION_K, output_fields=OUT
+            )
+            for h in res[0] if res else []:
                 ent = h.get("entity", {}) or {}
                 txt = ent.get("text") or ""
                 blocks.append((h.get("distance"), fp(txt), str(ent.get("filename")), txt))
         except Exception as e:  # noqa: BLE001
             errs.append((c["id"], coll, "%s: %s" % (type(e).__name__, str(e)[:80])))
-    samples.append(dict(qid=c["id"], src=c.get("source"), q=q,
-                        blocks=blocks, gold=set(c["source_blocks"])))
+    samples.append(dict(qid=c["id"], src=c.get("source"), q=q, blocks=blocks, gold=set(c["source_blocks"])))
 
 print("采集完成，耗时 %.1fs，异常 %d 条" % (time.time() - t0, len(errs)))
 for e in errs[:6]:
@@ -113,10 +115,10 @@ print("统计一：分数分布（RRF 分数，生产路径）")
 print("=" * 100)
 print("  golden 块 %d 个 | 非 golden 块 %d 个" % (len(gold_all), len(noise_all)))
 print("  %-8s %8s %8s %8s %8s" % ("", "min", "p25", "median", "max"))
-print("  %-8s %8.5f %8.5f %8.5f %8.5f" % ("golden", gold_all[0], pct(gold_all, .25),
-                                          pct(gold_all, .5), gold_all[-1]))
-print("  %-8s %8.5f %8.5f %8.5f %8.5f" % ("noise", noise_all[0], pct(noise_all, .25),
-                                          pct(noise_all, .5), noise_all[-1]))
+print("  %-8s %8.5f %8.5f %8.5f %8.5f" % ("golden", gold_all[0], pct(gold_all, 0.25), pct(gold_all, 0.5), gold_all[-1]))
+print(
+    "  %-8s %8.5f %8.5f %8.5f %8.5f" % ("noise", noise_all[0], pct(noise_all, 0.25), pct(noise_all, 0.5), noise_all[-1])
+)
 print()
 print("  => 若 golden 的 min < noise 的 max，则**不存在**能干净分开两者的单阈值。")
 
@@ -158,16 +160,24 @@ for s in samples:
     dup_pairs.append(dp)
 
 print("  平均每题返回块数: %.1f" % statistics.mean([len(s["blocks"]) for s in samples]))
-print("  同一 filename 占最多块的**平均占比**: %.1f%%（说明同文档多块返回的普遍程度）"
-      % (statistics.mean(same_file_ratios) * 100))
-print("  每题「互为副本」的块对数: 平均 %.1f 对（最多 %d 对）"
-      % (statistics.mean(dup_pairs), max(dup_pairs)))
+print(
+    "  同一 filename 占最多块的**平均占比**: %.1f%%（说明同文档多块返回的普遍程度）"
+    % (statistics.mean(same_file_ratios) * 100)
+)
+print("  每题「互为副本」的块对数: 平均 %.1f 对（最多 %d 对）" % (statistics.mean(dup_pairs), max(dup_pairs)))
 tot_pairs = sum(len(s["blocks"]) * (len(s["blocks"]) - 1) // 2 for s in samples)
 print("  => 副本对占全部块对的比例: %.1f%%" % (sum(dup_pairs) / max(tot_pairs, 1) * 100))
 
 # 举一个最严重的例子
-worst = max(samples, key=lambda s: sum(1 for i in range(len(s["blocks"])) for j in range(i + 1, len(s["blocks"]))
-                                       if s["blocks"][i][3][:40] == s["blocks"][j][3][:40]))
+worst = max(
+    samples,
+    key=lambda s: sum(
+        1
+        for i in range(len(s["blocks"]))
+        for j in range(i + 1, len(s["blocks"]))
+        if s["blocks"][i][3][:40] == s["blocks"][j][3][:40]
+    ),
+)
 print()
 print("  最严重的一例 [%s]: %s" % (worst["qid"], worst["q"][:70]))
 for sc, key, fn, tx in worst["blocks"]:
@@ -203,9 +213,16 @@ for th in cands:
     rec, hit, prec, nblk = rec / n, hit / n, prec / n, nblk / n
     if base_rec is None:
         base_rec = rec
-    stat3.append(dict(threshold=th, recall=round(rec, 4), hit_rate=round(hit, 4),
-                      precision=round(prec, 4), avg_blocks=round(nblk, 1),
-                      delta_recall=round(rec - base_rec, 4)))
+    stat3.append(
+        dict(
+            threshold=th,
+            recall=round(rec, 4),
+            hit_rate=round(hit, 4),
+            precision=round(prec, 4),
+            avg_blocks=round(nblk, 1),
+            delta_recall=round(rec - base_rec, 4),
+        )
+    )
     print("  %-9.4f %-10.4f %-11.4f %-12.4f %-10.1f %+.4f" % (th, rec, hit, prec, nblk, rec - base_rec))
 
 print()
@@ -228,10 +245,18 @@ report = {
     "n_cases": len(samples),
     "n_golden_blocks": len(gold_all),
     "n_noise_blocks": len(noise_all),
-    "golden_scores": {"min": gold_all[0], "p25": pct(gold_all, .25),
-                      "median": pct(gold_all, .5), "max": gold_all[-1]},
-    "noise_scores": {"min": noise_all[0], "p25": pct(noise_all, .25),
-                     "median": pct(noise_all, .5), "max": noise_all[-1]},
+    "golden_scores": {
+        "min": gold_all[0],
+        "p25": pct(gold_all, 0.25),
+        "median": pct(gold_all, 0.5),
+        "max": gold_all[-1],
+    },
+    "noise_scores": {
+        "min": noise_all[0],
+        "p25": pct(noise_all, 0.25),
+        "median": pct(noise_all, 0.5),
+        "max": noise_all[-1],
+    },
     "overlap": bool(gold_all[0] < noise_all[-1]),
     "threshold_scan": stat3,
     "dup": {
@@ -242,7 +267,6 @@ report = {
     },
     "errors": [list(e) for e in errs[:20]],
 }
-(E / "quant_threshold.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
-                                        encoding="utf-8")
+(E / "quant_threshold.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 print()
 print("  证据 -> eval/quant_threshold.json")

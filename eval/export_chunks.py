@@ -97,15 +97,17 @@ def main() -> int:
         chunks = []
         for r in rows:
             text = r.get("text") or ""
-            chunks.append({
-                "chunk_id": chunk_id(text),
-                "filename": r.get("filename") or "",
-                "title": (r.get("title") or "")[:80],
-                "chars": len(text),
-                "preview": text[:160].replace("\n", " "),
-                # 完整文本仅用于本地核对，体积较大但便于人工标注
-                "text": text,
-            })
+            chunks.append(
+                {
+                    "chunk_id": chunk_id(text),
+                    "filename": r.get("filename") or "",
+                    "title": (r.get("title") or "")[:80],
+                    "chars": len(text),
+                    "preview": text[:160].replace("\n", " "),
+                    # 完整文本仅用于本地核对，体积较大但便于人工标注
+                    "text": text,
+                }
+            )
         chunks.sort(key=lambda c: (c["filename"], c["chunk_id"]))
 
         index["collections"][coll] = {

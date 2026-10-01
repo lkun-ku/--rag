@@ -9,13 +9,13 @@ from utils.env_utils import LLM_STRUCTURED_METHOD
 class GradeAnswer(BaseModel):
     """评估回答是否解决用户问题的二元评分模型"""
 
-    binary_score: str = Field(
-        description="回答是否解决了问题，取值为'yes'或'no'"
-    )
+    binary_score: str = Field(description="回答是否解决了问题，取值为'yes'或'no'")
 
 
 # 初始化带函数调用的LLM
-structured_llm_grader = llm.with_structured_output(GradeAnswer, method=LLM_STRUCTURED_METHOD)  # 绑定结构化输出到评分模型
+structured_llm_grader = llm.with_structured_output(
+    GradeAnswer, method=LLM_STRUCTURED_METHOD
+)  # 绑定结构化输出到评分模型
 
 # 提示词模板
 system = """您是一个评估回答是否解决用户问题的评分器。\n
@@ -29,6 +29,6 @@ answer_prompt = ChatPromptTemplate.from_messages(
 
 # 构建回答质量评估工作流
 answer_grader_chain = (
-        answer_prompt  # 使用回答评估提示模板
-        | structured_llm_grader  # 调用结构化评分的LLM
+    answer_prompt  # 使用回答评估提示模板
+    | structured_llm_grader  # 调用结构化评分的LLM
 )

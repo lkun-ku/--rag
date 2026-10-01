@@ -25,6 +25,7 @@
 **刻意不测**：真实模型的排序质量（那需要标注数据，属于离线评测），
 本测试只锁定**工程契约**；A/B 质量对比由 `eval/_ab_rerank.py` 单独做。
 """
+
 from __future__ import annotations
 
 import inspect
@@ -54,14 +55,13 @@ def check(name, cond, detail=""):
 
 
 def mk(i, text):
-    return Document(page_content="chunk-%d %s" % (i, text),
-                    metadata={"filename": "f.md", "title": "t"})
+    return Document(page_content="chunk-%d %s" % (i, text), metadata={"filename": "f.md", "title": "t"})
 
 
 print("=" * 100)
 print("C1 默认关闭 -> 原样返回（保持既有行为）")
 print("=" * 100)
-rt._reset_for_test()                       # 回到默认（未启用）状态
+rt._reset_for_test()  # 回到默认（未启用）状态
 docs = [mk(1, "a"), mk(2, "b"), mk(3, "c")]
 out = rt.enterprise_rerank("问题", docs)
 check("块数不变", len(out) == 3, len(out))
@@ -71,6 +71,7 @@ print()
 print("=" * 100)
 print("C2/C3/C4 开启后：降序 + top_k 截断 + 阈值过滤")
 print("=" * 100)
+
 
 # 用假 reranker 替换真实模型（测试要秒级完成）
 class FakeReranker:
@@ -85,9 +86,11 @@ class FakeReranker:
 
 rt._reset_for_test(enabled=True, reranker=FakeReranker(), top_k=0, threshold=0)
 out = rt.enterprise_rerank("问题", [mk(1, "a"), mk(2, "b"), mk(3, "c")])
-check("C2 按分数降序（3,2,1）",
-      [d.page_content.split()[0] for d in out] == ["chunk-3", "chunk-2", "chunk-1"],
-      [d.page_content.split()[0] for d in out])
+check(
+    "C2 按分数降序（3,2,1）",
+    [d.page_content.split()[0] for d in out] == ["chunk-3", "chunk-2", "chunk-1"],
+    [d.page_content.split()[0] for d in out],
+)
 
 rt._reset_for_test(enabled=True, reranker=FakeReranker(), top_k=2, threshold=1.5)
 out = rt.enterprise_rerank("问题", [mk(1, "a"), mk(2, "b"), mk(3, "c")])
@@ -97,8 +100,11 @@ check("C4 threshold=1.5 剔除 1.0（剩 chunk-3/chunk-2）", len(out) == 2, len
 
 rt._reset_for_test(enabled=True, reranker=FakeReranker(), top_k=0, threshold=2.5)
 out = rt.enterprise_rerank("问题", [mk(1, "a"), mk(2, "b"), mk(3, "c")])
-check("threshold 生效（只留 chunk-3）", len(out) == 1 and out[0].page_content.startswith("chunk-3"),
-      [d.page_content.split()[0] for d in out])
+check(
+    "threshold 生效（只留 chunk-3）",
+    len(out) == 1 and out[0].page_content.startswith("chunk-3"),
+    [d.page_content.split()[0] for d in out],
+)
 
 print()
 print("=" * 100)
@@ -113,8 +119,7 @@ class BoomReranker:
 
 rt._reset_for_test(enabled=True, reranker=BoomReranker(), top_k=2, threshold=0.0)
 out = rt.enterprise_rerank("问题", [mk(1, "a"), mk(2, "b"), mk(3, "c")])
-check("异常时返回原始 3 块（顺序不变）",
-      len(out) == 3 and out[0].page_content.startswith("chunk-1"), len(out))
+check("异常时返回原始 3 块（顺序不变）", len(out) == 3 and out[0].page_content.startswith("chunk-1"), len(out))
 
 print()
 print("=" * 100)
@@ -128,11 +133,14 @@ print()
 print("=" * 100)
 print("C7 is_aggregation_query")
 print("=" * 100)
-agg_true = ["参与评测的产品里，召回率最低的是哪个？", "哪个产品 QPS 最高？",
-            "这些产品的平均召回率是多少？", "一共有多少个产品参与评测？",
-            "对比一下 TurboPuffer 和 Milvus"]
-agg_false = ["Milvus 怎么安装？", "HNSW 索引的原理是什么？",
-             "如何配置 Milvus 集群？", "P99 延迟的定义"]
+agg_true = [
+    "参与评测的产品里，召回率最低的是哪个？",
+    "哪个产品 QPS 最高？",
+    "这些产品的平均召回率是多少？",
+    "一共有多少个产品参与评测？",
+    "对比一下 TurboPuffer 和 Milvus",
+]
+agg_false = ["Milvus 怎么安装？", "HNSW 索引的原理是什么？", "如何配置 Milvus 集群？", "P99 延迟的定义"]
 for q in agg_true:
     check("识别聚合类: %s" % q[:26], rt.is_aggregation_query(q) is True)
 for q in agg_false:
@@ -142,23 +150,27 @@ print()
 print("=" * 100)
 print("C8 深检索配置")
 print("=" * 100)
-from tools.retriever_tools import (FINAL_K, FINAL_K_DEEP, PER_COLLECTION_K,  # noqa: E402
-                                   PER_COLLECTION_K_DEEP)
+from tools.retriever_tools import (
+    FINAL_K,
+    FINAL_K_DEEP,
+    PER_COLLECTION_K,  # noqa: E402
+    PER_COLLECTION_K_DEEP,
+)
 
-check("PER_COLLECTION_K_DEEP 存在且为 int", isinstance(PER_COLLECTION_K_DEEP, int),
-      PER_COLLECTION_K_DEEP)
-check("深检索 k > 默认 k", PER_COLLECTION_K_DEEP > PER_COLLECTION_K,
-      "deep=%s default=%s" % (PER_COLLECTION_K_DEEP, PER_COLLECTION_K))
-check("深检索的 final_k 同步放大", FINAL_K_DEEP > FINAL_K,
-      "deep=%s default=%s" % (FINAL_K_DEEP, FINAL_K))
+check("PER_COLLECTION_K_DEEP 存在且为 int", isinstance(PER_COLLECTION_K_DEEP, int), PER_COLLECTION_K_DEEP)
+check(
+    "深检索 k > 默认 k",
+    PER_COLLECTION_K_DEEP > PER_COLLECTION_K,
+    "deep=%s default=%s" % (PER_COLLECTION_K_DEEP, PER_COLLECTION_K),
+)
+check("深检索的 final_k 同步放大", FINAL_K_DEEP > FINAL_K, "deep=%s default=%s" % (FINAL_K_DEEP, FINAL_K))
 
 print()
 print("=" * 100)
 print("C9 配置开关契约")
 print("=" * 100)
 sig = inspect.signature(rt.enterprise_rerank)
-check("enterprise_rerank(query, docs) 签名",
-      list(sig.parameters)[:2] == ["query", "docs"], str(list(sig.parameters)))
+check("enterprise_rerank(query, docs) 签名", list(sig.parameters)[:2] == ["query", "docs"], str(list(sig.parameters)))
 check("有 rerank_enabled 供调用方读取", isinstance(rt.rerank_enabled(), bool))
 
 print()
@@ -175,8 +187,7 @@ g_normal = rtt.get_retriever()
 g_deep = rtt.get_retriever(deep=True)
 check("deep=True 返回**不同**检索器", g_normal is not g_deep)
 g_deep2 = rtt.get_retriever(deep=True)
-check("get_deep_retriever 单例（不重复连库）",
-      g_deep is g_deep2 and rtt.get_deep_retriever() is g_deep)
+check("get_deep_retriever 单例（不重复连库）", g_deep is g_deep2 and rtt.get_deep_retriever() is g_deep)
 
 print()
 print("=" * 100)
@@ -189,8 +200,7 @@ check("retrieve 调用了 enterprise_rerank", "enterprise_rerank" in src)
 check("retrieve 识别聚合类", "is_aggregation_query" in src)
 check("retrieve 深检索开关", "deep=is_agg" in src)
 rsig = inspect.signature(retrieve)
-check("retrieve 接收 config（不透传会丢 token 统计）",
-      "config" in rsig.parameters, str(list(rsig.parameters)))
+check("retrieve 接收 config（不透传会丢 token 统计）", "config" in rsig.parameters, str(list(rsig.parameters)))
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

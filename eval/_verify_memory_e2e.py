@@ -16,6 +16,7 @@
 
 答案质量的对照（「它的 QPS 是多少」能否解析指代）另行人工观察，结论写进 ROADMAP。
 """
+
 from __future__ import annotations
 
 import os
@@ -70,8 +71,7 @@ try:
     _msgs = _vals.get("messages") or []
     print("  [诊断] 第2轮前 get_state 读到 messages=%d 条" % len(_msgs))
     for _m in _msgs[:4]:
-        print("         %s: %s" % (getattr(_m, "type", "?"),
-                                   str(getattr(_m, "content", ""))[:50]))
+        print("         %s: %s" % (getattr(_m, "type", "?"), str(getattr(_m, "content", ""))[:50]))
 except Exception as _e:  # noqa: BLE001
     print("  [诊断] get_state 失败: %s: %s" % (type(_e).__name__, str(_e)[:80]))
 

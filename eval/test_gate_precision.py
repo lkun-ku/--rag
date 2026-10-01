@@ -30,6 +30,7 @@
     C3 precision 低于 **fail**       -> **仍然 FAIL**
        （保留注释说的「发现检索严重发散」这条兜底）
 """
+
 from __future__ import annotations
 
 import os

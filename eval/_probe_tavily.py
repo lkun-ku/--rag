@@ -10,6 +10,7 @@
 
 本探针只答一个问题：**Tavily 通不通**。通了再去跑全链路审计。
 """
+
 from __future__ import annotations
 
 import os
@@ -32,6 +33,7 @@ print()
 print("[1] 裸 Tavily API")
 try:
     from tavily import TavilyClient
+
     t0 = time.time()
     c = TavilyClient(api_key=key)
     r = c.search("Milvus 是什么", max_results=2)
@@ -49,6 +51,7 @@ print()
 print("[2] 项目封装（langchain_tavily / 或项目里的 web_search 工具）")
 try:
     from tools.retriever_tools import web_search_tool
+
     t0 = time.time()
     r = web_search_tool.invoke("Milvus 是什么")
     el = time.time() - t0

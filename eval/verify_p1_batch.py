@@ -13,6 +13,7 @@
 
 **不吞异常**：任何失败都直接打印。
 """
+
 import json
 import os
 import pathlib
@@ -78,8 +79,7 @@ with TestClient(app) as client:
 
     t0 = time.time()
     try:
-        with client.stream("POST", "/ask/stream",
-                           json={"question": "Milvus 支持哪些索引类型？"}) as resp:
+        with client.stream("POST", "/ask/stream", json={"question": "Milvus 支持哪些索引类型？"}) as resp:
             status = resp.status_code
             events = []
             for line in resp.iter_lines():
@@ -91,22 +91,22 @@ with TestClient(app) as client:
 
     elapsed = time.time() - t0
     after = n_lines(TRACE)
-    print("  SSE 状态 %d | 事件数 %d（类型: %s）| 耗时 %.1fs" % (
-        status, len(events), sorted(set(events))[:6], elapsed))
+    print("  SSE 状态 %d | 事件数 %d（类型: %s）| 耗时 %.1fs" % (status, len(events), sorted(set(events))[:6], elapsed))
     print("  运行后 logs/trace.jsonl 行数: %d（增量 %d）" % (after, after - before))
 
     ok2 = (after - before) >= 1
     results.append(("P1-2 SSE 落盘 trace（行数 +1）", ok2))
-    print("      => %s" % ("OK trace 已落盘" if ok2
-                          else "**FAIL：SSE 仍未写 trace.jsonl**"))
+    print("      => %s" % ("OK trace 已落盘" if ok2 else "**FAIL：SSE 仍未写 trace.jsonl**"))
 
     # 顺带看最后一条 trace 的内容，确认是方才那次
     if ok2:
         last = [l for l in TRACE.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()][-1]
         try:
             d = json.loads(last)
-            print("      最后一条 trace: q=%r | steps=%s | total=%.1fs" % (
-                str(d.get("question"))[:40], d.get("n_steps"), d.get("total_sec", 0)))
+            print(
+                "      最后一条 trace: q=%r | steps=%s | total=%.1fs"
+                % (str(d.get("question"))[:40], d.get("n_steps"), d.get("total_sec", 0))
+            )
         except Exception:  # noqa: BLE001
             print("      （最后一条无法解析为 JSON）")
 

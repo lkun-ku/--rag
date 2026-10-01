@@ -22,6 +22,7 @@
 
 **本次修正同时把解读写进 note**，避免下次再歧义。
 """
+
 from __future__ import annotations
 
 import json

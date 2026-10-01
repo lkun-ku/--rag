@@ -2,6 +2,7 @@
 
 设计原则：**用可验证的事实校验，不靠目测**。
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -9,8 +10,14 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DOCS = ["README.md", "CHANGELOG.md", "PROJECT_DESCRIPTION.md", "ROADMAP.md",
-        "docs/RESUME_PROJECT.md", "docs/INTERVIEW_QA.md"]
+DOCS = [
+    "README.md",
+    "CHANGELOG.md",
+    "PROJECT_DESCRIPTION.md",
+    "ROADMAP.md",
+    "docs/RESUME_PROJECT.md",
+    "docs/INTERVIEW_QA.md",
+]
 problems = []
 
 
@@ -33,14 +40,12 @@ for i, l in enumerate(ls, 1):
         seg.append((i, l))
 for i, l in seg:
     print("  %5d| %s" % (i, l[:78]))
-nums = [re.match(r"^#{2,4} (4\.4[67](?:\.\d+)?)", l).group(1)
-        for _, l in seg if re.match(r"^#{2,4} 4\.4[67]", l)]
+nums = [re.match(r"^#{2,4} (4\.4[67](?:\.\d+)?)", l).group(1) for _, l in seg if re.match(r"^#{2,4} 4\.4[67]", l)]
 print()
 print("  编号序列: %s" % nums)
 # 检查 4.46 的子节连续、4.47 的子节连续
 for parent in ("4.46", "4.47"):
-    subs = sorted(int(n.split(".")[-1]) for n in nums
-                  if n.startswith(parent + "."))
+    subs = sorted(int(n.split(".")[-1]) for n in nums if n.startswith(parent + "."))
     if subs:
         expect = list(range(1, len(subs) + 1))
         ok = subs == expect
@@ -73,16 +78,27 @@ print("=" * 100)
 missing = set()
 for f in DOCS:
     t = (ROOT / f).read_text(encoding="utf-8")
-    for m in re.finditer(r"`((?:RAG_PROJECT/)?(?:tools|utils|graph2|graph|documents|api|agent|llm_models)/[a-z_0-9]+\.py)`", t):
+    for m in re.finditer(
+        r"`((?:RAG_PROJECT/)?(?:tools|utils|graph2|graph|documents|api|agent|llm_models)/[a-z_0-9]+\.py)`", t
+    ):
         rel = m.group(1)
         p1 = ROOT / rel
         p2 = ROOT / "RAG_PROJECT" / rel
         if not p1.exists() and not p2.exists():
             missing.add(rel)
-print("  引用的代码文件: %d 个 distinct" % len(set(
-    m.group(1) for f in DOCS
-    for m in re.finditer(r"`((?:RAG_PROJECT/)?(?:tools|utils|graph2|graph|documents|api|agent|llm_models)/[a-z_0-9]+\.py)`",
-                         (ROOT / f).read_text(encoding="utf-8")))))
+print(
+    "  引用的代码文件: %d 个 distinct"
+    % len(
+        set(
+            m.group(1)
+            for f in DOCS
+            for m in re.finditer(
+                r"`((?:RAG_PROJECT/)?(?:tools|utils|graph2|graph|documents|api|agent|llm_models)/[a-z_0-9]+\.py)`",
+                (ROOT / f).read_text(encoding="utf-8"),
+            )
+        )
+    )
+)
 print("  不存在的: %s" % (sorted(missing) or "无 ✅"))
 for x in missing:
     bad("文档引用了不存在的代码文件: %s" % x)
@@ -132,7 +148,7 @@ for f in DOCS:
         if a in t and b in t and ("%s" % b) in t:
             # 只报「同一段距离很近」的情况，避免误报
             idx = t.find(b)
-            if idx >= 0 and a in t[max(0, idx - 200):idx + 200]:
+            if idx >= 0 and a in t[max(0, idx - 200) : idx + 200]:
                 print("  %-26s **可能仍有旧表述**: %s" % (f, desc))
                 bad("%s 可能仍有旧表述: %s" % (f, desc))
 print("  （无输出 = 未发现）")

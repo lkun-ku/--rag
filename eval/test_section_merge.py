@@ -13,6 +13,7 @@
 | P7 | 合并后的内容**包含全部原块文本**（不丢）|
 | P8 | 输出保持原有相对顺序 |
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -62,8 +63,7 @@ docs = [mk("段落一"), mk("段落二"), mk("段落三")]
 out = sm.merge_section_blocks(docs, max_chars=10000)
 check("P2 3 块 -> 1 块", len(out) == 1, len(out))
 merged_text = out[0].page_content if out else ""
-check("P7 含全部原文",
-      all(x in merged_text for x in ("段落一", "段落二", "段落三")), merged_text[:60])
+check("P7 含全部原文", all(x in merged_text for x in ("段落一", "段落二", "段落三")), merged_text[:60])
 if out:
     md = out[0].metadata
     check("P6 merged_from=3", md.get("merged_from") == 3, md.get("merged_from"))
@@ -73,9 +73,13 @@ print()
 print("=" * 100)
 print("P3/P4 不同章节不合并、单块不合并")
 print("=" * 100)
-docs = [mk("A1", title="章节A"), mk("A2", title="章节A"),
-        mk("B1", title="章节B"), mk("B2", title="章节B"),
-        mk("C1", title="章节C")]
+docs = [
+    mk("A1", title="章节A"),
+    mk("A2", title="章节A"),
+    mk("B1", title="章节B"),
+    mk("B2", title="章节B"),
+    mk("C1", title="章节C"),
+]
 out = sm.merge_section_blocks(docs, max_chars=10000)
 check("3 个章节 -> 3 块", len(out) == 3, len(out))
 check("章节A 合并了", any("A1" in d.page_content and "A2" in d.page_content for d in out))
@@ -92,14 +96,13 @@ print("P5 超 max_chars -> 拆成多个父块（不截断、不丢内容）")
 print("=" * 100)
 sm.SECTION_MERGE_ENABLED = True
 big = [mk("甲" * 60), mk("乙" * 60), mk("丙" * 60), mk("丁" * 60)]
-out = sm.merge_section_blocks(big, max_chars=130)     # 每块 ~60 -> 最多 2 块合并
+out = sm.merge_section_blocks(big, max_chars=130)  # 每块 ~60 -> 最多 2 块合并
 check("拆成 >=2 个父块", len(out) >= 2, len(out))
 all_text = "".join(d.page_content for d in out)
-check("P5 不丢内容（4 个标记都在）",
-      all(x in all_text for x in ("甲", "乙", "丙", "丁")), len(all_text))
-check("P5 每块不超 max_chars 太多",
-      all(len(d.page_content) <= 130 + 20 for d in out),
-      [len(d.page_content) for d in out])
+check("P5 不丢内容（4 个标记都在）", all(x in all_text for x in ("甲", "乙", "丙", "丁")), len(all_text))
+check(
+    "P5 每块不超 max_chars 太多", all(len(d.page_content) <= 130 + 20 for d in out), [len(d.page_content) for d in out]
+)
 
 print()
 print("=" * 100)
@@ -108,8 +111,7 @@ print("=" * 100)
 docs = [mk("第一", title="A"), mk("第二", title="A"), mk("第三", title="B")]
 out = sm.merge_section_blocks(docs, max_chars=10000)
 texts = [d.page_content for d in out]
-check("合并块在第一个出现位置", len(texts) == 2 and "第一" in texts[0] and "第三" in texts[1],
-      texts)
+check("合并块在第一个出现位置", len(texts) == 2 and "第一" in texts[0] and "第三" in texts[1], texts)
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

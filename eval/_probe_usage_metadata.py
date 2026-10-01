@@ -18,6 +18,7 @@
 2. `on_llm_end` 收到的 `response` 长什么样（有没有 `generations` / `message`）？
 3. 对比：**同一模型不用 `with_structured_output`** 时能否被统计（对照组）？
 """
+
 from __future__ import annotations
 
 import os
@@ -47,8 +48,7 @@ class ShapeCB(BaseCallbackHandler):
             msg = getattr(g0, "message", None)
             info["has_message"] = msg is not None
             info["msg_type"] = type(msg).__name__ if msg is not None else None
-            info["has_usage_metadata"] = bool(
-                getattr(msg, "usage_metadata", None)) if msg is not None else False
+            info["has_usage_metadata"] = bool(getattr(msg, "usage_metadata", None)) if msg is not None else False
             info["llm_output_keys"] = list((getattr(response, "llm_output", None) or {}).keys())
         except Exception as e:  # noqa: BLE001
             info["err"] = "%s: %s" % (type(e).__name__, e)
@@ -70,8 +70,7 @@ print()
 print("[① 判分链 with_structured_output]")
 u1, s1 = UsageMetadataCallbackHandler(), ShapeCB()
 try:
-    r1 = retrieval_grader_chain.invoke({"question": Q, "document": DOC},
-                                       config={"callbacks": [u1, s1]})
+    r1 = retrieval_grader_chain.invoke({"question": Q, "document": DOC}, config={"callbacks": [u1, s1]})
     print("  返回: %r" % (getattr(r1, "binary_score", r1),))
 except Exception as e:  # noqa: BLE001
     print("  调用失败: %s: %s" % (type(e).__name__, e))
@@ -83,8 +82,7 @@ print()
 print("[② 对照组：同一个 llm，直接调用（无 with_structured_output）]")
 u2, s2 = UsageMetadataCallbackHandler(), ShapeCB()
 try:
-    r2 = llm.invoke("只回答一个词：yes 或 no。问题：Milvus 是向量数据库吗？",
-                    config={"callbacks": [u2, s2]})
+    r2 = llm.invoke("只回答一个词：yes 或 no。问题：Milvus 是向量数据库吗？", config={"callbacks": [u2, s2]})
     print("  返回类型: %s" % type(r2).__name__)
 except Exception as e:  # noqa: BLE001
     print("  调用失败: %s: %s" % (type(e).__name__, e))
@@ -102,5 +100,5 @@ print("  直接调用可被统计: %s" % ("是" if ok2 else "**否**"))
 if ok2 and not ok1:
     print()
     print("  -> 根因确认：`with_structured_output` 让回调拿不到 usage_metadata。")
-    print("     修法方向：让判分链内部**多暴露一层**（如改用 tool-calling 并手工取"),
+    (print("     修法方向：让判分链内部**多暴露一层**（如改用 tool-calling 并手工取"),)
     print("     `response.usage_metadata`），或在 tracer 侧补一条路径。")

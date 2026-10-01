@@ -12,6 +12,7 @@
 
 同时统计「过滤后剩几块」以评估「过滤过严导致拒答」的风险。
 """
+
 import hashlib
 import json
 import os
@@ -28,8 +29,10 @@ from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
 from tools.retriever_tools import retriever  # noqa: E402
 
 E = ROOT / "eval"
-cases = {c["id"]: c for c in (
-    json.loads(l) for l in (E / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip())}
+cases = {
+    c["id"]: c
+    for c in (json.loads(l) for l in (E / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip())
+}
 
 
 def fp(t):
@@ -70,9 +73,11 @@ for qid in TARGETS:
             dropped += 1
             if is_target:
                 target_dropped = True
-        print("  %2d. [%-3s] %-10s len=%-4d %s" % (
-            i, grade, "<== 目标块" if is_target else "", len(d.page_content),
-            d.page_content[:60].replace("\n", " ")))
+        print(
+            "  %2d. [%-3s] %-10s len=%-4d %s"
+            % (i, grade, "<== 目标块" if is_target else "", len(d.page_content), d.page_content[:60].replace("\n", " "))
+        )
     print("-" * 100)
-    print("  保留 %d / 丢弃 %d  |  目标块被判 no: %s" % (
-        kept, dropped, "**是（判分过严）**" if target_dropped else "否"))
+    print(
+        "  保留 %d / 丢弃 %d  |  目标块被判 no: %s" % (kept, dropped, "**是（判分过严）**" if target_dropped else "否")
+    )

@@ -22,6 +22,7 @@
 
 输出按「覆盖率」排序，用于**定阈值**与**挑 fixture**。
 """
+
 from __future__ import annotations
 
 import collections
@@ -40,8 +41,7 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 from pymilvus import MilvusClient  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 
 def is_structured(t: str) -> bool:
@@ -73,8 +73,7 @@ def cell_values(chunks):
 client = MilvusClient(uri=MILVUS_URI)
 rows = []
 for coll in COLLECTIONS:
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "title", "text"], limit=4000):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "title", "text"], limit=4000):
         rows.append((r.get("filename", "?"), r.get("title", "?"), r.get("text") or ""))
 
 groups = collections.defaultdict(list)
@@ -115,31 +114,47 @@ for (fn, ti), ts in groups.items():
     words = {w for w in words if re.search(r"[A-Za-z\u4e00-\u9fff]", w)}
     rev_cov = (sum(1 for w in words if w in st_all) / len(words)) if words else float("nan")
 
-    out.append({
-        "filename": fn, "title": ti,
-        "n_structured": len(st), "n_flat": len(fl),
-        "len_structured": len_st, "len_flat": len_fl,
-        "len_max_structured": max(len(t) for t in st),
-        "ratio_flat_over_structured": round(len_fl / max(len_st, 1), 3),
-        "ratio_flat_over_max_structured": round(len_fl / max(max(len(t) for t in st), 1), 3),
-        "value_coverage": round(cov, 4) if cov == cov else None,
-        "reverse_coverage": round(rev_cov, 4) if rev_cov == rev_cov else None,
-        "n_words_flat": len(words),
-        "n_values": len(vals),
-    })
+    out.append(
+        {
+            "filename": fn,
+            "title": ti,
+            "n_structured": len(st),
+            "n_flat": len(fl),
+            "len_structured": len_st,
+            "len_flat": len_fl,
+            "len_max_structured": max(len(t) for t in st),
+            "ratio_flat_over_structured": round(len_fl / max(len_st, 1), 3),
+            "ratio_flat_over_max_structured": round(len_fl / max(max(len(t) for t in st), 1), 3),
+            "value_coverage": round(cov, 4) if cov == cov else None,
+            "reverse_coverage": round(rev_cov, 4) if rev_cov == rev_cov else None,
+            "n_words_flat": len(words),
+            "n_values": len(vals),
+        }
+    )
 
 out.sort(key=lambda r: (-(r["value_coverage"] or 0), -r["n_structured"]))
 print("=" * 112)
 print("② fixture 测量：同时含「结构化块」与「扁平块」的组（共 %d 组）" % len(out))
 print("=" * 112)
-print("  %-38s %-18s %-6s %-6s %-8s %-8s %-8s %s" % (
-    "filename", "title", "结构", "扁平", "覆盖率", "长度比", "最长比", "值数"))
+print(
+    "  %-38s %-18s %-6s %-6s %-8s %-8s %-8s %s"
+    % ("filename", "title", "结构", "扁平", "覆盖率", "长度比", "最长比", "值数")
+)
 print("  " + "-" * 108)
 for r in out[:26]:
-    print("  %-38s %-18s %-6d %-6d %-8s %-8.2f %-8.2f %d" % (
-        r["filename"][:38], r["title"][:18], r["n_structured"], r["n_flat"],
-        ("%.2f" % r["value_coverage"]) if r["value_coverage"] is not None else "n/a",
-        r["ratio_flat_over_structured"], r["ratio_flat_over_max_structured"], r["n_values"]))
+    print(
+        "  %-38s %-18s %-6d %-6d %-8s %-8.2f %-8.2f %d"
+        % (
+            r["filename"][:38],
+            r["title"][:18],
+            r["n_structured"],
+            r["n_flat"],
+            ("%.2f" % r["value_coverage"]) if r["value_coverage"] is not None else "n/a",
+            r["ratio_flat_over_structured"],
+            r["ratio_flat_over_max_structured"],
+            r["n_values"],
+        )
+    )
 
 # 分布统计：用于定阈值
 covs = [r["value_coverage"] for r in out if r["value_coverage"] is not None]
@@ -156,11 +171,17 @@ print()
 print("  **判读**：覆盖率 >= 0.99 的组才是「扁平孪生」的强候选；")
 print("          低于此值说明扁平文本并不含全部结构化值（可能被截断或是另一张表）。")
 
-(HERE / "measure_flat_twin.json").write_text(json.dumps(
-    {
-        "measurement_granularity": "group",     # 见下方说明
-        "groups": out,
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "measure_flat_twin.json").write_text(
+    json.dumps(
+        {
+            "measurement_granularity": "group",  # 见下方说明
+            "groups": out,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 
 print()
 print("=" * 112)

@@ -13,6 +13,7 @@
 **真实两轮记忆**（会调 LLM，约 30s）不在本文件里跑 —— 见
 `eval/_verify_memory_e2e.py`，由人工触发并记录结论。
 """
+
 from __future__ import annotations
 
 import inspect
@@ -26,8 +27,11 @@ sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 
-from graph2.generate_node2 import (MAX_HISTORY_TURNS, MAX_PER_MSG_CHARS,  # noqa: E402
-                                   _format_history)
+from graph2.generate_node2 import (
+    MAX_HISTORY_TURNS,
+    MAX_PER_MSG_CHARS,  # noqa: E402
+    _format_history,
+)
 from graph2.graph_2 import create_graph, get_memory_graph, run_with_trace  # noqa: E402
 
 FAILED = []
@@ -61,8 +65,7 @@ for i in range(MAX_HISTORY_TURNS + 3):
     many.append(HumanMessage(content="Q%d" % i))
     many.append(AIMessage(content="A%d" % i))
 h = _format_history(many)
-check("超限只取最近 %d 轮" % MAX_HISTORY_TURNS,
-      "Q0" not in h and ("Q%d" % (len(many) // 2 - 1)) in h, repr(h[:80]))
+check("超限只取最近 %d 轮" % MAX_HISTORY_TURNS, "Q0" not in h and ("Q%d" % (len(many) // 2 - 1)) in h, repr(h[:80]))
 
 # system / 其它角色被忽略
 h = _format_history([SystemMessage(content="系统提示"), HumanMessage(content="问"), AIMessage(content="答")])
@@ -71,16 +74,14 @@ check("忽略 system 角色", "系统提示" not in h and "问" in h, repr(h[:60
 # 单条超长被截断（[ROADMAP 4.43] 上限由 300 提到 MAX_PER_MSG_CHARS=500）
 long_msg = [HumanMessage(content="长" * 1000), AIMessage(content="答")]
 h = _format_history(long_msg)
-check("单条截断到 MAX_PER_MSG_CHARS 以内",
-      len(h) <= MAX_PER_MSG_CHARS + 8, "实际 %d" % len(h))
+check("单条截断到 MAX_PER_MSG_CHARS 以内", len(h) <= MAX_PER_MSG_CHARS + 8, "实际 %d" % len(h))
 
 print()
 print("=" * 100)
 print("C2/C3 create_graph 的 checkpointer")
 print("=" * 100)
 g_plain = create_graph()
-check("默认无 checkpointer（零破坏）", g_plain.checkpointer is None,
-      "实际 %r" % type(g_plain.checkpointer).__name__)
+check("默认无 checkpointer（零破坏）", g_plain.checkpointer is None, "实际 %r" % type(g_plain.checkpointer).__name__)
 
 saver = MemorySaver()
 g_mem = create_graph(checkpointer=saver)
@@ -100,9 +101,7 @@ print("=" * 100)
 print("C5 run_with_trace 签名")
 print("=" * 100)
 params = inspect.signature(run_with_trace).parameters
-check("有 thread_id 且默认 None",
-      "thread_id" in params and params["thread_id"].default is None,
-      str(list(params)))
+check("有 thread_id 且默认 None", "thread_id" in params and params["thread_id"].default is None, str(list(params)))
 
 print()
 print("=" * 100)

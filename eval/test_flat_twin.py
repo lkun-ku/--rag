@@ -31,6 +31,7 @@
 > **不能**用「扁平 / 结构化最长块」：该比值实测跨 0.74~7.13
 > （一个表格元素会被切成多个行段，分母随切段数变化）。
 """
+
 from __future__ import annotations
 
 import os
@@ -121,32 +122,29 @@ check("capability_matrix/来源说明", is_flat_twin(POS_FLAT, [POS_STRUCT]), Tr
 
 print()
 print("[负例·核心] 扁平里含结构化没有的正文（反向覆盖 0.41）-> 期望 False")
-check("index_spec/6.2 依赖组件版本（含「6 部署环境要求…」）",
-      is_flat_twin(NEG_FLAT, [NEG_STRUCT]), False)
+check("index_spec/6.2 依赖组件版本（含「6 部署环境要求…」）", is_flat_twin(NEG_FLAT, [NEG_STRUCT]), False)
 
 print()
 print("[负例] 扁平被截断（缺结构化块里的长值）-> 期望 False")
-check("缺一个长值", is_flat_twin(
-    POS_FLAT.replace("官方公布的实测数字，逐字保留", ""), [POS_STRUCT]), False)
+check("缺一个长值", is_flat_twin(POS_FLAT.replace("官方公布的实测数字，逐字保留", ""), [POS_STRUCT]), False)
 check("只剩表头", is_flat_twin("来源说明 字段 说明", [POS_STRUCT]), False)
 
 print()
 print("[负例] 长度比超出 [0.5, 2.0] -> 期望 False")
 check("扁平极短", is_flat_twin("逐字保留", [POS_STRUCT]), False)
-check("扁平极长（同内容重复多遍）",
-      is_flat_twin(POS_FLAT + " " + POS_FLAT + " " + POS_FLAT, [POS_STRUCT]), False)
+check("扁平极长（同内容重复多遍）", is_flat_twin(POS_FLAT + " " + POS_FLAT + " " + POS_FLAT, [POS_STRUCT]), False)
 
 print()
 print("[负例] 边界输入 -> 期望 False")
 check("扁平为空", is_flat_twin("", [POS_STRUCT]), False)
 check("结构化为空", is_flat_twin(POS_FLAT, []), False)
 check("都为空", is_flat_twin("", []), False)
-check("结构化块没有可提取的长值",
-      is_flat_twin("来源说明 字段 说明",
-                   ["表格：来源说明\n列名：字段 | 说明\n\n| 字段 | 说明 |\n|---|---|"]), False)
-check("扁平与结构化是两份无关内容",
-      is_flat_twin("Milvus 支持混合检索与稀疏向量，性能优异。",
-                   [POS_STRUCT]), False)
+check(
+    "结构化块没有可提取的长值",
+    is_flat_twin("来源说明 字段 说明", ["表格：来源说明\n列名：字段 | 说明\n\n| 字段 | 说明 |\n|---|---|"]),
+    False,
+)
+check("扁平与结构化是两份无关内容", is_flat_twin("Milvus 支持混合检索与稀疏向量，性能优异。", [POS_STRUCT]), False)
 
 print()
 print("=" * 96)

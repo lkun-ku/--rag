@@ -5,6 +5,7 @@
 口径不同，对照无效（偏差 266% 就是这么来的）。这里改成：**自己跑一次**，
 再读自己刚写进去的那条。
 """
+
 import json
 import os
 import pathlib
@@ -34,17 +35,17 @@ print("=" * 100)
 print("  问题: %s" % Q)
 print("  耗时: %.1fs" % el)
 tk = out.get("trace", {}).get("tokens", {})
-print("  total=%s  input=%s  output=%s" % (
-    tk.get("total_tokens"), tk.get("input_tokens"), tk.get("output_tokens")))
+print("  total=%s  input=%s  output=%s" % (tk.get("total_tokens"), tk.get("input_tokens"), tk.get("output_tokens")))
 bm = tk.get("by_model", {})
 for m, v in bm.items():
-    print("  模型 %s: total=%s (in=%s / out=%s)" % (
-        m, v.get("total_tokens"), v.get("input_tokens"), v.get("output_tokens")))
+    print(
+        "  模型 %s: total=%s (in=%s / out=%s)"
+        % (m, v.get("total_tokens"), v.get("input_tokens"), v.get("output_tokens"))
+    )
 print()
 print("  步数 %d:" % len(out.get("trace", {}).get("steps", [])))
 for st in out.get("trace", {}).get("steps", []):
-    print("     %-22s %.2fs  %s" % (st.get("node"), st.get("elapsed_sec", 0),
-                                    st.get("decision", "")))
+    print("     %-22s %.2fs  %s" % (st.get("node"), st.get("elapsed_sec", 0), st.get("decision", "")))
 print()
 print("  答案: %s" % (out.get("generation") or "")[:100].replace("\n", " "))
 print("  判分后上下文块数: %d" % len(out.get("documents", [])))
@@ -54,9 +55,10 @@ if tp.exists() and tp.stat().st_size > before:
     new = [l for l in tp.read_text(encoding="utf-8").splitlines() if l.strip()]
     last = json.loads(new[-1])
     print()
-    print("  trace.jsonl 新增条目: total=%s  问题匹配=%s" % (
-        last.get("tokens", {}).get("total_tokens"),
-        last.get("question", "")[:20] == Q[:20]))
+    print(
+        "  trace.jsonl 新增条目: total=%s  问题匹配=%s"
+        % (last.get("tokens", {}).get("total_tokens"), last.get("question", "")[:20] == Q[:20])
+    )
 else:
     print()
     print("  [!] trace.jsonl 未新增（可能 save=False 或被覆盖）")

@@ -60,8 +60,13 @@ class OfficeParser:
     # markitdown 实例持有文件类型检测模型，构造有开销，故进程内复用。
     _md_converter = None
 
-    def __init__(self, keep_temp_md: bool = False, strip_html_comments: bool = True,
-                 use_pptx_structurer: bool = True, ocr_pptx_images: bool = False):
+    def __init__(
+        self,
+        keep_temp_md: bool = False,
+        strip_html_comments: bool = True,
+        use_pptx_structurer: bool = True,
+        ocr_pptx_images: bool = False,
+    ):
         """
         Args:
             keep_temp_md: 是否保留中间产出的临时 Markdown（默认 False）。
@@ -105,9 +110,7 @@ class OfficeParser:
 
         ext = os.path.splitext(file_path)[1].lower()
         if ext not in self.SUPPORTED_EXTENSIONS:
-            raise ValueError(
-                f'不支持的 Office 格式: {ext}（支持 {self.SUPPORTED_EXTENSIONS}）'
-            )
+            raise ValueError(f'不支持的 Office 格式: {ext}（支持 {self.SUPPORTED_EXTENSIONS}）')
 
         basename = os.path.basename(file_path)
 
@@ -125,10 +128,7 @@ class OfficeParser:
                 ).parse_pptx_to_documents(file_path)
             except Exception as e:  # noqa: BLE001
                 # 显式回落并记 warning，不静默降级（见 ROADMAP 1.3.6）
-                log.warning(
-                    f'PPTX 结构化解析失败，回落到 markitdown 路径: '
-                    f'{type(e).__name__}: {str(e)[:160]}'
-                )
+                log.warning(f'PPTX 结构化解析失败，回落到 markitdown 路径: {type(e).__name__}: {str(e)[:160]}')
 
         md_text = self.to_markdown(file_path)
 
@@ -162,8 +162,7 @@ if __name__ == '__main__':
     if not os.path.isdir(office_dir):
         print(f'目录不存在：{office_dir}（可把 docx/xlsx/pptx 放入后重试）')
     else:
-        files = [f for f in sorted(os.listdir(office_dir))
-                 if f.lower().endswith(OfficeParser.SUPPORTED_EXTENSIONS)]
+        files = [f for f in sorted(os.listdir(office_dir)) if f.lower().endswith(OfficeParser.SUPPORTED_EXTENSIONS)]
         if not files:
             print(f'未找到 Office 文档：{office_dir}')
         parser = OfficeParser(keep_temp_md=True)

@@ -14,6 +14,7 @@
 
 本脚本人肉量出这个代价，再决定截断策略要不要一起改。
 """
+
 from __future__ import annotations
 
 import os
@@ -35,6 +36,7 @@ TRACE = ROOT / "logs" / "trace.jsonl"
 real_lens = []
 if TRACE.exists():
     import json
+
     for line in TRACE.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -52,11 +54,12 @@ print("=" * 96)
 if real_lens:
     real_lens.sort()
     n = len(real_lens)
-    print("  样本 %d 条 | 最短 %d | 中位 %d | P90 %d | 最长 %d 字符"
-          % (n, real_lens[0], real_lens[n // 2], real_lens[int(n * 0.9)], real_lens[-1]))
+    print(
+        "  样本 %d 条 | 最短 %d | 中位 %d | P90 %d | 最长 %d 字符"
+        % (n, real_lens[0], real_lens[n // 2], real_lens[int(n * 0.9)], real_lens[-1])
+    )
     over = sum(1 for l in real_lens if l > 300)
-    print("  **超过 300 字的答案: %d / %d（%.0f%%）**"
-          % (over, n, 100 * over / n))
+    print("  **超过 300 字的答案: %d / %d（%.0f%%）**" % (over, n, 100 * over / n))
     typical = real_lens[n // 2]
 else:
     print("  （无 trace，用典型值 350 字代替）")
@@ -83,10 +86,12 @@ print("=" * 96)
 print("Step 3 · 截断损失：单条 300 字会丢多少真实内容")
 print("=" * 96)
 # 取一条典型答案，看 300 字截断后丢了多少
-sample = msgs[-1].content          # 最后一条 AI 答案
+sample = msgs[-1].content  # 最后一条 AI 答案
 cut = sample[:300]
-print("  原始答案 %d 字 -> 截到 300 字，丢失 %d 字（%.0f%%）"
-      % (len(sample), len(sample) - 300, 100 * (len(sample) - 300) / len(sample)))
+print(
+    "  原始答案 %d 字 -> 截到 300 字，丢失 %d 字（%.0f%%）"
+    % (len(sample), len(sample) - 300, 100 * (len(sample) - 300) / len(sample))
+)
 print("  被丢部分开头: ...%s" % sample[280:380].replace("\n", " "))
 print("  ↑ 如果关键数值（召回率/QPS）落在这里，模型就「忘了」")
 
@@ -98,9 +103,11 @@ print("=" * 96)
 CTX_CHARS = 16182
 for turns in (3, 13, 15):
     h = _format_history(msgs, max_turns=turns)
-    total = CTX_CHARS + len(h) + 400      # 400 = prompt 模板+规则
-    print("  %2d 轮: 历史 %6d 字 + 检索 %6d 字 -> 历史占 %.0f%%（总 %d 字 ≈ %d token）"
-          % (turns, len(h), CTX_CHARS, 100 * len(h) / total, total, total // 2))
+    total = CTX_CHARS + len(h) + 400  # 400 = prompt 模板+规则
+    print(
+        "  %2d 轮: 历史 %6d 字 + 检索 %6d 字 -> 历史占 %.0f%%（总 %d 字 ≈ %d token）"
+        % (turns, len(h), CTX_CHARS, 100 * len(h) / total, total, total // 2)
+    )
 
 print()
 print("=" * 96)

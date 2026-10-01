@@ -8,6 +8,7 @@
     (b) 语料里有答案但**判分链把它判掉了**（属判分问题，可修）
 所以逐块打印：判分结果 + 文件名 + 内容摘要。
 """
+
 import os
 import pathlib
 import sys
@@ -30,15 +31,17 @@ print("1. P0-9 验证：build_citation_meta 是否区分「网络搜索」与「
 print("=" * 104)
 docs = [
     Document(page_content="知识库内容", metadata={"filename": "overview.md", "title": "概述"}),
-    Document(page_content="网页内容",
-             metadata={"source": "web", "filename": "（网络搜索，非知识库）",
-                       "title": "（网络搜索，非知识库）"}),
+    Document(
+        page_content="网页内容",
+        metadata={"source": "web", "filename": "（网络搜索，非知识库）", "title": "（网络搜索，非知识库）"},
+    ),
 ]
 meta = build_citation_meta(docs, [1, 2])
 for m in meta:
-    print("  [%s] n=%s from_web=%-6s filename=%s" % (
-        "OK  " if m["from_web"] == (m["n"] == 2) else "FAIL",
-        m["n"], m["from_web"], m["filename"]))
+    print(
+        "  [%s] n=%s from_web=%-6s filename=%s"
+        % ("OK  " if m["from_web"] == (m["n"] == 2) else "FAIL", m["n"], m["from_web"], m["filename"])
+    )
 print("  => %s" % ("通过" if meta[0]["from_web"] is False and meta[1]["from_web"] is True else "失败"))
 
 # ---------------------------------------------------------------------------
@@ -70,13 +73,15 @@ for i, d in enumerate(docs, 1):
     n_yes += verdict == "yes"
     fn = str(d.metadata.get("filename", ""))[:30]
     cat = str(d.metadata.get("category", ""))
-    print("  %2d. [%-4s] %-30s cat=%-8s %3d字 | %s" % (
-        i, verdict.upper(), fn, cat, len(txt), txt[:64].replace("\n", " ")))
+    print(
+        "  %2d. [%-4s] %-30s cat=%-8s %3d字 | %s" % (i, verdict.upper(), fn, cat, len(txt), txt[:64].replace("\n", " "))
+    )
 
 print()
-print("  保留 %d / %d 块（%s）" % (
-    n_yes, len(docs),
-    "**全部被丢弃——判分链对本题系统性判 no**" if n_yes == 0 else "有块被保留"))
+print(
+    "  保留 %d / %d 块（%s）"
+    % (n_yes, len(docs), "**全部被丢弃——判分链对本题系统性判 no**" if n_yes == 0 else "有块被保留")
+)
 
 # 判分链的 prompt（确认判据是否过严）
 print()

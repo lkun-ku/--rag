@@ -20,6 +20,7 @@
     不能处理：跨多表联合、多列条件筛选、时间序列趋势、图表内数值
     失败即返回 None（调用方降级回原路径，不阻断）
 """
+
 from __future__ import annotations
 
 import re
@@ -36,8 +37,20 @@ _OP_PATTERNS = [
 
 # 指标提示词 -> 用于在表头里定位目标列
 _METRIC_PATTERNS = [
-    r"召回率", r"准确率", r"精度", r"QPS", r"P99", r"P95", r"延迟", r"耗时",
-    r"吞吐", r"占比", r"百分比", r"分数", r"得分", r"过滤比例",
+    r"召回率",
+    r"准确率",
+    r"精度",
+    r"QPS",
+    r"P99",
+    r"P95",
+    r"延迟",
+    r"耗时",
+    r"吞吐",
+    r"占比",
+    r"百分比",
+    r"分数",
+    r"得分",
+    r"过滤比例",
 ]
 
 _OP_LABEL = {"min": "最低", "max": "最高", "mean": "平均", "sum": "合计", "count": "数量"}
@@ -149,11 +162,9 @@ def answer_aggregation(question: str, docs) -> Optional[str]:
         target = max(pairs, key=lambda x: x[0])
     elif op == "mean":
         avg = sum(v for v, _ in pairs) / len(pairs)
-        return ("按『%s』列比较 %d 行：平均值为 %.2f（原始值见表格）。"
-                % (headers[col], len(pairs), avg))
+        return "按『%s』列比较 %d 行：平均值为 %.2f（原始值见表格）。" % (headers[col], len(pairs), avg)
     else:  # sum
-        return ("按『%s』列统计 %d 行：合计 %.2f。"
-                % (headers[col], len(pairs), sum(v for v, _ in pairs)))
+        return "按『%s』列统计 %d 行：合计 %.2f。" % (headers[col], len(pairs), sum(v for v, _ in pairs))
 
     val, row = target
     # 拼「定位信息」：取除目标列外的其它列（最多 4 个），便于回答里交代条件
@@ -167,8 +178,10 @@ def answer_aggregation(question: str, docs) -> Optional[str]:
         if len(ctx) >= 4:
             break
 
-    return ("按『%s』列比较**全表 %d 行**：%s值为 %.2f%%（位于：%s）。"
-            % (headers[col], len(pairs), _OP_LABEL[op], val, ", ".join(ctx))
-            if "%" in str(row[col]) else
-            "按『%s』列比较**全表 %d 行**：%s值为 %s（位于：%s）。"
-            % (headers[col], len(pairs), _OP_LABEL[op], row[col], ", ".join(ctx)))
+    return (
+        "按『%s』列比较**全表 %d 行**：%s值为 %.2f%%（位于：%s）。"
+        % (headers[col], len(pairs), _OP_LABEL[op], val, ", ".join(ctx))
+        if "%" in str(row[col])
+        else "按『%s』列比较**全表 %d 行**：%s值为 %s（位于：%s）。"
+        % (headers[col], len(pairs), _OP_LABEL[op], row[col], ", ".join(ctx))
+    )

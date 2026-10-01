@@ -9,13 +9,13 @@ from utils.env_utils import LLM_STRUCTURED_METHOD
 class GradeDocuments(BaseModel):
     """对检索到的文档进行相关性评分的二元判断"""
 
-    binary_score: str = Field(
-        description="文档是否与问题相关，取值为'yes'或'no'"
-    )
+    binary_score: str = Field(description="文档是否与问题相关，取值为'yes'或'no'")
 
 
 # 带函数调用的LLM初始化
-structured_llm_grader = llm.with_structured_output(GradeDocuments, method=LLM_STRUCTURED_METHOD)  # 绑定结构化输出到评分模型
+structured_llm_grader = llm.with_structured_output(
+    GradeDocuments, method=LLM_STRUCTURED_METHOD
+)  # 绑定结构化输出到评分模型
 
 # 提示词模板
 system = """你是一个评估检索文档与用户问题相关性的评分器。\n 

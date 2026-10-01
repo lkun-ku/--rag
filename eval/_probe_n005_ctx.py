@@ -12,6 +12,7 @@
 不 patch 任何东西，直接看 `run_with_trace` 返回的**最终状态**：
 `state["documents"]` 就是 generate 收到的那批块（generate 不改 documents）。
 """
+
 from __future__ import annotations
 
 import json
@@ -80,5 +81,7 @@ print("=" * 100)
 print("  拒答: %s" % ("**是**" if is_refusal(gen) else "否"))
 print("  内容: %s" % gen[:500].replace("\n", " "))
 print()
-print("  命中 golden（61.35 + TurboPuffer）: %s"
-      % ("**是**" if ("61.35" in gen and "turbopuffer" in gen.lower()) else "否"))
+print(
+    "  命中 golden（61.35 + TurboPuffer）: %s"
+    % ("**是**" if ("61.35" in gen and "turbopuffer" in gen.lower()) else "否")
+)

@@ -14,6 +14,7 @@
 **设计约束**：F1/F5/F6 涉及外部依赖（LLM、langgraph），用**最小桩**验证通路，
 不真调模型；F2/F3/F4 是纯逻辑，直接断言。
 """
+
 from __future__ import annotations
 
 import inspect
@@ -56,8 +57,13 @@ import metrics  # noqa: E402
 # 生成层处于告警区间、且不在白名单里时，不应告警。
 # 注意：`context_precision` 取 0.06（**高于**它的告警线 0.05），
 # 否则它自己就会告警、干扰本用例的判定（首版就是这么误报的）。
-s = {"context_recall": 0.99, "hit_rate": 0.99, "context_precision": 0.06,
-     "faithfulness": 0.70, "answer_relevancy": 0.70}
+s = {
+    "context_recall": 0.99,
+    "hit_rate": 0.99,
+    "context_precision": 0.06,
+    "faithfulness": 0.70,
+    "answer_relevancy": 0.70,
+}
 v, r = metrics.gate(s, gen_requested=True)
 check("生成层在白名单内（faithfulness）-> 告警仍生效", v, "WARN")
 
@@ -137,8 +143,11 @@ finally:
 print()
 print("[F5] transform_query_node 显式传 config")
 tq_src = (ROOT / "RAG_PROJECT" / "graph2" / "transform_query_node.py").read_text(encoding="utf-8")
-check("invoke 处带 config=", "config=" in tq_src.split("question_rewriter.invoke")[1][:220]
-      if "question_rewriter.invoke" in tq_src else False, True)
+check(
+    "invoke 处带 config=",
+    "config=" in tq_src.split("question_rewriter.invoke")[1][:220] if "question_rewriter.invoke" in tq_src else False,
+    True,
+)
 
 # ---------------------------------------------------------------------------
 # F6：tracer.traced 对「仅关键字 config」的形参也要透传

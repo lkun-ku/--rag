@@ -30,6 +30,7 @@
 4 题 × 8 块 × 5 轮 = 160 次判分）。**同时标注哪些是 golden 块** ——
 若翻转集中在 golden 块上，后果更严重（正确块时有时无）。
 """
+
 from __future__ import annotations
 
 import json
@@ -54,20 +55,24 @@ ROUNDS = int(os.environ.get("JITTER_ROUNDS", "5"))
 PER_Q = int(os.environ.get("JITTER_PER_Q", "8"))
 QIDS = os.environ.get("JITTER_QIDS", "n001,n005,n008,n022").split(",")
 
-cases = {json.loads(l).get("id"): json.loads(l)
-         for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
-         if l.strip()}
+cases = {
+    json.loads(l).get("id"): json.loads(l)
+    for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    if l.strip()
+}
 
 print("=" * 104)
 print("B：判分抖动实测 —— 同一「问题 + 块」重复判分 %d 轮" % ROUNDS)
 print("=" * 104)
 print("  LLM: %s  temperature=%s" % (LLM_MODEL, LLM_TEMPERATURE))
-print("  样本: %d 道题 × 每题前 %d 块 × %d 轮 = %d 次判分" % (
-    len(QIDS), PER_Q, ROUNDS, len(QIDS) * PER_Q * ROUNDS if False else 0))
+print(
+    "  样本: %d 道题 × 每题前 %d 块 × %d 轮 = %d 次判分"
+    % (len(QIDS), PER_Q, ROUNDS, len(QIDS) * PER_Q * ROUNDS if False else 0)
+)
 print()
 
 # 先取好样本（检索一次，避免重复检索引入差异）
-samples = []   # (qid, q, idx, chunk_id, text)
+samples = []  # (qid, q, idx, chunk_id, text)
 for qid in QIDS:
     c = cases.get(qid)
     if not c:
@@ -75,13 +80,14 @@ for qid in QIDS:
         continue
     docs = retriever.invoke(c["q"])
     for i, d in enumerate(docs[:PER_Q], 1):
-        samples.append((qid, c["q"], i, metrics.chunk_id(d.page_content), d.page_content,
-                        set(c.get("source_blocks") or [])))
+        samples.append(
+            (qid, c["q"], i, metrics.chunk_id(d.page_content), d.page_content, set(c.get("source_blocks") or []))
+        )
 
 print("  实际样本数: %d" % len(samples))
 print()
 
-results = []      # {…, seq: ['yes','no',…], raw: [...]}
+results = []  # {…, seq: ['yes','no',…], raw: [...]}
 t0 = time.time()
 for si, (qid, q, idx, cid, text, gold) in enumerate(samples, 1):
     seq, raws = [], []
@@ -95,11 +101,22 @@ for si, (qid, q, idx, cid, text, gold) in enumerate(samples, 1):
             raw = "%s: %s" % (type(e).__name__, str(e)[:60])
         seq.append(v)
         raws.append(raw)
-    results.append({"qid": qid, "q": q, "idx": idx, "chunk_id": cid,
-                    "is_golden": cid in gold, "seq": seq, "raw": raws,
-                    "head": text.replace("\n", " ")[:56]})
-    print("  [%2d/%d] %s #%-2d %s  序列=%s" % (
-        si, len(samples), qid, idx, "<GOLD>" if cid in gold else "      ", ",".join(seq)))
+    results.append(
+        {
+            "qid": qid,
+            "q": q,
+            "idx": idx,
+            "chunk_id": cid,
+            "is_golden": cid in gold,
+            "seq": seq,
+            "raw": raws,
+            "head": text.replace("\n", " ")[:56],
+        }
+    )
+    print(
+        "  [%2d/%d] %s #%-2d %s  序列=%s"
+        % (si, len(samples), qid, idx, "<GOLD>" if cid in gold else "      ", ",".join(seq))
+    )
 
 print()
 print("  判分耗时 %.1fs" % (time.time() - t0))
@@ -112,6 +129,7 @@ print("=" * 104)
 print("统计")
 print("=" * 104)
 
+
 def summarize(rows, label):
     n = len(rows)
     if not n:
@@ -120,9 +138,12 @@ def summarize(rows, label):
     errs = [r for r in rows if "error" in r["seq"]]
     allno = [r for r in rows if all(x == "no" for x in r["seq"])]
     allyes = [r for r in rows if all(x == "yes" for x in r["seq"])]
-    print("  %-14s 块数 %3d | **翻转 %2d（%.0f%%）** | 恒 no %2d | 恒 yes %2d | 含异常 %d" % (
-        label, n, len(flip), 100 * len(flip) / n, len(allno), len(allyes), len(errs)))
+    print(
+        "  %-14s 块数 %3d | **翻转 %2d（%.0f%%）** | 恒 no %2d | 恒 yes %2d | 含异常 %d"
+        % (label, n, len(flip), 100 * len(flip) / n, len(allno), len(allyes), len(errs))
+    )
     return flip
+
 
 allflip = summarize(results, "全部")
 g = [r for r in results if r["is_golden"]]
@@ -136,9 +157,10 @@ if allflip:
     print("  %-6s %-4s %-8s %-8s %s" % ("题", "序", "golden", "序列", "块首行"))
     print("  " + "-" * 96)
     for r in allflip:
-        print("  %-6s #%-3d %-8s %-8s %s" % (
-            r["qid"], r["idx"], "GOLD" if r["is_golden"] else "", ",".join(r["seq"]),
-            r["head"][:44]))
+        print(
+            "  %-6s #%-3d %-8s %-8s %s"
+            % (r["qid"], r["idx"], "GOLD" if r["is_golden"] else "", ",".join(r["seq"]), r["head"][:44])
+        )
     print()
     print("  原始返回值（确认不是「解析失败被当成 no」）:")
     for r in allflip[:6]:
@@ -146,8 +168,13 @@ if allflip:
 else:
     print("  **没有翻转块** —— 本批样本上判分是稳定的。")
 
-(HERE / "grade_jitter.json").write_text(json.dumps(
-    {"rounds": ROUNDS, "llm": LLM_MODEL, "temperature": LLM_TEMPERATURE,
-     "results": results}, ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "grade_jitter.json").write_text(
+    json.dumps(
+        {"rounds": ROUNDS, "llm": LLM_MODEL, "temperature": LLM_TEMPERATURE, "results": results},
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/grade_jitter.json")

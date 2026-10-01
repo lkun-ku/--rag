@@ -90,7 +90,7 @@ def main() -> int:
 
     cases = [json.loads(l) for l in GOLDEN.read_text(encoding="utf-8").splitlines() if l.strip()]
     if args.limit_in:
-        cases = cases[:args.limit_in]
+        cases = cases[: args.limit_in]
 
     t0 = time.time()
     results = {"in_scope": [], "out_of_scope": []}
@@ -99,9 +99,14 @@ def main() -> int:
         docs = retriever.invoke(q)
         gen, gen_cached = metrics.generate_answer(q, docs, cache)
         refused = is_refusal(gen)
-        return {"label": label, "q": q, "refused": refused,
-                "n_docs": len(docs), "answer": gen,
-                "generated_cached": gen_cached}
+        return {
+            "label": label,
+            "q": q,
+            "refused": refused,
+            "n_docs": len(docs),
+            "answer": gen,
+            "generated_cached": gen_cached,
+        }
 
     print("=" * 90)
     print("A. 库外问题（期望：拒答率 >= 95%%，共 %d 题）" % len(OUT_OF_SCOPE))
@@ -114,8 +119,10 @@ def main() -> int:
             continue
         results["out_of_scope"].append(row)
         flag = "拒答" if row["refused"] else "**未拒答**"
-        print("  [%2d] %-34s %-12s (检索到 %d 块)%s" % (
-            i, q[:32], flag, row["n_docs"], " [缓存]" if row["generated_cached"] else ""))
+        print(
+            "  [%2d] %-34s %-12s (检索到 %d 块)%s"
+            % (i, q[:32], flag, row["n_docs"], " [缓存]" if row["generated_cached"] else "")
+        )
         if args.show_answers or (not row["refused"] and args.verbose):
             print("        答案: %s" % row["answer"].replace("\n", " ")[:90])
     print()
@@ -153,12 +160,26 @@ def main() -> int:
     print("=" * 90)
     print("  %-16s %-10s %-10s %-10s %s" % ("范围", "题数", "拒答数", "拒答率", "判定"))
     print("  " + "-" * 76)
-    print("  %-16s %-10d %-10d %-10.1f%% %s" % (
-        "库外（期望>=95%）", len(out), sum(1 for r in out if r["refused"]),
-        out_rate * 100, "PASS" if out_pass else "**FAIL**"))
-    print("  %-16s %-10d %-10d %-10.1f%% %s" % (
-        "库内（期望<=20%）", len(inn), sum(1 for r in inn if r["refused"]),
-        in_rate * 100, "PASS" if in_pass else "**FAIL**"))
+    print(
+        "  %-16s %-10d %-10d %-10.1f%% %s"
+        % (
+            "库外（期望>=95%）",
+            len(out),
+            sum(1 for r in out if r["refused"]),
+            out_rate * 100,
+            "PASS" if out_pass else "**FAIL**",
+        )
+    )
+    print(
+        "  %-16s %-10d %-10d %-10.1f%% %s"
+        % (
+            "库内（期望<=20%）",
+            len(inn),
+            sum(1 for r in inn if r["refused"]),
+            in_rate * 100,
+            "PASS" if in_pass else "**FAIL**",
+        )
+    )
     print()
     print("  耗时: %.1fs | 生成缓存命中 %d" % (time.time() - t0, cache.hits))
 
@@ -177,16 +198,33 @@ def main() -> int:
                 print("      - [%s] %s" % (r.get("id"), r["q"]))
                 print("        -> %s" % r["answer"].replace("\n", " ")[:110])
 
-    REPORT.write_text(json.dumps({
-        "out_of_scope": {"n": len(out), "refused": sum(1 for r in out if r["refused"]),
-                         "rate": round(out_rate, 4), "pass": out_pass,
-                         "detail": [{k: v for k, v in r.items() if k != "answer"} | 
-                                    {"answer": r["answer"][:300]} for r in out]},
-        "in_scope": {"n": len(inn), "refused": sum(1 for r in inn if r["refused"]),
-                     "rate": round(in_rate, 4), "pass": in_pass,
-                     "detail": [{k: v for k, v in r.items() if k != "answer"} |
-                                {"answer": r["answer"][:300]} for r in inn]},
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    REPORT.write_text(
+        json.dumps(
+            {
+                "out_of_scope": {
+                    "n": len(out),
+                    "refused": sum(1 for r in out if r["refused"]),
+                    "rate": round(out_rate, 4),
+                    "pass": out_pass,
+                    "detail": [
+                        {k: v for k, v in r.items() if k != "answer"} | {"answer": r["answer"][:300]} for r in out
+                    ],
+                },
+                "in_scope": {
+                    "n": len(inn),
+                    "refused": sum(1 for r in inn if r["refused"]),
+                    "rate": round(in_rate, 4),
+                    "pass": in_pass,
+                    "detail": [
+                        {k: v for k, v in r.items() if k != "answer"} | {"answer": r["answer"][:300]} for r in inn
+                    ],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print()
     print("  报告已写入 %s" % REPORT.name)
     print("=" * 90)

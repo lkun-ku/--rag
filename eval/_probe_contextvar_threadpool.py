@@ -32,6 +32,7 @@
 **4.29 的「线程池内失效」就是错的** —— 那么当初判分首版统计不到 token 的原因
 **另有其他**，需要重新定位（不能沿用旧结论）。
 """
+
 from __future__ import annotations
 
 import concurrent.futures as cf
@@ -69,15 +70,17 @@ uA = UsageMetadataCallbackHandler()
 outer_A = RunnableLambda(lambda _x: inner_chain.invoke({"d": 1}))
 outer_A.invoke({"d": 1}, config={"callbacks": [uA]})
 a = tokens_of(uA)
-print("  [A] 无线程池 + 内层不传 config -> token=%d  %s" % (
-    a, "✅（继承生效）" if a > 0 else "❌（连主线程都继承不了，说明另有问题）"))
+print(
+    "  [A] 无线程池 + 内层不传 config -> token=%d  %s"
+    % (a, "✅（继承生效）" if a > 0 else "❌（连主线程都继承不了，说明另有问题）")
+)
 
 # ---- B：线程池内，内层不传 config（**同一个外层上下文**）---------------------
 uB = UsageMetadataCallbackHandler()
 
 
 def _work_no_config(_i):
-    inner_chain.invoke({"d": 1})        # 故意不传 config
+    inner_chain.invoke({"d": 1})  # 故意不传 config
     return 1
 
 
@@ -90,8 +93,10 @@ def _run_pool(_x):
 outer_B = RunnableLambda(_run_pool)
 outer_B.invoke({"d": 1}, config={"callbacks": [uB]})
 b = tokens_of(uB)
-print("  [B] 线程池   + 内层不传 config -> token=%d  %s" % (
-    b, "✅（池内拿不到，假设成立）" if b == 0 else "⚠️（池内也能拿到 —— 假设不成立）"))
+print(
+    "  [B] 线程池   + 内层不传 config -> token=%d  %s"
+    % (b, "✅（池内拿不到，假设成立）" if b == 0 else "⚠️（池内也能拿到 —— 假设不成立）")
+)
 
 # ---- C：线程池内，显式传 config ---------------------------------------------
 uC = UsageMetadataCallbackHandler()
@@ -99,7 +104,7 @@ CFG = {"callbacks": [uC]}
 
 
 def _work_with_config(_i):
-    inner_chain.invoke({"d": 1}, config=CFG)   # 显式传
+    inner_chain.invoke({"d": 1}, config=CFG)  # 显式传
     return 1
 
 
@@ -111,8 +116,7 @@ def _run_pool_c(_x):
 
 RunnableLambda(_run_pool_c).invoke({"d": 1})
 c = tokens_of(uC)
-print("  [C] 线程池   + 显式传 config -> token=%d  %s" % (
-    c, "✅（显式传递有效）" if c > 0 else "❌（显式传也不行？）"))
+print("  [C] 线程池   + 显式传 config -> token=%d  %s" % (c, "✅（显式传递有效）" if c > 0 else "❌（显式传也不行？）"))
 
 print()
 print("=" * 100)

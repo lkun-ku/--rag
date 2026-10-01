@@ -67,8 +67,9 @@ def _is_table_text(text: str) -> bool:
 def _start_line(text: str) -> int:
     """切片形如 `表格：…（第 31-60 行）`，取起始行号用于排序。"""
     import re
+
     m = re.search(r"第\s*(\d+)\s*-\s*(\d+)\s*行", text)
-    return int(m.group(1)) if m else 10 ** 9
+    return int(m.group(1)) if m else 10**9
 
 
 def merge_table_slices(docs, max_chars: int = 20000):
@@ -127,13 +128,13 @@ def merge_table_slices(docs, max_chars: int = 20000):
             continue
         for i, d in items:
             if not _is_table_text(d.page_content):
-                out.append((i, d))          # 非表格块原样保留
+                out.append((i, d))  # 非表格块原样保留
         items = table_items
 
         ordered = sorted(items, key=lambda x: _start_line(x[1].page_content))
         merged_lines: list[str] = []
         header: str | None = None
-        kept_header = False        # **第一块要保留表头**，后续块才去重
+        kept_header = False  # **第一块要保留表头**，后续块才去重
         for _idx, d in ordered:
             lines = [l for l in d.page_content.splitlines() if l.strip()]
             tbl_pos = [j for j, l in enumerate(lines) if l.strip().startswith("|")]
@@ -144,10 +145,10 @@ def merge_table_slices(docs, max_chars: int = 20000):
             if header is None:
                 header = local_head
             if local_head == header and kept_header:
-                skip.add(tbl_pos[0])                      # 重复表头
+                skip.add(tbl_pos[0])  # 重复表头
                 nxt = tbl_pos[0] + 1
                 if nxt < len(lines) and set(lines[nxt].strip()) <= set("|-: "):
-                    skip.add(nxt)                         # 重复分隔行
+                    skip.add(nxt)  # 重复分隔行
             elif local_head == header:
                 kept_header = True
             for j, l in enumerate(lines):
@@ -162,9 +163,7 @@ def merge_table_slices(docs, max_chars: int = 20000):
         if not merged or len(merged) > max_chars:
             out.extend(items)
             continue
-        out.append((items[0][0],
-                    type(ordered[0][1])(page_content=merged,
-                                        metadata=dict(ordered[0][1].metadata))))
+        out.append((items[0][0], type(ordered[0][1])(page_content=merged, metadata=dict(ordered[0][1].metadata))))
 
     out.sort(key=lambda x: x[0])
     return [d for _, d in out]
@@ -239,8 +238,7 @@ def _pairs_of(messages):
     return [m for m in messages if getattr(m, "type", "") in ("human", "ai")]
 
 
-def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS,
-                    budget: int | None = None) -> str:
+def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS, budget: int | None = None) -> str:
     """把 `messages` 渲染成「用户: … / 助手: …」的纯文本，供 prompt 使用。
 
     设计要点：
@@ -251,14 +249,14 @@ def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS,
     * 空历史返回空串 —— 调用方据此决定**是否走带历史的模板**；
     * **纯函数、无 LLM 调用**，便于单测（`eval/test_history_budget.py`）。
     """
-    keep = _pairs_of(messages)[-max_turns * 2:] if messages else []
+    keep = _pairs_of(messages)[-max_turns * 2 :] if messages else []
     if not keep:
         return ""
 
     limit = MAX_HISTORY_CHARS if budget is None else budget
     lines: list[str] = []
     total = 0
-    for m in reversed(keep):                     # 从最新往最旧
+    for m in reversed(keep):  # 从最新往最旧
         role = "用户" if m.type == "human" else "助手"
         text = str(getattr(m, "content", "")).strip().replace("\n", " ")
         if not text:
@@ -269,7 +267,7 @@ def _format_history(messages, max_turns: int = MAX_HISTORY_TURNS,
             break
         lines.append(line)
         total += len(line)
-    lines.reverse()                              # 恢复时间正序
+    lines.reverse()  # 恢复时间正序
     return "\n".join(lines)
 
 
@@ -287,7 +285,7 @@ def _should_summarize(messages):
     pairs = _pairs_of(messages)
     if len(pairs) <= SUMMARY_TRIGGER_TURNS * 2:
         return False, ""
-    old = pairs[:-(MAX_HISTORY_TURNS * 2)]
+    old = pairs[: -(MAX_HISTORY_TURNS * 2)]
     lines = []
     for m in old:
         role = "用户" if m.type == "human" else "助手"
@@ -297,8 +295,7 @@ def _should_summarize(messages):
     return True, "\n".join(lines)
 
 
-def build_history_prompt_part(messages, budget: int | None = None,
-                              summary: str = "") -> dict:
+def build_history_prompt_part(messages, budget: int | None = None, summary: str = "") -> dict:
     """把历史整理成「摘要 + 最近若干轮」两部分，供 prompt 使用。
 
     **纯函数**：摘要文本由调用方生成后传入（它需要一次 LLM 调用，
@@ -308,8 +305,7 @@ def build_history_prompt_part(messages, budget: int | None = None,
         {"summary": str, "history": str}
         summary 为空串表示没有更早内容需要摘要。
     """
-    return {"summary": (summary or "").strip(),
-            "history": _format_history(messages, budget=budget)}
+    return {"summary": (summary or "").strip(), "history": _format_history(messages, budget=budget)}
 
 
 # 摘要压缩的 prompt。[ROADMAP 4.43]
@@ -336,14 +332,12 @@ def _summarize(old_text: str, config=None) -> str:
         return ""
     try:
         from langchain_core.output_parsers import StrOutputParser
-        chain = (PromptTemplate(template=_SUMMARY_PROMPT,
-                                input_variables=["history"])
-                 | llm | StrOutputParser())
+
+        chain = PromptTemplate(template=_SUMMARY_PROMPT, input_variables=["history"]) | llm | StrOutputParser()
         text = chain.invoke({"history": old_text}, config=_sub_config(config))
-        return (text or "").strip()[:500]        # 兜底截断，防模型不听话
+        return (text or "").strip()[:500]  # 兜底截断，防模型不听话
     except Exception as e:  # noqa: BLE001
-        log.warning("[history] 摘要生成失败，降级为无摘要: %s: %s"
-                    % (type(e).__name__, str(e)[:120]))
+        log.warning("[history] 摘要生成失败，降级为无摘要: %s: %s" % (type(e).__name__, str(e)[:120]))
         return ""
 
 
@@ -416,8 +410,7 @@ def generate(state, config=None):
     history_text = _format_history(_msgs)
     if _summary:
         # 摘要放在**前面**、最近原文放在**后面** —— 越近的内容离问题越近，权重越高
-        history_text = ("【更早内容的摘要】\n%s\n\n【最近的对话】\n%s"
-                        % (_summary, history_text))
+        history_text = "【更早内容的摘要】\n%s\n\n【最近的对话】\n%s" % (_summary, history_text)
 
     # [ROADMAP 4.44] **历史向量检索**：找回「含具体数值的早期轮次」。
     #
@@ -430,12 +423,11 @@ def generate(state, config=None):
         _hits = history_store.lookup_history(state.get("session_id"), question)
         if _hits:
             _lines = []
-            for i, d in enumerate(_hits[:history_store.HISTORY_TOP_K], 1):
+            for i, d in enumerate(_hits[: history_store.HISTORY_TOP_K], 1):
                 _md = getattr(d, "metadata", None) or {}
                 _body = (d.page_content or "").strip()[:600]
                 _lines.append("【%d】（%s）%s" % (i, _md.get("title", "更早轮次"), _body))
-            history_text += ("\n\n【更早但相关的轮次（语义检索）】\n"
-                             + "\n".join(_lines))
+            history_text += "\n\n【更早但相关的轮次（语义检索）】\n" + "\n".join(_lines)
 
     if history_text:
         prompt = PromptTemplate(
@@ -450,9 +442,9 @@ def generate(state, config=None):
 
     # 构建RAG处理链
     rag_chain = (
-            prompt |  # 第一步：使用提示模板
-            llm |  # 第二步：调用语言模型
-            StrOutputParser()  # 第三步：解析模型输出为字符串
+        prompt  # 第一步：使用提示模板
+        | llm  # 第二步：调用语言模型
+        | StrOutputParser()  # 第三步：解析模型输出为字符串
     )
 
     # RAG生成过程
@@ -486,8 +478,7 @@ def generate(state, config=None):
         _fact = answer_aggregation(question, documents)
         if _fact:
             log.info("[generate] 聚合类问题已用代码精确计算：%s" % _fact[:80])
-            _ctx = ("【已由代码精确计算的事实 —— 请直接采用该结论，不要自行重新比较】\n"
-                    "%s\n\n" % _fact) + _ctx
+            _ctx = ("【已由代码精确计算的事实 —— 请直接采用该结论，不要自行重新比较】\n%s\n\n" % _fact) + _ctx
 
     payload = {"context": _ctx, "question": _q}
     if history_text:
@@ -504,8 +495,13 @@ def generate(state, config=None):
     # 累加生成次数：原先 graph_2.py 中 "not supported" -> generate 是无条件自环，
     # 幻觉检测反复失败会无限循环；该计数供判分函数做熔断判断。
     generation_count = state.get("generation_count", 0) + 1
-    updates = {"documents": documents, "question": question, "generation": generation,
-               "generation_count": generation_count, "citations": citations}
+    updates = {
+        "documents": documents,
+        "question": question,
+        "generation": generation,
+        "generation_count": generation_count,
+        "citations": citations,
+    }
 
     # [ROADMAP 4.41] **只在记忆模式下追加历史**。
     #
@@ -515,8 +511,7 @@ def generate(state, config=None):
     # 为什么把「问 + 答」成对追加：下一轮的 prompt 需要看到「上一轮问了什么、
     # 答了什么」才能解析「它 / 那个 / 第二点」这类指代。
     if has_memory:
-        updates["messages"] = [HumanMessage(content=question),
-                               AIMessage(content=generation)]
+        updates["messages"] = [HumanMessage(content=question), AIMessage(content=generation)]
         if _summary:
             updates["summary"] = _summary
     return updates

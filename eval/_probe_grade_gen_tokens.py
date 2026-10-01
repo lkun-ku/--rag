@@ -8,6 +8,7 @@
 而前一个探针已经证明「条件边函数能拿到 config/callbacks」——
 所以问题要么在 `_sub_config` 的取值上，要么在别处。**直接测这个函数，不绕图。**
 """
+
 from __future__ import annotations
 
 import os
@@ -23,9 +24,12 @@ from langchain_core.callbacks import BaseCallbackHandler, UsageMetadataCallbackH
 from langchain_core.documents import Document  # noqa: E402
 
 Q = "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？"
-DOCS = [Document(page_content="表格：检索性能实测\n| 产品与规格 | QPS |\n"
-                              "| Milvus-16c64g-sq4u-fp16-force_merge | 9575.69 |",
-                 metadata={"filename": "t.md"})]
+DOCS = [
+    Document(
+        page_content="表格：检索性能实测\n| 产品与规格 | QPS |\n| Milvus-16c64g-sq4u-fp16-force_merge | 9575.69 |",
+        metadata={"filename": "t.md"},
+    )
+]
 GEN = "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是 9,575.69 [1]。"
 STATE = {"question": Q, "documents": DOCS, "generation": GEN}
 

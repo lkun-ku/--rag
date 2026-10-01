@@ -31,6 +31,7 @@
     .venv\\Scripts\\python.exe eval\\deep_scan.py
     .venv\\Scripts\\python.exe eval\\deep_scan.py --only R1,R2
 """
+
 from __future__ import annotations
 
 import argparse
@@ -54,9 +55,15 @@ findings: List[Dict] = []
 
 
 def add(rule: str, sev: str, path: pathlib.Path, line: int, detail: str) -> None:
-    findings.append({"rule": rule, "severity": sev,
-                     "file": str(path.relative_to(ROOT)).replace("\\", "/"),
-                     "line": line, "detail": detail})
+    findings.append(
+        {
+            "rule": rule,
+            "severity": sev,
+            "file": str(path.relative_to(ROOT)).replace("\\", "/"),
+            "line": line,
+            "detail": detail,
+        }
+    )
 
 
 def _has_log_call(nodes: List[ast.AST]) -> bool:
@@ -66,7 +73,13 @@ def _has_log_call(nodes: List[ast.AST]) -> bool:
             if isinstance(sub, ast.Call):
                 f = sub.func
                 if isinstance(f, ast.Attribute) and f.attr in (
-                        "info", "warning", "error", "debug", "exception", "critical"):
+                    "info",
+                    "warning",
+                    "error",
+                    "debug",
+                    "exception",
+                    "critical",
+                ):
                     return True
                 if isinstance(f, ast.Name) and f.id in ("print", "warn"):
                     return True
@@ -78,7 +91,7 @@ class V(ast.NodeVisitor):
         self.path = path
         self.src = src
         self.funcs: Dict[str, int] = {}
-        self.imported: Dict[str, int] = {}   # 名字 -> 定义行
+        self.imported: Dict[str, int] = {}  # 名字 -> 定义行
         self.used: set = set()
 
     # ---- R1/R2/R7 ----
@@ -91,17 +104,14 @@ class V(ast.NodeVisitor):
             only_pass = all(isinstance(s, ast.Pass) for s in body)
             if only_pass and h.type is not None:
                 tn = ast.unparse(h.type) if h.type else "?"
-                add("R2", "high", self.path, line,
-                    f"`except {tn}: pass` —— 静默吞异常，无任何日志")
+                add("R2", "high", self.path, line, f"`except {tn}: pass` —— 静默吞异常，无任何日志")
             elif not _has_log_call(body) and h.type is not None:
                 tn = ast.unparse(h.type) if h.type else "?"
                 # [修正] `except X: raise`（或 `raise ... from`）是**向上传播**，
                 # 不是「吞掉」—— 那是正常的错误处理，不该报。
-                has_raise = any(isinstance(sub, ast.Raise)
-                                for s in body for sub in ast.walk(s))
+                has_raise = any(isinstance(sub, ast.Raise) for s in body for sub in ast.walk(s))
                 if not has_raise:
-                    add("R7", "medium", self.path, line,
-                        f"`except {tn}` 块内无日志调用（吞掉错误后继续）")
+                    add("R7", "medium", self.path, line, f"`except {tn}` 块内无日志调用（吞掉错误后继续）")
         self.generic_visit(node)
 
     # ---- R3 ----
@@ -115,30 +125,43 @@ class V(ast.NodeVisitor):
         # R4：同 scope 同名重复（这里只查同文件顶层与同类内）
         key = getattr(node, "_scope", "") + node.name
         if key in self.funcs:
-            add("R4", "high", self.path, node.lineno,
-                f"函数 `{node.name}` 重复定义（上次在第 {self.funcs[key]} 行）")
+            add("R4", "high", self.path, node.lineno, f"函数 `{node.name}` 重复定义（上次在第 {self.funcs[key]} 行）")
         else:
             self.funcs[key] = node.lineno
 
         # R3：可变默认参数
         for d in list(node.args.defaults) + [d for d in node.args.kw_defaults if d]:
             if isinstance(d, (ast.List, ast.Dict, ast.Set)):
-                add("R3", "high", self.path, node.lineno,
-                    f"`{node.name}` 使用可变默认参数（{ast.unparse(d)}）—— 跨调用共享状态")
+                add(
+                    "R3",
+                    "high",
+                    self.path,
+                    node.lineno,
+                    f"`{node.name}` 使用可变默认参数（{ast.unparse(d)}）—— 跨调用共享状态",
+                )
         # R5：assert
         for sub in ast.walk(node):
             if isinstance(sub, ast.Assert):
-                add("R5", "medium", self.path, sub.lineno,
-                    f"生产代码里的 assert（python -O 会被移除）: {ast.unparse(sub.test)[:60]}")
+                add(
+                    "R5",
+                    "medium",
+                    self.path,
+                    sub.lineno,
+                    f"生产代码里的 assert（python -O 会被移除）: {ast.unparse(sub.test)[:60]}",
+                )
         # R12：空函数
-        body = [s for s in node.body if not (isinstance(s, ast.Expr)
-                                             and isinstance(s.value, ast.Constant))]
+        body = [s for s in node.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
         if not body or all(isinstance(s, ast.Pass) for s in body):
             add("R12", "low", self.path, node.lineno, f"`{node.name}` 是空函数")
         # R13：超长函数
         if node.end_lineno and node.end_lineno - node.lineno > 120:
-            add("R13", "low", self.path, node.lineno,
-                f"`{node.name}` 长 {node.end_lineno - node.lineno} 行（>120，可维护性）")
+            add(
+                "R13",
+                "low",
+                self.path,
+                node.lineno,
+                f"`{node.name}` 长 {node.end_lineno - node.lineno} 行（>120，可维护性）",
+            )
 
     # ---- R6 / R10 ----
     def visit_Call(self, node: ast.Call) -> None:
@@ -195,11 +218,11 @@ def scan_file(path: pathlib.Path) -> None:
     # 标记 scope（简单区分顶层与类内）
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            node._scope = ""          # type: ignore[attr-defined]
+            node._scope = ""  # type: ignore[attr-defined]
         elif isinstance(node, ast.ClassDef):
             for sub in node.body:
                 if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    sub._scope = node.name + "."   # type: ignore[attr-defined]
+                    sub._scope = node.name + "."  # type: ignore[attr-defined]
     v.visit(tree)
 
     _lines = src.splitlines()
@@ -216,7 +239,7 @@ def scan_file(path: pathlib.Path) -> None:
         for i, raw in enumerate(src.splitlines(), 1):
             s = raw.strip()
             if s.startswith("#"):
-                continue           # 注释里的字样不算
+                continue  # 注释里的字样不算
             if rx.search(raw):
                 add(rule, sev, path, i, f"{label}: {s[:80]}")
 
@@ -227,8 +250,7 @@ def main() -> int:
     args = ap.parse_args()
     only = {x.strip() for x in args.only.split(",") if x.strip()}
 
-    files = [p for p in PKG.rglob("*.py")
-             if not any(s in p.parts for s in SKIP_DIRS)]
+    files = [p for p in PKG.rglob("*.py") if not any(s in p.parts for s in SKIP_DIRS)]
     for p in sorted(files):
         scan_file(p)
 
@@ -260,10 +282,14 @@ def main() -> int:
     print()
     print("  明细 -> eval/deep_scan.json")
     print()
-    print("  严重度统计: high=%d  medium=%d  low=%d" % (
-        sum(1 for f in findings if f["severity"] == "high"),
-        sum(1 for f in findings if f["severity"] == "medium"),
-        sum(1 for f in findings if f["severity"] == "low")))
+    print(
+        "  严重度统计: high=%d  medium=%d  low=%d"
+        % (
+            sum(1 for f in findings if f["severity"] == "high"),
+            sum(1 for f in findings if f["severity"] == "medium"),
+            sum(1 for f in findings if f["severity"] == "low"),
+        )
+    )
     return 0
 
 

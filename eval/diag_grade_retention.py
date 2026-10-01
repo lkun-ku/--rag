@@ -28,6 +28,7 @@
 重建已把扁平块消掉，本脚本顺便统计**判分保留的块里表格/结构化的占比**，
 看噪声是否确实下降了（可与重建前的同类统计对照）。
 """
+
 from __future__ import annotations
 
 import collections
@@ -48,8 +49,7 @@ import metrics  # noqa: E402
 
 LIMIT = int(os.environ.get("GRADE_LIMIT", "10"))
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 cases = [c for c in cases if c.get("source_blocks")][:LIMIT]
 
 from graph2.graph_2 import run_with_trace  # noqa: E402
@@ -81,7 +81,7 @@ for c in cases:
         continue
     docs_graded = out.get("documents", [])
     dec = ""
-    for st in (out.get("trace", {}).get("steps") or []):
+    for st in out.get("trace", {}).get("steps") or []:
         if st.get("node") == "decide_to_generate":
             dec = st.get("decision", "")
 
@@ -94,45 +94,63 @@ for c in cases:
         g_grd = len(gids & ids_grd)
     else:
         g_grd = -1
-    rows.append({"id": c.get("id"), "q": c["q"][:44], "n_golden": len(gids),
-                 "n_ret": n_ret, "n_grd": n_grd,
-                 "g_ret": g_ret, "g_grd": g_grd, "decision": dec,
-                 "sec": round(time.time() - t0, 1)})
+    rows.append(
+        {
+            "id": c.get("id"),
+            "q": c["q"][:44],
+            "n_golden": len(gids),
+            "n_ret": n_ret,
+            "n_grd": n_grd,
+            "g_ret": g_ret,
+            "g_grd": g_grd,
+            "decision": dec,
+            "sec": round(time.time() - t0, 1),
+        }
+    )
 
-print("  %-6s %-8s %-9s %-9s %-9s %-9s %-6s %s" % (
-    "题", "golden", "检索块", "判分后", "保留率", "golden留", "步数", "判分决定"))
+print(
+    "  %-6s %-8s %-9s %-9s %-9s %-9s %-6s %s"
+    % ("题", "golden", "检索块", "判分后", "保留率", "golden留", "步数", "判分决定")
+)
 print("  " + "-" * 100)
 for r in rows:
     keep = ("%.0f%%" % (100 * r["n_grd"] / max(r["n_ret"], 1))) if r["n_grd"] >= 0 else "n/a"
-    print("  %-6s %-8d %-9d %-9d %-9s %d/%d      %-6s %s" % (
-        r["id"], r["n_golden"], r["n_ret"], r["n_grd"], keep,
-        r["g_grd"], r["g_ret"], "", r["decision"]))
+    print(
+        "  %-6s %-8d %-9d %-9d %-9s %d/%d      %-6s %s"
+        % (r["id"], r["n_golden"], r["n_ret"], r["n_grd"], keep, r["g_grd"], r["g_ret"], "", r["decision"])
+    )
 
 ok = [r for r in rows if r["n_grd"] >= 0]
 if ok:
     avg_ret = sum(r["n_ret"] for r in ok) / len(ok)
     avg_grd = sum(r["n_grd"] for r in ok) / len(ok)
     print()
-    print("  平均检索块数: %.1f | 平均判分后: %.1f | **保留率 %.1f%%**" % (
-        avg_ret, avg_grd, 100 * avg_grd / max(avg_ret, 1)))
+    print(
+        "  平均检索块数: %.1f | 平均判分后: %.1f | **保留率 %.1f%%**"
+        % (avg_ret, avg_grd, 100 * avg_grd / max(avg_ret, 1))
+    )
     print()
     # 决定性指标：golden 在判分前后的命中数
     g_ret_all = sum(r["g_ret"] for r in ok)
     g_grd_all = sum(r["g_grd"] for r in ok)
-    print("  **golden 命中数：检索后 %d -> 判分后 %d**（流失 %d，%.1f%%）" % (
-        g_ret_all, g_grd_all, g_ret_all - g_grd_all,
-        100 * (g_ret_all - g_grd_all) / max(g_ret_all, 1)))
+    print(
+        "  **golden 命中数：检索后 %d -> 判分后 %d**（流失 %d，%.1f%%）"
+        % (g_ret_all, g_grd_all, g_ret_all - g_grd_all, 100 * (g_ret_all - g_grd_all) / max(g_ret_all, 1))
+    )
     print()
     lost = [r for r in ok if r["g_grd"] < r["g_ret"]]
     if lost:
         print("  判分**筛掉了 golden 块**的题（%d 道）:" % len(lost))
         for r in lost:
-            print("     [%s] golden %d 命中：检索后 %d -> 判分后 %d   %s" % (
-                r["id"], r["n_golden"], r["g_ret"], r["g_grd"], r["q"]))
+            print(
+                "     [%s] golden %d 命中：检索后 %d -> 判分后 %d   %s"
+                % (r["id"], r["n_golden"], r["g_ret"], r["g_grd"], r["q"])
+            )
     else:
         print("  **没有任何一题的 golden 被筛掉** -> 判分环节不是瓶颈。")
 
 (HERE / "diag_grade_retention.json").write_text(
-    json.dumps({"rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+    json.dumps({"rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8"
+)
 print()
 print("  证据 -> eval/diag_grade_retention.json")

@@ -30,6 +30,7 @@ Markdown 标题与表格 -> 切片质量与 `.md` 文件一致。
 两个 parser 都是**薄适配器**：转成 Markdown 文本 -> 写临时 `.md` -> 交给 `MarkdownParser`。
 这样标题合并、表格恢复、语义分块、元数据注入**全部复用**，不重复实现。
 """
+
 from __future__ import annotations
 
 import os
@@ -73,6 +74,7 @@ class HTMLDocParser:
 
     def __init__(self):
         from markitdown import MarkItDown
+
         self._md = MarkItDown()
 
     def parse(self, file_path: str) -> List[Document]:
@@ -95,8 +97,21 @@ class TextDocParser:
     """
 
     # 纯文本里「像标题」的行：短、无句末标点、可能是中文数字分节
-    _HEADING_HINT = ("一、", "二、", "三、", "四、", "五、", "六、", "七、", "八、",
-                     "九、", "十、", "第", "Chapter", "CHAPTER")
+    _HEADING_HINT = (
+        "一、",
+        "二、",
+        "三、",
+        "四、",
+        "五、",
+        "六、",
+        "七、",
+        "八、",
+        "九、",
+        "十、",
+        "第",
+        "Chapter",
+        "CHAPTER",
+    )
 
     def parse(self, file_path: str) -> List[Document]:
         path = pathlib.Path(file_path)
@@ -111,15 +126,18 @@ class TextDocParser:
         for ln in lines:
             s = ln.strip()
             # 把「像标题」的短行提升为二级标题，给切片器一个结构信号
-            if (s and len(s) <= 40 and not s.endswith(("。", ".", "；", ";", "！", "!"))
-                    and any(s.startswith(h) for h in self._HEADING_HINT)
-                    and "|" not in s):
+            if (
+                s
+                and len(s) <= 40
+                and not s.endswith(("。", ".", "；", ";", "！", "!"))
+                and any(s.startswith(h) for h in self._HEADING_HINT)
+                and "|" not in s
+            ):
                 out.append("## %s" % s)
                 out.append("")
                 promoted += 1
             else:
                 out.append(ln)
         md_text = "\n".join(out)
-        log.info("[txt] %s -> Markdown %d 字符（提升 %d 个小标题）"
-                 % (path.name, len(md_text), promoted))
+        log.info("[txt] %s -> Markdown %d 字符（提升 %d 个小标题）" % (path.name, len(md_text), promoted))
         return _to_markdown_via_tempfile(md_text, path.stem)

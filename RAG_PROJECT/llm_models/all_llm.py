@@ -1,8 +1,14 @@
 from langchain_community.tools import TavilySearchResults
 from langchain_openai import ChatOpenAI
 
-from utils.env_utils import (OPENAI_API_KEY, DEEPSEEK_API_KEY, LLM_BASE_URL,
-                             LLM_MODEL, LLM_TEMPERATURE, LLM_DISABLE_THINKING)
+from utils.env_utils import (
+    OPENAI_API_KEY,
+    DEEPSEEK_API_KEY,
+    LLM_BASE_URL,
+    LLM_MODEL,
+    LLM_TEMPERATURE,
+    LLM_DISABLE_THINKING,
+)
 
 # [UPGRADE 2026-10] base_url / model / temperature 原先硬编码在这里，换服务商必须改代码；
 # 现改为从环境变量读取（见 utils/env_utils.py），默认值与迁移前一致。
@@ -15,11 +21,8 @@ from utils.env_utils import (OPENAI_API_KEY, DEEPSEEK_API_KEY, LLM_BASE_URL,
 _EXTRA_BODY = {"thinking": {"type": "disabled"}} if LLM_DISABLE_THINKING else None
 
 llm = ChatOpenAI(  # openai的
-   temperature=LLM_TEMPERATURE,
-   model=LLM_MODEL,
-   api_key=OPENAI_API_KEY,
-   base_url=LLM_BASE_URL,
-   extra_body=_EXTRA_BODY)
+    temperature=LLM_TEMPERATURE, model=LLM_MODEL, api_key=OPENAI_API_KEY, base_url=LLM_BASE_URL, extra_body=_EXTRA_BODY
+)
 
 
 web_search_tool = TavilySearchResults(max_results=2)

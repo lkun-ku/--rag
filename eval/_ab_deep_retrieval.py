@@ -8,6 +8,7 @@
 它**不经过** `graph2.retriever_node.retrieve`，所以「聚合类走深检索」这条路径
 在回归里测不到。本脚本手动对比两条路径。
 """
+
 from __future__ import annotations
 
 import json
@@ -55,10 +56,8 @@ print()
 print("  %-22s %-10s %-12s %s" % ("路径", "块数", "golden 命中", "缺失"))
 n_hit = len(GOLD & set(rn))
 d_hit = len(GOLD & set(rd))
-print("  %-22s %-10d %-12s %s" % ("普通 (per_k=12)", len(rn), "%d/%d" % (n_hit, len(GOLD)),
-                              sorted(GOLD - set(rn))))
-print("  %-22s %-10d %-12s %s" % ("深检索 (per_k=20)", len(rd), "%d/%d" % (d_hit, len(GOLD)),
-                              sorted(GOLD - set(rd))))
+print("  %-22s %-10d %-12s %s" % ("普通 (per_k=12)", len(rn), "%d/%d" % (n_hit, len(GOLD)), sorted(GOLD - set(rn))))
+print("  %-22s %-10d %-12s %s" % ("深检索 (per_k=20)", len(rd), "%d/%d" % (d_hit, len(GOLD)), sorted(GOLD - set(rd))))
 print()
 print("  判读:")
 if d_hit > n_hit:
@@ -72,6 +71,8 @@ else:
 
 print()
 # 顺手验证 enterprise_rerank 默认关闭时不影响这两条路径
-assert rt.rerank_enabled() is False or True   # 仅确认可调用
-print("  enterprise_rerank 默认状态: %s（rerank_enabled=%s）"
-      % ("关闭" if not rt.rerank_enabled() else "开启", rt.rerank_enabled()))
+assert rt.rerank_enabled() is False or True  # 仅确认可调用
+print(
+    "  enterprise_rerank 默认状态: %s（rerank_enabled=%s）"
+    % ("关闭" if not rt.rerank_enabled() else "开启", rt.rerank_enabled())
+)

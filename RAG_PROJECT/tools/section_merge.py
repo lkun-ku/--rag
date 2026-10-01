@@ -30,14 +30,14 @@ Atlan 同时指出一个更轻的变体：
 开启会让上下文显著变长（父块可达数千字），**必须先 A/B 验证 token 与质量**，
 不能默认开。这是本项目一贯做法（reranker 也默认关）。
 """
+
 from __future__ import annotations
 
 import os
 
 from utils.log_utils import log
 
-SECTION_MERGE_ENABLED = os.getenv("SECTION_MERGE_ENABLED", "0") not in (
-    "", "0", "false", "False")
+SECTION_MERGE_ENABLED = os.getenv("SECTION_MERGE_ENABLED", "0") not in ("", "0", "false", "False")
 # 单个父块的字符上限。超过就**拆成多个父块**（而不是截断）——
 # 截断会丢内容，而一个章节拆成两段仍比散落的子块更有上下文。
 SECTION_MERGE_MAX_CHARS = int(os.getenv("SECTION_MERGE_MAX_CHARS", "8000"))
@@ -96,9 +96,7 @@ def merge_section_blocks(docs, max_chars: int | None = None):
                 md = dict(getattr(head, "metadata", None) or {})
                 md["merged_from"] = len(buf_items)
                 md["merged_chars"] = buf_size
-                out.append((buf_items[0][0],
-                            type(head)(page_content="\n\n".join(buf_lines),
-                                       metadata=md)))
+                out.append((buf_items[0][0], type(head)(page_content="\n\n".join(buf_lines), metadata=md)))
             buf_lines, buf_size, buf_items = [], 0, []
 
         for idx, d in items:
@@ -106,7 +104,7 @@ def merge_section_blocks(docs, max_chars: int | None = None):
             if buf_items and buf_size + len(txt) > limit:
                 flush()
             buf_lines.append(txt)
-            buf_size += len(txt) + 2          # +2 是 "\n\n" 分隔
+            buf_size += len(txt) + 2  # +2 是 "\n\n" 分隔
             buf_items.append((idx, d))
         flush()
         merged_groups += 1
@@ -114,6 +112,5 @@ def merge_section_blocks(docs, max_chars: int | None = None):
     out.sort(key=lambda x: x[0])
     result = [d for _, d in out]
     if merged_groups:
-        log.info("[section_merge] %d 个章节被聚合：%d 块 -> %d 块"
-                 % (merged_groups, len(docs), len(result)))
+        log.info("[section_merge] %d 个章节被聚合：%d 块 -> %d 块" % (merged_groups, len(docs), len(result)))
     return result

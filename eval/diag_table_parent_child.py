@@ -27,6 +27,7 @@
 `块 ID -> (集合, filename, 正文)` 映射；再逐题打印
 「每个 golden 块长什么样、是否在召回列表里、排第几」。**这样形态无关、不会漏判。**
 """
+
 from __future__ import annotations
 
 import collections
@@ -47,8 +48,7 @@ import metrics  # noqa: E402
 from utils.env_utils import MILVUS_URI  # noqa: E402
 from pymilvus import MilvusClient  # noqa: E402
 
-COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-               "kb_manuals_bge_large_1024"]
+COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
 # ---------------------------------------------------------------------------
 # 第一步：全库建索引（块 ID -> 正文），字段名用实测确认的 `text`
@@ -57,18 +57,22 @@ client = MilvusClient(uri=MILVUS_URI)
 by_id: dict = {}
 n_rows = 0
 for coll in COLLECTIONS:
-    rows = client.query(collection_name=coll, filter="",
-                        output_fields=["filename", "text", "title"], limit=4000)
+    rows = client.query(collection_name=coll, filter="", output_fields=["filename", "text", "title"], limit=4000)
     n_rows += len(rows)
     for r in rows:
         txt = r.get("text") or ""
-        by_id[metrics.chunk_id(txt)] = {"coll": coll, "filename": r.get("filename", "?"),
-                                        "title": r.get("title", ""), "text": txt}
+        by_id[metrics.chunk_id(txt)] = {
+            "coll": coll,
+            "filename": r.get("filename", "?"),
+            "title": r.get("title", ""),
+            "text": txt,
+        }
 
 print("=" * 100)
 print("第一步：全库索引（用块 ID 对照，不靠正文前缀猜形态）")
 print("=" * 100)
 print("  块总数 %d（去重后 %d）" % (n_rows, len(by_id)))
+
 
 # 「表格」块的两种形态（用于分类展示，判定本身用 ID）
 def shape(txt: str) -> str:
@@ -83,8 +87,7 @@ def shape(txt: str) -> str:
 # ---------------------------------------------------------------------------
 # 第二步：逐题对照 —— 每个 golden 块在召回列表里吗？排第几？
 # ---------------------------------------------------------------------------
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 print()
 print("=" * 100)
 print("第二步：32 题逐题对照（golden 块 vs 召回列表）")
@@ -110,18 +113,21 @@ for c in cases:
     shapes = collections.Counter(shape(d.page_content) for d in docs)
     n_tbl = sum(v for k, v in shapes.items() if k.startswith("表格"))
 
-    entry = {"id": c.get("id"), "q": c["q"], "recall": s["recall"],
-             "n_docs": len(docs), "n_table": n_tbl, "golden": []}
+    entry = {"id": c.get("id"), "q": c["q"], "recall": s["recall"], "n_docs": len(docs), "n_table": n_tbl, "golden": []}
     for g in gids:
         info = by_id.get(g)
         if info is None:
             entry["golden"].append({"id": g, "found": "不在库里"})
             continue
-        entry["golden"].append({
-            "id": g, "found": "召回第 %d 位" % pos[g] if g in pos else "**未召回**",
-            "shape": shape(info["text"]), "filename": info["filename"],
-            "head": info["text"][:70].replace("\n", " "),
-        })
+        entry["golden"].append(
+            {
+                "id": g,
+                "found": "召回第 %d 位" % pos[g] if g in pos else "**未召回**",
+                "shape": shape(info["text"]),
+                "filename": info["filename"],
+                "head": info["text"][:70].replace("\n", " "),
+            }
+        )
     report.append(entry)
 
 # 只打印「召回不全」的题（recall < 1），这才是要诊断的
@@ -134,8 +140,10 @@ for e in bad:
     for g in e["golden"]:
         if "found" not in g:
             continue
-        print("       golden %s  %-12s %-24s | %s" % (
-            g["id"], g.get("found", "?"), g.get("shape", "?")[:24], g.get("head", "")[:56]))
+        print(
+            "       golden %s  %-12s %-24s | %s"
+            % (g["id"], g.get("found", "?"), g.get("shape", "?")[:24], g.get("head", "")[:56])
+        )
 
 # ---------------------------------------------------------------------------
 # 第三步：核心汇总 —— 未召回的 golden 是什么形态？
@@ -163,9 +171,13 @@ print("  判读:")
 print("    若未召回的 golden 多为「表格块」 -> 问题在**检索层**，3.5.1 有直接价值；")
 print("    若 golden 基本都召回了、只是模型没聚合 -> 问题在**生成层**，3.5.1 价值有限。")
 
-(HERE / "diag_table_parent_child.json").write_text(json.dumps(
-    {"n_blocks": len(by_id), "report": report,
-     "missed": [{"id": c, **g} for c, g in missed_rows]},
-    ensure_ascii=False, indent=2), encoding="utf-8")
+(HERE / "diag_table_parent_child.json").write_text(
+    json.dumps(
+        {"n_blocks": len(by_id), "report": report, "missed": [{"id": c, **g} for c, g in missed_rows]},
+        ensure_ascii=False,
+        indent=2,
+    ),
+    encoding="utf-8",
+)
 print()
 print("  证据 -> eval/diag_table_parent_child.json")

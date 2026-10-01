@@ -42,10 +42,11 @@ def main():
     import uvicorn
 
     if args.reload:
-        print("[提示] --reload 模式下每次改动都会重新加载嵌入模型（约 1.3GB），"
-              "首次请求会明显变慢。生产/评测请去掉该参数。")
-    uvicorn.run("api.main:app", host=args.host, port=args.port,
-                reload=args.reload, app_dir=str(ROOT))
+        print(
+            "[提示] --reload 模式下每次改动都会重新加载嵌入模型（约 1.3GB），"
+            "首次请求会明显变慢。生产/评测请去掉该参数。"
+        )
+    uvicorn.run("api.main:app", host=args.host, port=args.port, reload=args.reload, app_dir=str(ROOT))
 
 
 if __name__ == "__main__":

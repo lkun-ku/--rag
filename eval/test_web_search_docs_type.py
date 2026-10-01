@@ -29,6 +29,7 @@
 **注意**：search 本身会调 Tavily（本环境 key 是 placeholder、必然失败），
 所以测试**不依赖真实的搜索结果**，只验证**返回值的形状**。
 """
+
 from __future__ import annotations
 
 import os
@@ -98,8 +99,7 @@ else:
 print()
 print("[回归保护] generate 对「list」与「单个 Document」都应能工作")
 gen_src = (ROOT / "RAG_PROJECT" / "graph2" / "generate_node2.py").read_text(encoding="utf-8")
-check("generate 仍保留 isinstance 兼容判断",
-      "isinstance(documents, list) else [documents]" in gen_src, True)
+check("generate 仍保留 isinstance 兼容判断", "isinstance(documents, list) else [documents]" in gen_src, True)
 
 print()
 print("=" * 96)

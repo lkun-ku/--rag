@@ -12,6 +12,7 @@
 先查 B（便宜且常见）：把 7 个漏召回的 ID 拿去备份里查，
 看它们**重建前**属于哪个文件、是什么形态 —— 若全是扁平块，说明它们**本来就该消失**。
 """
+
 from __future__ import annotations
 
 import json
@@ -31,11 +32,17 @@ import metrics  # noqa: E402
 from tools.retriever_tools import retriever  # noqa: E402
 
 QID = "n026"
-MISSED = ["1b3292b1589a", "259df3338d91", "4d43889ea877", "4fddcc128c87",
-          "5045647d914c", "6f8ea5911e19", "fb6eb0bb850d"]
+MISSED = [
+    "1b3292b1589a",
+    "259df3338d91",
+    "4d43889ea877",
+    "4fddcc128c87",
+    "5045647d914c",
+    "6f8ea5911e19",
+    "fb6eb0bb850d",
+]
 
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 case = next(c for c in cases if c.get("id") == QID)
 GOLD = set(case["source_blocks"])
 
@@ -74,8 +81,7 @@ for g in MISSED:
         shape, n_struct = "结构化(列名：)", n_struct + 1
     else:
         shape, n_flat = "扁平", n_flat + 1
-    print("  %-14s %-16s %-30s %s" % (g, shape, (it.get("filename") or "")[:30],
-                                      t[:52].replace("\n", " ")))
+    print("  %-14s %-16s %-30s %s" % (g, shape, (it.get("filename") or "")[:30], t[:52].replace("\n", " ")))
 print()
 print("  统计: 扁平 %d / 结构化 %d / 备份里没有 %d" % (n_flat, n_struct, n_absent))
 
@@ -88,16 +94,21 @@ from tools.retriever_tools import retriever  # noqa: E402
 
 docs = retriever.invoke(case["q"])
 ids = [metrics.chunk_id(d.page_content) for d in docs]
-print("  检索到 %d 块；golden 命中 %d/%d" % (
-    len(docs), len(GOLD & set(ids)), len(GOLD)))
+print("  检索到 %d 块；golden 命中 %d/%d" % (len(docs), len(GOLD & set(ids)), len(GOLD)))
 print()
 print("  %-4s %-6s %-30s %s" % ("#", "golden", "文件", "块首行"))
 print("  " + "-" * 100)
 for i, d in enumerate(docs, 1):
     cid = metrics.chunk_id(d.page_content)
-    print("  %-4d %-6s %-30s %s" % (
-        i, "GOLD" if cid in GOLD else "", (d.metadata.get("filename") or "")[:30],
-        d.page_content.replace("\n", " ")[:56]))
+    print(
+        "  %-4d %-6s %-30s %s"
+        % (
+            i,
+            "GOLD" if cid in GOLD else "",
+            (d.metadata.get("filename") or "")[:30],
+            d.page_content.replace("\n", " ")[:56],
+        )
+    )
 
 # --- 第三步：命中的那个 golden 块 + 一个漏召回的块，直接搜一下 ---
 print()
@@ -106,10 +117,8 @@ print("第三步：把「漏召回的 golden 块正文」直接当查询（看�
 print("=" * 104)
 client = MilvusClient(uri=MILVUS_URI)
 new_text_by_id = {}
-for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024",
-             "kb_manuals_bge_large_1024"):
-    for r in client.query(collection_name=coll, filter="",
-                          output_fields=["filename", "text"], limit=8000):
+for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):
+    for r in client.query(collection_name=coll, filter="", output_fields=["filename", "text"], limit=8000):
         t = r.get("text") or ""
         new_text_by_id[metrics.chunk_id(t)] = t
 print("  新库块数: %d" % len(new_text_by_id))

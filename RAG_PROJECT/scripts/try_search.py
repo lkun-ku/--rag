@@ -17,6 +17,7 @@
     :trace    切换是否打印执行轨迹
     :q        退出
 """
+
 from __future__ import annotations
 
 # [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
@@ -67,8 +68,7 @@ def print_answer(res: dict):
     if cites:
         print("\n  ── 引用来源 " + "─" * 66)
         for c in cites:
-            print("  [%s] %-40s | %s" % (c.get("n"), str(c.get("filename", ""))[:40],
-                                         str(c.get("title", ""))[:34]))
+            print("  [%s] %-40s | %s" % (c.get("n"), str(c.get("filename", ""))[:40], str(c.get("title", ""))[:34]))
     print("\n  用时 %.1fs | 拒答: %s" % (res.get("elapsed_sec", 0), res.get("refused")))
 
 
@@ -93,23 +93,32 @@ def do_ask(q: str, trace: bool):
         print("\n  ── 执行轨迹 " + "─" * 66)
         for s in t.get("steps", []):
             extra = {k: v for k, v in s.items() if k not in ("node", "t", "elapsed_sec")}
-            print("  %6.2fs  %-18s %6.2fs  %s" % (s.get("t", 0), s.get("node", ""),
-                                                  s.get("elapsed_sec", 0), str(extra)[:70]))
-    gen = {"answer": r.get("generation", ""), "citations": [],
-           "elapsed_sec": round(time.time() - t0, 1), "refused": None}
+            print(
+                "  %6.2fs  %-18s %6.2fs  %s"
+                % (s.get("t", 0), s.get("node", ""), s.get("elapsed_sec", 0), str(extra)[:70])
+            )
+    gen = {
+        "answer": r.get("generation", ""),
+        "citations": [],
+        "elapsed_sec": round(time.time() - t0, 1),
+        "refused": None,
+    }
     from utils.citation import build_citation_meta, is_refusal, parse_citations
 
     answer = r.get("generation", "") or ""
     cites = parse_citations(answer)
     if cites and docs:
         meta = build_citation_meta(docs, cites)
-        gen["citations"] = [{"n": m.get("n"), "filename": m.get("filename", ""),
-                             "title": m.get("title", "")} for m in meta]
+        gen["citations"] = [
+            {"n": m.get("n"), "filename": m.get("filename", ""), "title": m.get("title", "")} for m in meta
+        ]
         print("\n  ── 上下文里的块（编号即引用编号）" + "─" * 50)
         for i, d in enumerate(docs, 1):
             mark = "⭐" if i in cites else "  "
-            print("  %s[%2d] %-32s | %s" % (mark, i, d.metadata.get("filename", "?")[:32],
-                                            d.page_content.replace("\n", " ")[:70]))
+            print(
+                "  %s[%2d] %-32s | %s"
+                % (mark, i, d.metadata.get("filename", "?")[:32], d.page_content.replace("\n", " ")[:70])
+            )
     gen["refused"] = is_refusal(answer)
     print_answer(gen)
 
@@ -151,9 +160,10 @@ def main() -> int:
         if q in (":q", ":quit", ":exit"):
             break
         if q == ":help":
-            print("  :ask 切换模式（当前 %s） | :trace 切换轨迹（当前 %s） | "
-                  ":full 切换全文（当前 %s） | :q 退出"
-                  % ("问答" if mode_ask else "检索", mode_trace, mode_full))
+            print(
+                "  :ask 切换模式（当前 %s） | :trace 切换轨迹（当前 %s） | "
+                ":full 切换全文（当前 %s） | :q 退出" % ("问答" if mode_ask else "检索", mode_trace, mode_full)
+            )
             continue
         if q == ":ask":
             mode_ask = not mode_ask
@@ -174,6 +184,7 @@ def main() -> int:
                 do_retrieval(q, mode_full)
         except Exception as e:  # noqa: BLE001
             import traceback
+
             print("  !! %s: %s" % (type(e).__name__, str(e)[:200]))
             traceback.print_exc()
         print()

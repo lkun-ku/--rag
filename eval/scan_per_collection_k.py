@@ -33,6 +33,7 @@
 因此**小于抖动幅度的差异不足为据** —— 本脚本只做「方向性判断」，
 不追求小数点后的精确比较。
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -52,13 +53,14 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 
 from documents.milvus_db import MilvusVectorSave  # noqa: E402
 from tools.retriever_tools import (  # noqa: E402
-    FETCH_K_PER_ROUTE, MultiCollectionRetriever, _build_search_kwargs,
+    FETCH_K_PER_ROUTE,
+    MultiCollectionRetriever,
+    _build_search_kwargs,
     _discover_collections,
 )
 
 OUT = HERE / "scan_per_collection_k.json"
-cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(
-    encoding="utf-8").splitlines() if l.strip()]
+cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 cases = [c for c in cases if c.get("source_blocks")]
 print("参与统计的题目: %d 道（已排除库外题）" % len(cases))
 
@@ -79,8 +81,9 @@ def build(per_k: int, final_k: int, fetch_k: int = FETCH_K_PER_ROUTE) -> MultiCo
     kwargs = dict(_build_search_kwargs())
     kwargs["k"] = per_k
     kwargs["fetch_k"] = fetch_k
-    built = {coll: store.as_retriever(search_type="similarity", search_kwargs=kwargs)
-             for coll, store in _STORES.items()}
+    built = {
+        coll: store.as_retriever(search_type="similarity", search_kwargs=kwargs) for coll, store in _STORES.items()
+    }
     return MultiCollectionRetriever(retrievers=built, per_collection_k=per_k, final_k=final_k)
 
 
@@ -105,9 +108,13 @@ def evaluate(retr: MultiCollectionRetriever) -> dict:
         n_blocks += len(rids)
         per_src.setdefault(c.get("source", "?"), []).append(r)
     n = len(cases)
-    return {"recall": round(rec / n, 4), "hit_rate": round(hit / n, 4),
-            "precision": round(prec / n, 4), "avg_blocks": round(n_blocks / n, 1),
-            "by_src": {s: round(sum(v) / len(v), 4) for s, v in sorted(per_src.items())}}
+    return {
+        "recall": round(rec / n, 4),
+        "hit_rate": round(hit / n, 4),
+        "precision": round(prec / n, 4),
+        "avg_blocks": round(n_blocks / n, 1),
+        "by_src": {s: round(sum(v) / len(v), 4) for s, v in sorted(per_src.items())},
+    }
 
 
 def run(label: str, points, final_of) -> list:
@@ -115,8 +122,10 @@ def run(label: str, points, final_of) -> list:
     print("=" * 104)
     print("%s" % label)
     print("=" * 104)
-    print("  %-8s %-9s %-9s %-9s %-11s %-9s %s" % (
-        "per_k", "final_k", "recall", "hit_rate", "precision", "平均块数", "分源 recall"))
+    print(
+        "  %-8s %-9s %-9s %-9s %-11s %-9s %s"
+        % ("per_k", "final_k", "recall", "hit_rate", "precision", "平均块数", "分源 recall")
+    )
     print("  " + "-" * 96)
     rows = []
     for pk in points:
@@ -126,17 +135,22 @@ def run(label: str, points, final_of) -> list:
         m.update({"per_k": pk, "final_k": fk, "sec": round(time.time() - t0, 1)})
         rows.append(m)
         src = " ".join("%s=%.3f" % (s[:8], v) for s, v in m["by_src"].items())
-        print("  %-8d %-9d %-9.4f %-9.4f %-11.4f %-9.1f %s" % (
-            pk, fk, m["recall"], m["hit_rate"], m["precision"], m["avg_blocks"], src))
+        print(
+            "  %-8d %-9d %-9.4f %-9.4f %-11.4f %-9.1f %s"
+            % (pk, fk, m["recall"], m["hit_rate"], m["precision"], m["avg_blocks"], src)
+        )
     return rows
 
 
 # ---- A 段：只动 per_k，final_k 固定 18（检验 P1-15）----
 FIXED_FINAL = 18
-rows_a = run("A. per_k 变化 / final_k 固定 %d（跨集合融合真正参与取舍）" % FIXED_FINAL,
-             [3, 4, 6, 8, 10, 12], lambda pk: FIXED_FINAL)
+rows_a = run(
+    "A. per_k 变化 / final_k 固定 %d（跨集合融合真正参与取舍）" % FIXED_FINAL,
+    [3, 4, 6, 8, 10, 12],
+    lambda pk: FIXED_FINAL,
+)
 
-base_a = next(r for r in rows_a if r["per_k"] == 6)   # 当前生产值
+base_a = next(r for r in rows_a if r["per_k"] == 6)  # 当前生产值
 print()
 print("  相对当前值（per_k=6）的变化：")
 print("  %-8s %-12s %-12s %-12s %s" % ("per_k", "Δrecall", "Δprecision", "Δ平均块数", "判读"))
@@ -155,8 +169,11 @@ for r in rows_a:
     print("  %-8d %+-12.4f %+-12.4f %+-12.1f %s" % (r["per_k"], d_rec, d_pre, d_blk, note))
 
 # ---- B 段：per_k 与 final_k 同步放大（对照）----
-rows_b = run("B. per_k 与 final_k 同步放大（final_k = 3 × per_k，对照）",
-             [6, 8, 10, 12], lambda pk: pk * len(_discover_collections()))
+rows_b = run(
+    "B. per_k 与 final_k 同步放大（final_k = 3 × per_k，对照）",
+    [6, 8, 10, 12],
+    lambda pk: pk * len(_discover_collections()),
+)
 print()
 print("  与 A 段同 per_k 对比：")
 print("  %-8s %-24s %-24s %s" % ("per_k", "A: final_k=18", "B: final_k=3×per_k", "说明"))
@@ -164,11 +181,20 @@ for rb in rows_b:
     ra = next((r for r in rows_a if r["per_k"] == rb["per_k"]), None)
     if ra is None:
         continue
-    print("  %-8d recall %.4f/prec %.4f   recall %.4f/prec %.4f   %s" % (
-        rb["per_k"], ra["recall"], ra["precision"], rb["recall"], rb["precision"],
-        "块更多 -> " + ("recall 升" if rb["recall"] > ra["recall"] else "recall 未升")))
+    print(
+        "  %-8d recall %.4f/prec %.4f   recall %.4f/prec %.4f   %s"
+        % (
+            rb["per_k"],
+            ra["recall"],
+            ra["precision"],
+            rb["recall"],
+            rb["precision"],
+            "块更多 -> " + ("recall 升" if rb["recall"] > ra["recall"] else "recall 未升"),
+        )
+    )
 
-OUT.write_text(json.dumps({"fixed_final": FIXED_FINAL, "A": rows_a, "B": rows_b},
-                          ensure_ascii=False, indent=2), encoding="utf-8")
+OUT.write_text(
+    json.dumps({"fixed_final": FIXED_FINAL, "A": rows_a, "B": rows_b}, ensure_ascii=False, indent=2), encoding="utf-8"
+)
 print()
 print("  结果 -> eval/scan_per_collection_k.json")
