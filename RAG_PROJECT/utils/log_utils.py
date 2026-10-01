@@ -1,3 +1,12 @@
+# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
+# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
+import pathlib as _pathlib
+import sys as _sys
+
+_ROOT = _pathlib.Path(__file__).resolve().parent.parent
+if str(_ROOT) not in _sys.path:
+    _sys.path.insert(0, str(_ROOT))
+
 import sys, os
 from loguru import logger
 

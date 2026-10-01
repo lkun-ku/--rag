@@ -80,11 +80,20 @@ def build_parser(parser_type: str):
         p = OfficeParser()
         return p, p.parse_office_to_documents
     if parser_type == 'text':
-        # 按决策：txt 需先人工整理为 Markdown（ROADMAP 1.3.3），此处不支持自动摄入
-        raise NotImplementedError(
-            'txt 源需先人工整理为 Markdown 再入库（见 ROADMAP 1.3.3）；'
-            '若确需自动处理，请单独立项做专用解析器。'
-        )
+        # [ROADMAP 4.50] 已实现：TXT -> 补一级标题（文件名）-> Markdown -> MarkdownParser。
+        # 用文件名当标题是因为 TXT 无结构，而「标题合并」依赖标题；
+        # 文件名通常描述内容主题，比自动生成的弱标题可靠（这是当初 1.3.3 未启用的原因）。
+        from documents.plain_converters import TextDocParser
+        p = TextDocParser()
+        return p, p.parse
+    if parser_type == 'html':
+        # [ROADMAP 4.50] 已实现：HTML -> Markdown（markitdown）-> MarkdownParser。
+        # 纠正此前的说法：**不是「HTML 做不到」，而是「没实现 parser」** ——
+        # `table_handler` 早就用标准库 `html.parser` 解析表格，
+        # 且 `markitdown` 本来就在处理 Office，转 HTML 是顺手的事。
+        from documents.plain_converters import HTMLDocParser
+        p = HTMLDocParser()
+        return p, p.parse
     raise ValueError(f'未知的 parser 类型: {parser_type!r}')
 
 

@@ -132,6 +132,17 @@ DOC_SOURCES = [
         'parser': 'office',
         'enabled': True,
     },
+    # [ROADMAP 4.50] 网页文档：走 html parser（markitdown -> Markdown -> 同一管道）。
+    # **默认 enabled=False**：目录为空时若开启，`_discover_collections` 会把它算进
+    # 检索集合（但它并不存在）-> 检索报错。接入 html 语料后再改 True。
+    {
+        'name': 'web',
+        'dir': os.getenv('SRC_DIR_WEB') or os.path.join(DATAS_DIR, 'html'),
+        'collection': os.getenv('KB_COLLECTION_WEB') or 'kb_web_bge_large_1024',
+        'formats': ('.html', '.htm'),
+        'parser': 'html',
+        'enabled': False,
+    },
     {
         'name': 'notes',
         'dir': os.getenv('SRC_DIR_TXT') or os.path.join(DATAS_DIR, 'txt'),

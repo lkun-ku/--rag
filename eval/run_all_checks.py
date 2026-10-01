@@ -55,6 +55,10 @@ CHECKS = [
     ("同表切片合并", "eval/test_table_merge.py", "quick", "同表多切片合并（表头去重/乱序/超限/非表格）"),
     # [ROADMAP 4.48] 语义分块封装：隔离 langchain-experimental sunset 风险
     ("语义分块封装", "eval/test_semantic_splitter.py", "quick", "SemanticChunker 封装 + 降级告警"),
+    # [ROADMAP 4.49] 按章节聚合（Parent-Child 检索后轻量版，默认关）
+    ("按章节聚合", "eval/test_section_merge.py", "quick", "同章节父子块聚合 + 超限拆分 + 默认关"),
+    # [ROADMAP 4.50] html / txt 解析器（统一转 Markdown 后复用同一管道）
+    ("html/txt 解析", "eval/test_plain_converters.py", "quick", "HTML/TXT -> Markdown + 真实文件名元数据"),
     # [ROADMAP 4.47] 表格结构化查询：聚合类问题交给 pandas 算，不交给 LLM 猜
     ("表格结构化查询", "eval/test_table_query.py", "quick", "markdown 表解析 + min/max/mean + 降级"),
     # [ROADMAP 4.42] 企业级精排链路：reranker（默认关）+ 分数门槛 + 聚合类深检索

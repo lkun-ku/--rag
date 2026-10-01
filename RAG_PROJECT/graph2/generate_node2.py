@@ -4,6 +4,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from utils.log_utils import log
 from tools import history_store
+from tools.section_merge import merge_section_blocks
 
 from graph2.grade_documents_node import _sub_config
 from llm_models.all_llm import llm
@@ -386,6 +387,13 @@ def generate(state, config=None):
     # 检索层指标；而 `grade_generation` 的引用校验用 `state["documents"]`，
     # 本函数返回合并后的 documents，编号仍然自洽。
     documents = merge_table_slices(documents)
+
+    # [ROADMAP 4.49] **按章节聚合**（Parent-Child 的「检索后」轻量版）。
+    # 顺序很重要：先把表格拼回整表（merge_table_slices），再把整表 + 同章节段落
+    # 一起聚成父块（merge_section_blocks）—— 否则父块里会出现「半张表」。
+    # **默认关闭**（SECTION_MERGE_ENABLED=0）：开启会让上下文显著变长，
+    # 必须先 A/B 验证 token 与质量，不能默认开（与 reranker 同一原则）。
+    documents = merge_section_blocks(documents)
 
     # [ROADMAP 4.41] **有历史才用带历史的模板** —— 单轮调用走原路径，行为完全不变。
     #

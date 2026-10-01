@@ -2,6 +2,13 @@
   {
     "rule": "R2",
     "severity": "high",
+    "file": "RAG_PROJECT/documents/plain_converters.py",
+    "line": 61,
+    "detail": "`except OSError: pass` —— 静默吞异常，无任何日志"
+  },
+  {
+    "rule": "R2",
+    "severity": "high",
     "file": "RAG_PROJECT/documents/table_handler.py",
     "line": 124,
     "detail": "`except (TypeError, ValueError): pass` —— 静默吞异常，无任何日志"
@@ -17,7 +24,14 @@
     "rule": "R2",
     "severity": "high",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 410,
+    "line": 425,
+    "detail": "`except Exception: pass` —— 静默吞异常，无任何日志"
+  },
+  {
+    "rule": "R2",
+    "severity": "high",
+    "file": "RAG_PROJECT/utils/session_store.py",
+    "line": 168,
     "detail": "`except Exception: pass` —— 静默吞异常，无任何日志"
   },
   {
@@ -59,7 +73,7 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/api/main.py",
-    "line": 352,
+    "line": 419,
     "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
@@ -150,15 +164,22 @@
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 217,
+    "line": 228,
     "detail": "`except (TypeError, ValueError)` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
     "severity": "medium",
     "file": "RAG_PROJECT/scripts/show_trace.py",
-    "line": 51,
+    "line": 60,
     "detail": "`except json.JSONDecodeError` 块内无日志调用（吞掉错误后继续）"
+  },
+  {
+    "rule": "R7",
+    "severity": "medium",
+    "file": "RAG_PROJECT/tools/semantic_splitter.py",
+    "line": 43,
+    "detail": "`except Exception` 块内无日志调用（吞掉错误后继续）"
   },
   {
     "rule": "R7",
@@ -185,49 +206,42 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/agent/rag_agent.py",
-    "line": 68,
+    "line": 77,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 531,
+    "line": 543,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 532,
+    "line": 544,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 533,
+    "line": 545,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 534,
+    "line": 546,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/milvus_db.py",
-    "line": 207,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/milvus_db.py",
-    "line": 213,
+    "line": 216,
     "detail": "生产代码里的 print("
   },
   {
@@ -241,35 +255,21 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/milvus_db.py",
-    "line": 230,
+    "line": 231,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/milvus_db.py",
+    "line": 239,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 154,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 159,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 164,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/office_parser.py",
-    "line": 166,
+    "line": 163,
     "detail": "生产代码里的 print("
   },
   {
@@ -282,106 +282,113 @@
   {
     "rule": "R10",
     "severity": "low",
-    "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 265,
+    "file": "RAG_PROJECT/documents/office_parser.py",
+    "line": 173,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/office_parser.py",
+    "line": 175,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/office_parser.py",
+    "line": 177,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 270,
+    "line": 274,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 272,
+    "line": 279,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/pdf_parser.py",
-    "line": 273,
+    "line": 281,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/pdf_parser.py",
+    "line": 282,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 297,
+    "line": 315,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 298,
+    "line": 316,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 299,
+    "line": 317,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 300,
+    "line": 318,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 301,
+    "line": 319,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 302,
+    "line": 320,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 304,
+    "line": 322,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 307,
+    "line": 325,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 308,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 311,
-    "detail": "生产代码里的 print("
-  },
-  {
-    "rule": "R10",
-    "severity": "low",
-    "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 312,
+    "line": 326,
     "detail": "生产代码里的 print("
   },
   {
@@ -402,56 +409,70 @@
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 333,
+    "line": 347,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/documents/write_milvus.py",
-    "line": 343,
+    "line": 348,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/write_milvus.py",
+    "line": 351,
+    "detail": "生产代码里的 print("
+  },
+  {
+    "rule": "R10",
+    "severity": "low",
+    "file": "RAG_PROJECT/documents/write_milvus.py",
+    "line": 361,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph/graph1.py",
-    "line": 60,
+    "line": 69,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph/graph1.py",
-    "line": 64,
+    "line": 73,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph/graph1.py",
-    "line": 65,
+    "line": 74,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/graph2/graph_2.py",
-    "line": 439,
+    "line": 471,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/utils/log_utils.py",
-    "line": 52,
+    "line": 61,
     "detail": "生产代码里的 print("
   },
   {
     "rule": "R10",
     "severity": "low",
     "file": "RAG_PROJECT/utils/log_utils.py",
-    "line": 56,
+    "line": 65,
     "detail": "生产代码里的 print("
   },
   {
@@ -471,6 +492,13 @@
   {
     "rule": "R11",
     "severity": "low",
+    "file": "RAG_PROJECT/api/main.py",
+    "line": 357,
+    "detail": "未使用的 import: `history_store`"
+  },
+  {
+    "rule": "R11",
+    "severity": "low",
     "file": "RAG_PROJECT/llm_models/all_llm.py",
     "line": 4,
     "detail": "未使用的 import: `DEEPSEEK_API_KEY`"
@@ -479,7 +507,14 @@
     "rule": "R13",
     "severity": "low",
     "file": "RAG_PROJECT/documents/markdown_parser.py",
-    "line": 328,
+    "line": 340,
     "detail": "`merge_title_content` 长 129 行（>120，可维护性）"
+  },
+  {
+    "rule": "R13",
+    "severity": "low",
+    "file": "RAG_PROJECT/graph2/generate_node2.py",
+    "line": 366,
+    "detail": "`generate` 长 156 行（>120，可维护性）"
   }
 ]

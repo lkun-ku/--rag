@@ -16,6 +16,7 @@
 | 项 | 当前值 |
 |---|---|
 | 语料 | **18 文件 / 523 块 / 3 集合**（6 Markdown + 5 PDF + 7 Office） |
+| 支持格式 | `.md` · `.pdf` · `.docx` · `.xlsx` · `.pptx` · **`.html`** · **`.txt`**<br>（html/txt 转 Markdown 后复用同一管道；不支持 `.doc`/`.xls`/`.csv`/图片）|
 | 嵌入 | `BAAI/bge-large-zh-v1.5`，**1024 维**，本地 CPU |
 | 生成 | DeepSeek `deepseek-flash`（OpenAI 兼容端点） |
 | 检索 | 稠密 HNSW/IP + BM25/jieba；集合内 RRF，跨集合二次 RRF |

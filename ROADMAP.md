@@ -5706,6 +5706,129 @@ session-B 检索 -> 只命中自己的 1 块（隔离生效）
 
 ---
 
+## 4.48 语义分块封装：隔离 `langchain-experimental` sunset 风险（**策略未变**）
+
+### 4.48.1 问题
+
+`langchain-experimental` 官方已标 **sunset、不再维护**（`requirements.txt` 钉 0.4.2）。
+它现在能跑，但**升级 LangChain 主版本时可能 import 失败** →
+`markdown_parser.py` 在 import 阶段就炸 → **整个入库链路瘫痪**。
+
+### 4.48.2 做法（**只保命，不换策略**）
+
+新增 `tools/semantic_splitter.py`：
+
+```
+make_splitter(embedding, force_fallback=False)
+  · 可用   -> SemanticChunker(embedding, breakpoint_threshold_type="percentile")
+             **与改造前完全一致** —— 分块结果不变、不需要重建索引
+  · 不可用 -> RecursiveCharacterTextSplitter(800/100) + **WARNING**
+             （不许静默降级，项目既有原则）
+```
+
+`markdown_parser.py:208` 改为 `self.text_splitter = make_splitter(bge_embedding)`。
+
+### 4.48.3 为什么不在这一层直接换策略
+
+换了分块 → 523 块全量重灌 → **golden 32 题的 `source_blocks` 全部失效要重标**（人力成本）。
+换策略必须走 A/B（**至今未做**，等真实数据）。
+
+**验证**：`eval/test_semantic_splitter.py` 14/14（S1 锁定「默认仍是 SemanticChunker」）。
+
+---
+
+## 4.49 按章节聚合：Parent-Child 的「检索后」轻量版（默认关）
+
+### 4.49.1 调研结论决定了这个方案
+
+| 方案 | 关键事实 | 是否采纳 |
+|---|---|---|
+| **Agentic chunking** | **$1,000+/10 万文档**，且**非确定性**（两次运行断点不同）| ❌ |
+| **Late Chunking** | nDCG@10 **+3.63%**，但**必须换长上下文 embedding**（jina-v3/nomic），**超 8K token 失效** | ❌（本项目 bge-large 是 512 token）|
+| **Parent-Child** | **ARAGOG 2024 benchmark 排名第一**；Atlan：*"this is the pattern to **default to**"* | ✅ |
+
+**但「建父块索引」代价太高**（523 块重灌 + golden 重标 + 存储翻倍 + 源文档更新要刷两层）。
+Atlan 同时指出更轻的变体：*"The **sentence-window variant requires no hierarchical index**"*。
+
+### 4.49.2 实现
+
+新增 `tools/section_merge.py`：**检索后**按 `(filename, title)` 把同章节的块聚合成父块。
+
+```
+在 generate_node2.py:396（merge_table_slices 之后）：
+    documents = merge_table_slices(documents)      # ① 表格拼回整表
+    documents = merge_section_blocks(documents)    # ② 整表 + 同章节段落 -> 父块
+```
+
+**顺序很重要**：先拼表，父块里才不会出现「半张表」。
+
+**合并规则**：
+- 分组键 `(filename, title)`（与 `merge_table_slices` 一致）
+- 组内保持**原有顺序**（不重排，检索顺序即相关性顺序）
+- 超 `max_chars`（默认 **8000**）→ **拆成多个父块，不截断**（截断会丢内容）
+- 埋 `merged_from` / `merged_chars` 便于排查
+
+**默认关闭**：`SECTION_MERGE_ENABLED=0`。开启会让上下文显著变长，
+**必须先 A/B 验证 token 与质量**（与 reranker 同一原则）。
+
+**验证**：`eval/test_section_merge.py` 14/14（P1 锁定「默认关闭零影响」，P5 锁定「超限拆分不丢内容」）。
+
+---
+
+## 4.50 新增 `.html` / `.txt` 支持 + 数据类型边界统计
+
+### 4.50.1 先纠正一处错误表述
+
+我之前在文档里写「HTML 不支持」，**这个说法不准确** —— 准确说法是「**没实现 parser**」。
+依据（代码事实）：
+
+* `table_handler.parse_table_html` 用 **Python 标准库 `html.parser`** 就能解析表格 →
+  HTML 解析在本项目**早有基础**；
+* `markitdown==0.1.8` **已装且实测可用**：`<h1>T</h1><p>hello</p>` → `# T\n\nhello`；
+* 项目**本来就用 markitdown 处理 Office**（`requirements.txt` 注释：
+  "Office（docx / xlsx / pptx）：统一转 Markdown 后复用同一条管道"）。
+
+**所以只要转成 Markdown，就能复用 `MarkdownParser` 的全部能力，零新增依赖。**
+
+### 4.50.2 实现
+
+新增 `documents/plain_converters.py`：
+
+```
+HTMLDocParser   .html/.htm -> markitdown -> Markdown -> MarkdownParser
+TextDocParser   .txt       -> 文件名当 # 标题 + 小标题提升 -> Markdown -> MarkdownParser
+```
+
+两者都是**薄适配器**：转 Markdown → 写临时 `.md` → 交给 `MarkdownParser`。
+这样**标题合并、表格恢复、语义分块、元数据注入全部复用**，不重复实现。
+解析后把 `filename` 元数据改回**真实文件名**（否则会带 `conv_` 临时前缀，影响引用溯源）。
+
+`write_milvus.py` 的 parser 分派新增 `html` 分支，`text` 分支从 `NotImplementedError` 改为可用。
+
+**`DOC_SOURCES` 新增 `web` 源，但 `enabled=False`** —— 目录为空时若开启，
+`_discover_collections` 会把它算进检索集合（但它不存在）→ 检索报错。
+**接入 html 语料后改 `True` 即可。**
+
+`.txt` 的固有局限：**没有结构**，靠文件名当标题。若文件名是 `新建文本文档` 这类无意义名，
+切片质量仍会差 —— 这是 `.txt` 的属性，不是实现问题。
+
+### 4.50.3 当前数据类型边界（代码事实）
+
+| 格式 | 状态 | 实现 |
+|---|---|---|
+| `.md` | ✅ 启用 | 分级切片 + 标题合并 + 表格恢复 |
+| `.pdf` | ✅ 启用 | `pymupdf4llm` → Markdown |
+| `.docx` / `.xlsx` / `.pptx` | ✅ 启用 | markitdown → Markdown |
+| **`.html` / `.htm`** | ✅ **已实现**（`web` 源默认关闭）| markitdown → Markdown |
+| **`.txt`** | ✅ **已实现**（`notes` 源默认关闭）| 文件名做标题 → Markdown |
+| `.doc` / `.xls`（旧格式）| ❌ 不支持 | 需 antiword/xlrd，且格式本身难解析 |
+| `.csv` | ❌ 不支持 | pandas 可读，但**切片策略未设计**（不是难，是没做）|
+| 图片（`.png`/`.jpg`）| ❌ 不支持 | **无独立入库路径、无图像向量**（只能作 PDF 内嵌图被 OCR）|
+
+**验证**：`eval/test_plain_converters.py` 19/19。
+
+---
+
 ## 4.46 聚合类问题排查：从「让模型扫表」到定位真瓶颈
 
 ### 4.46.1 三层排查链（每层都有数据）
