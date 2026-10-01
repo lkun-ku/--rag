@@ -33,16 +33,16 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-# 把 eval/ 目录本身放进 sys.path，用 `import metrics` 而不是 `from eval import metrics` ——
-# `eval` 与 Python 内置函数同名，作为包名容易引起困扰（也可能与第三方包冲突）。
-sys.path[:0] = [str(HERE), str(HERE.parent), str(HERE.parent / "RAG_PROJECT")]
+# 用 `import metrics` 而不是 `from eval import metrics`：`python eval/run_eval.py` 启动时
+# 脚本目录本身就在 sys.path[0]，无需手工插入。`eval` 作包名还会与内置函数同名。
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
 GOLDEN = HERE / "golden_dataset.jsonl"
 BASELINE = HERE / "baseline.json"
@@ -97,7 +97,7 @@ def main() -> int:
     cache = metrics.JudgeCache(enabled=not args.no_cache) if args.with_generation else None
 
     # ---- 检索器 ----
-    from tools.retriever_tools import retriever  # noqa: E402
+    from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
     covered = list(getattr(retriever, "retrievers", {}).keys()) or ["(默认集合)"]
     print(f"[检索器] {type(retriever).__name__}  覆盖集合: {covered}")

@@ -31,23 +31,20 @@
 from __future__ import annotations
 
 import concurrent.futures as cf
-import collections
 import json
 import os
 import pathlib
-import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-import tools.retriever_tools as rt  # noqa: E402
-from graph2.grade_documents_node import _grade_one, MAX_GRADE_WORKERS  # noqa: E402
+import rag_kb.tools.retriever_tools as rt  # noqa: E402
+from rag_kb.graph2.grade_documents_node import MAX_GRADE_WORKERS  # noqa: E402
 
 GRID = [(8, 24), (12, 36), (16, 48)]
 WORKERS = max(1, MAX_GRADE_WORKERS)
@@ -74,7 +71,7 @@ print()
 #     * `err`        —— 该配置下判分异常的**调用次数**
 #     * `g_kept_err` —— 其中属于 golden 的块数（**这才是「假保留」的规模**）
 #     * `g_kept_sure`—— 排除异常后的 golden 保留数（**结论应以它为准**）
-from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
+from rag_kb.graph2.grader_chain import retrieval_grader_chain  # noqa: E402
 
 
 def _grade_explicit(q: str, d):

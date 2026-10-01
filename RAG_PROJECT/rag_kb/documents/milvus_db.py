@@ -1,12 +1,3 @@
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import os
 import re
 from typing import List
@@ -16,10 +7,10 @@ from langchain_milvus import Milvus, BM25BuiltInFunction
 from pymilvus import IndexType, MilvusClient, Function
 from pymilvus.client.types import MetricType, DataType, FunctionType
 
-from documents.markdown_parser import MarkdownParser
-from llm_models.embeddings_model import bge_embedding
-from utils.env_utils import MILVUS_URI, COLLECTION_NAME, MD_DIR, EMBEDDING_DIM, EMBEDDING_MODEL
-from utils.log_utils import log
+from rag_kb.documents.markdown_parser import MarkdownParser
+from rag_kb.llm_models.embeddings_model import bge_embedding
+from rag_kb.utils.env_utils import MILVUS_URI, COLLECTION_NAME, MD_DIR, EMBEDDING_DIM, EMBEDDING_MODEL
+from rag_kb.utils.log_utils import log
 
 
 # Milvus 集合名规则：只允许字母/数字/下划线，首字符必须是字母或下划线，长度 <= 255。

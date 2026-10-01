@@ -1,12 +1,3 @@
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import inspect
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -15,19 +6,19 @@ from pprint import pprint
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
-from graph2.generate_node2 import generate
-from graph2.grade_answer_chain import answer_grader_chain
-from graph2.grade_documents_node import _sub_config, grade_documents
-from graph2.grade_hallucinations_chain import hallucination_grader_chain
-from graph2.graph_state2 import GraphState
-from graph2.query_route_chain import question_router_chain
-from graph2.retriever_node import retrieve
-from graph2.transform_query_node import transform_query
-from graph2.web_search_node import web_search
-from utils import tracer
-from utils import session_store
-from utils.log_utils import log
-from tools import history_store
+from rag_kb.graph2.generate_node2 import generate
+from rag_kb.graph2.grade_answer_chain import answer_grader_chain
+from rag_kb.graph2.grade_documents_node import _sub_config, grade_documents
+from rag_kb.graph2.grade_hallucinations_chain import hallucination_grader_chain
+from rag_kb.graph2.graph_state2 import GraphState
+from rag_kb.graph2.query_route_chain import question_router_chain
+from rag_kb.graph2.retriever_node import retrieve
+from rag_kb.graph2.transform_query_node import transform_query
+from rag_kb.graph2.web_search_node import web_search
+from rag_kb.utils import tracer
+from rag_kb.utils import session_store
+from rag_kb.utils.log_utils import log
+from rag_kb.tools import history_store
 
 
 # 生成答案的最大重试次数。
@@ -57,7 +48,7 @@ def grade_generation_v_documents_and_question(state, config=None):
     # 为什么放在 LLM 判定之前：这是**确定性**检查（字符串 + 数值比较），
     # 零成本、零抖动，且「引用了不存在的编号」是最危险的幻觉形态 ——
     # 它让用户以为答案有依据，比「没有引用」更糟。
-    from utils.citation import validate_citations  # 局部导入：避免与判分链的循环依赖
+    from rag_kb.utils.citation import validate_citations  # 局部导入：避免与判分链的循环依赖
 
     doc_list = documents if isinstance(documents, list) else [documents]
     # 传入 docs 后才能区分「幻觉引用」与「复述被检索块原文自带的编号」（P0-3）
@@ -237,7 +228,7 @@ def _traced_router(name: str, fn):
                 info["documents_in"] = len(docs)
             if name == "grade_generation":
                 # 引用校验结果对排查最有用：越界/拒答/正常
-                from utils.citation import validate_citations
+                from rag_kb.utils.citation import validate_citations
 
                 doc_list = docs if isinstance(docs, list) else [docs]
                 chk = validate_citations(state.get("generation", ""), len(doc_list) or 1, docs=doc_list)
@@ -348,7 +339,7 @@ def get_memory_graph():
     """
     global _memory_graph
     if _memory_graph is None:
-        from utils.checkpointer import create_checkpointer
+        from rag_kb.utils.checkpointer import create_checkpointer
 
         _memory_graph = create_graph(checkpointer=create_checkpointer())
     return _memory_graph

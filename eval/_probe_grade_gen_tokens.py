@@ -12,11 +12,8 @@
 from __future__ import annotations
 
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -46,7 +43,7 @@ print("=" * 96)
 print("探针：grade_generation 内部两次 LLM 调用的 token 统计")
 print("=" * 96)
 
-from graph2.graph_2 import grade_generation_v_documents_and_question as fn  # noqa: E402
+from rag_kb.graph2.graph_2 import grade_generation_v_documents_and_question as fn  # noqa: E402
 
 for label, cfg in (("传 config（含 callbacks）", None), ("**不传** config（对照）", "SKIP")):
     u, c = UsageMetadataCallbackHandler(), Counting()

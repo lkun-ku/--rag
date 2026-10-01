@@ -41,8 +41,7 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -90,12 +89,12 @@ print("=" * 96)
 print()
 
 try:
-    from graph2.grade_documents_node import grade_documents
+    from rag_kb.graph2.grade_documents_node import grade_documents
 except ImportError as e:  # noqa: BLE001
     print("  [**FAIL**] 无法 import grade_documents: %s" % e)
     sys.exit(1)
 
-import graph2.grade_documents_node as gdn  # noqa: E402
+import rag_kb.graph2.grade_documents_node as gdn  # noqa: E402
 
 # --- 用例 1：传 config -> 判分链的每次 LLM 调用都应触发 callback -------------
 #
@@ -150,7 +149,7 @@ if out2 is not None:
 # （实测：修复前后 total 只差 637，而不是 36 次判分应带来的 ~17K）。
 print()
 print("[用例3·真实链路] 经 tracer.traced 包装后 -> on_llm_end 须 > 0（用**当前默认配置**）")
-from utils.tracer import traced  # noqa: E402
+from rag_kb.utils.tracer import traced  # noqa: E402
 
 wrapped = traced("grade_documents")(grade_documents)
 cb3 = CountingCallback()

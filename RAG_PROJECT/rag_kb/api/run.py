@@ -6,30 +6,22 @@
     .venv/Scripts/python.exe RAG_PROJECT/api/run.py --reload        # 开发模式热重载
 
 为什么单独写这个脚本而不是让用户记 uvicorn 命令：
-    1. 需要把它所在目录的**上一级**（RAG_PROJECT/）加入 sys.path，
-       否则 `api.main` 与 `utils.*` / `graph2.*` 都 import 不到；
-    2. `--reload` 与模型预热不兼容（每次重载都会重新加载 1.3GB 嵌入模型），
-       这里显式提示，避免误用。
+    1. 把 `--reload` 与模型预热的冲突提示内置（每次重载都会重新加载 1.3GB
+       嵌入模型），避免误用；
+    2. 给 uvicorn 传 `app_dir`，让热重载只监听包根目录，而不是整个仓库。
+
+前置：包需先 `pip install -e .` 安装（见 pyproject.toml 的说明），
+否则 `api.main` 与 `utils.*` / `graph2.*` 都 import 不到。
 """
 
 from __future__ import annotations
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import argparse
 import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+# uvicorn 的 `app_dir`（热重载监听目录）指向 RAG_PROJECT/（含 rag_kb/ 的那一层）；
+# 导入解析已由 editable 安装负责
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def main():
@@ -46,7 +38,7 @@ def main():
             "[提示] --reload 模式下每次改动都会重新加载嵌入模型（约 1.3GB），"
             "首次请求会明显变慢。生产/评测请去掉该参数。"
         )
-    uvicorn.run("api.main:app", host=args.host, port=args.port, reload=args.reload, app_dir=str(ROOT))
+    uvicorn.run("rag_kb.api.main:app", host=args.host, port=args.port, reload=args.reload, app_dir=str(ROOT))
 
 
 if __name__ == "__main__":

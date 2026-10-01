@@ -2,7 +2,7 @@
 
 架构（沿用原设计的「解析与写入分离 + 有界队列背压」）：
 
-    ┌──────────────── 源清单 DOC_SOURCES（utils/env_utils.py）────────────────┐
+    ┌──────────────── 源清单 DOC_SOURCES（rag_kb/utils/env_utils.py）────────────────┐
     │  每个源独立处理：                                                        │
     │                                                                         │
     │   解析进程 ──docs_queue(maxsize=20)──► 写入进程 ──► 该源自己的集合       │
@@ -21,25 +21,16 @@
      既不因一个坏文件毁掉整批，也不会让失败静默消失（ROADMAP 1.3.6）。
 """
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import multiprocessing
 import os
 from multiprocessing import Queue
 
-from documents.markdown_parser import MarkdownParser
-from documents.milvus_db import MilvusVectorSave
-from documents.office_parser import OfficeParser
-from documents.pdf_parser import PDFParser
-from utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, MILVUS_LITE_PATH
-from utils.log_utils import log
+from rag_kb.documents.markdown_parser import MarkdownParser
+from rag_kb.documents.milvus_db import MilvusVectorSave
+from rag_kb.documents.office_parser import OfficeParser
+from rag_kb.documents.pdf_parser import PDFParser
+from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, MILVUS_LITE_PATH
+from rag_kb.utils.log_utils import log
 
 # 队列消息类型标记
 _MSG_EOF = '__eof__'
@@ -83,7 +74,7 @@ def build_parser(parser_type: str):
         # [ROADMAP 4.50] 已实现：TXT -> 补一级标题（文件名）-> Markdown -> MarkdownParser。
         # 用文件名当标题是因为 TXT 无结构，而「标题合并」依赖标题；
         # 文件名通常描述内容主题，比自动生成的弱标题可靠（这是当初 1.3.3 未启用的原因）。
-        from documents.plain_converters import TextDocParser
+        from rag_kb.documents.plain_converters import TextDocParser
 
         p = TextDocParser()
         return p, p.parse
@@ -92,7 +83,7 @@ def build_parser(parser_type: str):
         # 纠正此前的说法：**不是「HTML 做不到」，而是「没实现 parser」** ——
         # `table_handler` 早就用标准库 `html.parser` 解析表格，
         # 且 `markitdown` 本来就在处理 Office，转 HTML 是顺手的事。
-        from documents.plain_converters import HTMLDocParser
+        from rag_kb.documents.plain_converters import HTMLDocParser
 
         p = HTMLDocParser()
         return p, p.parse

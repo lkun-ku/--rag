@@ -31,7 +31,7 @@
 
 from __future__ import annotations
 
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
 # 降级时的结构分块参数（与语义分块的平均块长量级相当）
 FALLBACK_CHUNK_SIZE = 800

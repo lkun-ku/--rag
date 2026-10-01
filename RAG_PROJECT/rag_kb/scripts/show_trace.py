@@ -21,26 +21,13 @@ trace 由 `graph2.graph_2.run_with_trace()` 产出，追加写入 `logs/trace.js
 
 from __future__ import annotations
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import argparse
 import json
 import pathlib
 import sys
 from collections import defaultdict
 
-HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
-
-from utils.tracer import TRACE_FILE  # noqa: E402
+from rag_kb.utils.tracer import TRACE_FILE
 
 
 def load(path: pathlib.Path):
@@ -48,8 +35,7 @@ def load(path: pathlib.Path):
         print("没有找到 trace 文件：%s" % path)
         print("先跑一次 run_with_trace()，例如：")
         print(
-            "  python -c \"import sys; sys.path.insert(0,'RAG_PROJECT');"
-            " from graph2.graph_2 import run_with_trace;"
+            "  python -c \"from rag_kb.graph2.graph_2 import run_with_trace;"
             " print(run_with_trace('Milvus 支持哪些索引？')['generation'])\""
         )
         return []

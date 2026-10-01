@@ -12,12 +12,12 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from documents.table_handler import build_table_chunks, parse_table_html  # noqa: E402
+from rag_kb.documents.table_handler import build_table_chunks, parse_table_html  # noqa: E402
 
 CASES = [
     (
@@ -90,13 +90,12 @@ print("P0-4 KB_TENANTS 非法配置的处理（子进程，因为 env_utils 在 
 print("=" * 96)
 
 PROBE = (
-    "import sys; sys.path.insert(0, %r)\n"
     "try:\n"
-    "    from utils.env_utils import TENANTS\n"
+    "    from rag_kb.utils.env_utils import TENANTS\n"
     "    print('FAIL_NO_ERROR', TENANTS)\n"
     "except Exception as e:\n"
     "    print('RAISED', type(e).__name__, '|', str(e)[:150])\n"
-) % str(ROOT / "RAG_PROJECT")
+)
 
 for bad in ('{acme: [milvus_docs]}', '["milvus_docs"]', '{"acme": ["no_such_source"]}'):
     env = dict(os.environ, KB_TENANTS=bad, PYTHONIOENCODING="utf-8")

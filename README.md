@@ -62,21 +62,27 @@
 
 ```
 RAG_PROJECT/
-├── agent/            LangChain 1.x 标准 Agent（create_agent）
-├── api/              FastAPI + SSE 服务（/health /ask /ask/stream /ingest）
-├── documents/        解析与入库（Markdown / PDF / Office / PPTX / 表格）
-├── graph/            简化版 ReAct 工作流
-├── graph2/           CRAG 主工作流（路由 + 四道闸门 + 自纠错）
-├── llm_models/       LLM 与本地嵌入模型
-├── tools/            跨集合混合检索器
-├── utils/            配置 / 日志 / 引用校验 / 轨迹 / 检查点
-├── scripts/          检索试验与轨迹查看
-└── datas/            语料：md / pdf / office
+├── rag_kb/                    ← 代码全部在这个命名空间下
+│   ├── agent/                 LangChain 1.x 标准 Agent（create_agent）
+│   ├── api/                   FastAPI + SSE 服务（/health /ask /ask/stream /ingest）
+│   ├── documents/             解析与入库（Markdown / PDF / Office / PPTX / 表格）
+│   ├── graph/                 简化版 ReAct 工作流
+│   ├── graph2/                CRAG 主工作流（路由 + 四道闸门 + 自纠错）
+│   ├── llm_models/            LLM 与本地嵌入模型
+│   ├── tools/                 跨集合混合检索器
+│   ├── utils/                 配置 / 日志 / 引用校验 / 轨迹 / 检查点
+│   └── scripts/               检索试验与轨迹查看
+├── datas/                     语料：md / pdf / office（数据在包外）
+├── models/                    本地嵌入模型（不入库）
+└── logs/                      运行日志与 trace
 
 eval/                 评测、探针、测量、回归（run_eval / run_all_checks）
 scripts/              模型下载、Milvus 探测、迁移验证、E2E
 docs/                 RESUME + 历史归档
 ```
+
+包名统一带 `rag_kb` 前缀（`from rag_kb.utils.env_utils import MD_DIR`），
+避免 `utils` / `tools` 这类通用顶层名与第三方包撞名。
 
 ---
 
@@ -108,16 +114,23 @@ question
 # 1. 激活环境
 .venv\Scripts\Activate.ps1
 
-# 2. 配置（必填：OPENAI_API_KEY、Milvus 地址、LLM 端点与模型）
+# 2. 安装依赖（首次），并把本项目以「可编辑模式」装进环境
+#    最后一步是关键：包内一律用绝对导入（from utils... / from documents...），
+#    装成包之后这些导入在任何工作目录下都能解析，模块里无需再手工改 sys.path。
+#    源码仍就地修改，改完不用重装。详见 pyproject.toml 顶部说明。
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -e .
+
+# 3. 配置（必填：OPENAI_API_KEY、Milvus 地址、LLM 端点与模型）
 Copy-Item .env.example .env
 
-# 3. 准备本地模型（首次）
+# 4. 准备本地模型（首次）
 .venv\Scripts\python.exe scripts\fetch_models.py
 
-# 4. 入库（按 DOC_SOURCES 逐源写入）
-.venv\Scripts\python.exe -m RAG_PROJECT.documents.write_milvus
+# 5. 入库（按 DOC_SOURCES 逐源写入）
+.venv\Scripts\python.exe -m rag_kb.documents.write_milvus
 
-# 5. 启动 HTTP 服务
+# 6. 启动 HTTP 服务
 .venv\Scripts\python.exe RAG_PROJECT\api\run.py
 ```
 
@@ -132,9 +145,10 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/ask `
 命令行入口：
 
 ```powershell
-.venv\Scripts\python.exe -m RAG_PROJECT.graph2.graph_2      # CRAG 完整链路
-.venv\Scripts\python.exe -m RAG_PROJECT.graph.graph1        # 简化 ReAct
-.venv\Scripts\python.exe -m RAG_PROJECT.agent.rag_agent      # 1.x 标准 Agent
+.venv\Scripts\python.exe -m rag_kb.graph2.graph_2        # CRAG 完整链路
+.venv\Scripts\python.exe -m rag_kb.graph.graph1          # 简化 ReAct
+.venv\Scripts\python.exe -m rag_kb.agent.rag_agent       # 1.x 标准 Agent
+.venv\Scripts\python.exe -m rag_kb.scripts.try_search    # 交互式试检索
 ```
 
 评测：

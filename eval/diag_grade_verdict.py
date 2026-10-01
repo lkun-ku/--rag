@@ -10,18 +10,15 @@
 """
 
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from langchain_core.documents import Document  # noqa: E402
 
-from utils.citation import build_citation_meta  # noqa: E402
+from rag_kb.utils.citation import build_citation_meta  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # 1. P0-9 验证：来源区分
@@ -54,8 +51,8 @@ print("=" * 104)
 print("2. 判分诊断：%s" % Q)
 print("=" * 104)
 
-from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
-from tools.retriever_tools import get_retriever  # noqa: E402
+from rag_kb.graph2.grader_chain import retrieval_grader_chain  # noqa: E402
+from rag_kb.tools.retriever_tools import get_retriever  # noqa: E402
 
 retr = get_retriever()
 docs = retr.invoke(Q)
@@ -88,7 +85,7 @@ print()
 print("=" * 104)
 print("3. 判分链的 prompt（判断判据是否过严）")
 print("=" * 104)
-from graph2.grader_chain import retrieval_grader_chain as rc  # noqa: E402
+from rag_kb.graph2.grader_chain import retrieval_grader_chain as rc  # noqa: E402
 
 for attr in ("first", "steps", "last"):
     node = getattr(rc, attr, None)

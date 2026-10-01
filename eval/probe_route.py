@@ -7,16 +7,13 @@
 """
 
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from graph2.query_route_chain import question_router_chain  # noqa: E402
+from rag_kb.graph2.query_route_chain import question_router_chain  # noqa: E402
 
 # 明确属于知识库的问题（应 -> vectorstore）
 IN_KB = [

@@ -22,11 +22,8 @@
 from __future__ import annotations
 
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -59,8 +56,8 @@ print("=" * 100)
 print("探针：判分链的 token 能否被 UsageMetadataCallbackHandler 统计")
 print("=" * 100)
 
-from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
-from llm_models.all_llm import llm  # noqa: E402
+from rag_kb.graph2.grader_chain import retrieval_grader_chain  # noqa: E402
+from rag_kb.llm_models.all_llm import llm  # noqa: E402
 
 Q = "Milvus-16c64f-sq4u-fp16-force_merge 的 QPS 是多少？"
 DOC = "表格：检索性能实测（第 1-30 行）\n| 场景 | 产品与规格 | QPS |\n| 静态向量检索 | Milvus-16c64g-sq4u-fp16-force_merge | 9575.69 |"

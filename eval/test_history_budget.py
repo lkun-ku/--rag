@@ -30,12 +30,11 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
-from graph2 import generate_node2 as gn  # noqa: E402
+from rag_kb.graph2 import generate_node2 as gn  # noqa: E402
 
 FAILED = []
 TOTAL = 0
@@ -150,7 +149,7 @@ print()
 print("=" * 100)
 print("H7 纯函数：无 LLM、无网络、无 Milvus 依赖")
 print("=" * 100)
-src = pathlib.Path("RAG_PROJECT/graph2/generate_node2.py").read_text(encoding="utf-8")
+src = pathlib.Path("RAG_PROJECT/rag_kb/graph2/generate_node2.py").read_text(encoding="utf-8")
 # **只切 _format_history 自己**（到下一个顶层 def 为止）。
 # 首版切到 `def generate`，把中间插入的 `_should_summarize` / `_summarize`
 # （后者**合理地在调 llm**）也圈了进去 -> 误报。

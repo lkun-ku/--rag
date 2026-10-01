@@ -1,6 +1,6 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from utils.env_utils import EMBEDDING_DIM, EMBEDDING_MODEL
+from rag_kb.utils.env_utils import EMBEDDING_DIM, EMBEDDING_MODEL
 
 # ---------------------------------------------------------------------------
 # 本地嵌入模型（唯一嵌入来源）
@@ -17,7 +17,7 @@ from utils.env_utils import EMBEDDING_DIM, EMBEDDING_MODEL
 #     块粒度不一致，与「多格式统一管道」的架构直接冲突
 #   - 消除隐私外发、远程成本与 key 失效风险
 #
-# 模型与维度全部配置化（utils/env_utils.py）：
+# 模型与维度全部配置化（rag_kb/utils/env_utils.py）：
 #   默认 bge-large-zh-v1.5 / 1024 维，指向项目内 models/ 目录（离线可用）
 #   做 512 维 A/B 对照时改 EMBEDDING_MODEL / EMBEDDING_DIM 即可，无需改代码
 # ---------------------------------------------------------------------------

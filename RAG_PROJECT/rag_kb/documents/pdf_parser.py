@@ -22,24 +22,15 @@
 
 from __future__ import annotations
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import os
 from typing import List
 
 from langchain_core.documents import Document
 
 # [FIX / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（原为本地 100），
-# 与 office_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
-from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
-from utils.log_utils import log
+# 与 office_parser 统一 —— 详见 rag_kb/documents/markdown_parser.py 的定义处注释。
+from rag_kb.documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
+from rag_kb.utils.log_utils import log
 
 # PDF 自带文本层少于该字符数即判为扫描件。实测样本（把文字渲染成图片再嵌回 PDF）
 # 的文本层为 0 字符，而正常电子版 PDF 为数千至上万字符，阈值取 50 有充足余量。
@@ -263,7 +254,7 @@ class PDFParser:
 
 
 if __name__ == '__main__':
-    from utils.env_utils import DATAS_DIR
+    from rag_kb.utils.env_utils import DATAS_DIR
 
     # 演示：解析 datas/pdf 下的第一个 PDF，保留中间 md 便于核对
     pdf_dir = os.path.join(DATAS_DIR, 'pdf')

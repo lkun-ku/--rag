@@ -14,18 +14,16 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-from tools.retriever_tools import get_retriever  # noqa: E402
-from tools import reranker_tools as rt  # noqa: E402
+from rag_kb.tools.retriever_tools import get_retriever  # noqa: E402
+from rag_kb.tools import reranker_tools as rt  # noqa: E402
 
 QID = os.environ.get("QID", "n005")
 cases = {}

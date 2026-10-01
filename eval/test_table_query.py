@@ -31,12 +31,11 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.documents import Document  # noqa: E402
 
-from tools.table_query import (
+from rag_kb.tools.table_query import (
     _to_num,
     answer_aggregation,  # noqa: E402
     parse_markdown_table,

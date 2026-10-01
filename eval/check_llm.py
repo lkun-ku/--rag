@@ -32,8 +32,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -56,7 +55,7 @@ def main() -> int:
     ap.add_argument("--timeout", type=float, default=20.0, help="单次调用超时（秒）")
     args = ap.parse_args()
 
-    from utils.env_utils import LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
+    from rag_kb.utils.env_utils import LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
 
     proxies = {k: os.environ[k] for k in PROXY_KEYS if k in os.environ}
     print("  base_url : %s" % LLM_BASE_URL)

@@ -41,8 +41,8 @@ from langchain_core.documents import Document
 
 # [FIX / P1-1] 表格处理复用通用实现，避免「两套规则」
 # （table_handler 不 import pptx_parser，无循环依赖）
-from documents.table_handler import clean_cell, grid_to_markdown
-from utils.log_utils import log
+from rag_kb.documents.table_handler import clean_cell, grid_to_markdown
+from rag_kb.utils.log_utils import log
 
 # SmartArt 的 diagram data 部件的命名空间
 _NS = {
@@ -389,7 +389,7 @@ class PPTParser:
     # ------------------------------------------------------------------ 主入口
     def parse_pptx_to_documents(self, file_path: str) -> List[Document]:
         """解析 PPTX 为 Document 块（一页一块）。"""
-        from documents.markdown_parser import MarkdownParser
+        from rag_kb.documents.markdown_parser import MarkdownParser
 
         basename = os.path.basename(file_path)
         log.info(f'PPTX 解析: {basename}')

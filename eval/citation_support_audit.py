@@ -21,16 +21,15 @@
 import json
 import os
 import pathlib
-import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from llm_models.all_llm import llm  # noqa: E402
+from rag_kb.llm_models.all_llm import llm  # noqa: E402
 
 E = ROOT / "eval"
 audit = json.loads((E / "citation_audit.json").read_text(encoding="utf-8"))

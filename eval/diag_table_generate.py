@@ -28,18 +28,16 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 from pymilvus import MilvusClient  # noqa: E402
 
 COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
@@ -59,7 +57,7 @@ G_FLAT = "94e09c6a8006"  # 检索性能实测 场景 数据集 …（扁平平�
 G_PS = "3e7f9a39fdb1"  # PS 流式写入下的检索 Cohere …（PS 版）
 
 # 61-85 段（golden 之外的第三段，但属于同一张表）
-from tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
 docs = retriever.invoke(QUESTION)
 rids = [metrics.chunk_id(d.page_content) for d in docs]
@@ -89,9 +87,9 @@ GROUPS = {
 }
 
 from langchain_core.documents import Document  # noqa: E402
-from graph2.generate_node2 import CITE_PROMPT  # noqa: E402
-from utils.citation import format_context  # noqa: E402
-from llm_models.all_llm import llm  # noqa: E402   # 实测路径：llm_models/ 而非 graph2/
+from rag_kb.graph2.generate_node2 import CITE_PROMPT  # noqa: E402
+from rag_kb.utils.citation import format_context  # noqa: E402
+from rag_kb.llm_models.all_llm import llm  # noqa: E402   # 实测路径：llm_models/ 而非 graph2/
 
 if seg_61_85:
     GROUPS["B. 结构化 3 段（+61-85）"].append(metrics.chunk_id(seg_61_85))

@@ -32,17 +32,15 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-from utils.citation import is_refusal  # noqa: E402
+from rag_kb.utils.citation import is_refusal  # noqa: E402
 
 ROUNDS = int(os.environ.get("N005_ROUNDS", "10"))
 QID = os.environ.get("N005_QID", "n005")
@@ -63,7 +61,7 @@ print("  问题 : %s" % Q)
 print("  golden: %d 块" % len(GOLD))
 print()
 
-from graph2.graph_2 import run_with_trace  # noqa: E402
+from rag_kb.graph2.graph_2 import run_with_trace  # noqa: E402
 
 rows = []
 for i in range(1, ROUNDS + 1):

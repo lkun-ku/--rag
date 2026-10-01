@@ -33,12 +33,11 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.documents import Document  # noqa: E402
 
-import tools.reranker_tools as rt  # noqa: E402
+import rag_kb.tools.reranker_tools as rt  # noqa: E402
 
 FAILED = []
 TOTAL = 0
@@ -150,7 +149,7 @@ print()
 print("=" * 100)
 print("C8 深检索配置")
 print("=" * 100)
-from tools.retriever_tools import (
+from rag_kb.tools.retriever_tools import (
     FINAL_K,
     FINAL_K_DEEP,
     PER_COLLECTION_K,  # noqa: E402
@@ -177,7 +176,7 @@ print()
 print("=" * 100)
 print("C10/C11 深检索检索器（会连 Milvus，约几秒）")
 print("=" * 100)
-import tools.retriever_tools as rtt  # noqa: E402
+import rag_kb.tools.retriever_tools as rtt  # noqa: E402
 
 sig = inspect.signature(rtt.get_retriever)
 check("get_retriever 有 deep 参数", "deep" in sig.parameters, str(list(sig.parameters)))
@@ -193,7 +192,7 @@ print()
 print("=" * 100)
 print("C12 retrieve 节点的接线")
 print("=" * 100)
-from graph2.retriever_node import retrieve  # noqa: E402
+from rag_kb.graph2.retriever_node import retrieve  # noqa: E402
 
 src = inspect.getsource(retrieve)
 check("retrieve 调用了 enterprise_rerank", "enterprise_rerank" in src)

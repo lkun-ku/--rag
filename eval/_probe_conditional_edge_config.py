@@ -23,12 +23,9 @@
 
 from __future__ import annotations
 
-import pathlib
-import sys
 from typing import TypedDict
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.callbacks import BaseCallbackHandler  # noqa: E402
 from langgraph.graph import END, StateGraph  # noqa: E402

@@ -19,17 +19,16 @@ from __future__ import annotations
 
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
-from graph2.generate_node2 import _format_history  # noqa: E402
+from rag_kb.graph2.generate_node2 import _format_history  # noqa: E402
 
 # 真实答案样本：取本项目 trace 里的实际长度分布
 TRACE = ROOT / "logs" / "trace.jsonl"

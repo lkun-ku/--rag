@@ -37,10 +37,10 @@ from langchain_core.tools import tool
 from pymilvus import Function
 from pymilvus.client.types import FunctionType
 
-from documents.milvus_db import MilvusVectorSave
-from utils.citation import format_context
-from utils.env_utils import DOC_SOURCES, MILVUS_RERANKER_STYLE
-from utils.log_utils import log
+from rag_kb.documents.milvus_db import MilvusVectorSave
+from rag_kb.utils.citation import format_context
+from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_RERANKER_STYLE
+from rag_kb.utils.log_utils import log
 
 # 单集合召回条数。
 #
@@ -295,7 +295,7 @@ def _build_multi_retriever(
     """
     from pymilvus import MilvusClient
 
-    from utils.env_utils import MILVUS_URI
+    from rag_kb.utils.env_utils import MILVUS_URI
 
     try:
         existing = set(MilvusClient(uri=MILVUS_URI).list_collections())
@@ -373,7 +373,7 @@ def tenant_collections(tenant: str) -> set:
         PermissionError: 租户未在 KB_TENANTS 中登记（不隐式放行）。
         ValueError: 租户配置里出现了 DOC_SOURCES 中不存在的源名（配置错误要显式暴露）。
     """
-    from utils.env_utils import TENANTS
+    from rag_kb.utils.env_utils import TENANTS
 
     if tenant not in TENANTS:
         raise PermissionError(f"未知租户 {tenant!r}；已登记: {sorted(TENANTS.keys()) or '（未配置 KB_TENANTS）'}")

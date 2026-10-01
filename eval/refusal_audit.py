@@ -36,7 +36,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path[:0] = [str(HERE), str(HERE.parent), str(HERE.parent / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -85,8 +85,8 @@ def main() -> int:
 
     cache = metrics.JudgeCache(enabled=not args.no_cache)
 
-    from tools.retriever_tools import retriever  # noqa: E402
-    from utils.citation import is_refusal  # noqa: E402
+    from rag_kb.tools.retriever_tools import retriever  # noqa: E402
+    from rag_kb.utils.citation import is_refusal  # noqa: E402
 
     cases = [json.loads(l) for l in GOLDEN.read_text(encoding="utf-8").splitlines() if l.strip()]
     if args.limit_in:

@@ -20,24 +20,10 @@
 
 from __future__ import annotations
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import argparse
 import os
-import pathlib
 import sys
 import time
-
-HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(ROOT), str(ROOT)]
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -73,7 +59,7 @@ def print_answer(res: dict):
 
 
 def do_retrieval(q: str, show_full: bool):
-    from tools.retriever_tools import retriever
+    from rag_kb.tools.retriever_tools import retriever
 
     t0 = time.time()
     docs = retriever.invoke(q)
@@ -82,7 +68,7 @@ def do_retrieval(q: str, show_full: bool):
 
 
 def do_ask(q: str, trace: bool):
-    from graph2.graph_2 import run_with_trace
+    from rag_kb.graph2.graph_2 import run_with_trace
 
     t0 = time.time()
     r = run_with_trace(q, save=False)
@@ -103,7 +89,7 @@ def do_ask(q: str, trace: bool):
         "elapsed_sec": round(time.time() - t0, 1),
         "refused": None,
     }
-    from utils.citation import build_citation_meta, is_refusal, parse_citations
+    from rag_kb.utils.citation import build_citation_meta, is_refusal, parse_citations
 
     answer = r.get("generation", "") or ""
     cites = parse_citations(answer)
@@ -131,7 +117,7 @@ def main() -> int:
     ap.add_argument("--full", action="store_true", help="块内容显示更多（300 字）")
     args = ap.parse_args()
 
-    from tools.retriever_tools import retriever
+    from rag_kb.tools.retriever_tools import retriever
 
     print("=" * 86)
     print("RAG 试检索")

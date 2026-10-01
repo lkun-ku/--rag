@@ -39,7 +39,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path[:0] = [str(HERE), str(HERE.parent), str(HERE.parent / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -64,7 +64,7 @@ def main() -> int:
     report = json.loads(REPORT.read_text(encoding="utf-8"))
     rows = report["in_scope"]["detail"]
 
-    from tools.retriever_tools import retriever  # noqa: E402
+    from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
     if args.sample and args.sample < len(rows):
         step = len(rows) / args.sample

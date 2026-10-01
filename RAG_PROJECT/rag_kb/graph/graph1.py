@@ -1,12 +1,3 @@
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import uuid
 from typing import Literal
 
@@ -15,17 +6,17 @@ from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from graph.agent_node import agent_node
-from graph.generate_node import generate
-from graph.get_human_message import get_last_human_message
-from graph.graph_state1 import AgentState, Grade
-from graph.rewrite_node import rewrite
-from llm_models.all_llm import llm
-from tools.retriever_tools import retriever_tool
-from utils.checkpointer import create_checkpointer
-from utils.log_utils import log
-from utils.print_utils import _print_event
-from utils.env_utils import LLM_STRUCTURED_METHOD
+from rag_kb.graph.agent_node import agent_node
+from rag_kb.graph.generate_node import generate
+from rag_kb.graph.get_human_message import get_last_human_message
+from rag_kb.graph.graph_state1 import AgentState, Grade
+from rag_kb.graph.rewrite_node import rewrite
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.tools.retriever_tools import retriever_tool
+from rag_kb.utils.checkpointer import create_checkpointer
+from rag_kb.utils.log_utils import log
+from rag_kb.utils.print_utils import _print_event
+from rag_kb.utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 def grade_documents(state) -> Literal["generate", "rewrite"]:
@@ -81,8 +72,8 @@ def create_graph():
     使构图逻辑可被独立调用与测试。
 
     拓扑、节点、条件边均与迁移前逐字一致；仅检查点实现由 MemorySaver（仅内存、
-    重启即丢）改为官方推荐的 SqliteSaver（文件持久化），与 agent/rag_agent.py 一致，
-    选型说明见 utils/checkpointer.py。
+    重启即丢）改为官方推荐的 SqliteSaver（文件持久化），与 rag_kb/agent/rag_agent.py 一致，
+    选型说明见 rag_kb/utils/checkpointer.py。
     """
     # 定义一个新的工作流图
     workflow = StateGraph(AgentState)

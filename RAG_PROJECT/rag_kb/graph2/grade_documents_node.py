@@ -37,10 +37,10 @@ from typing import List
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from graph2.grader_chain import retrieval_grader_chain
-from llm_models.all_llm import llm
-from utils.env_utils import LLM_STRUCTURED_METHOD
-from utils.log_utils import log
+from rag_kb.graph2.grader_chain import retrieval_grader_chain
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.utils.env_utils import LLM_STRUCTURED_METHOD
+from rag_kb.utils.log_utils import log
 
 # 并发度上限。判分是网络 IO 密集，适度并发即可显著缩短总耗时；
 # 取 8 是因为 18 块在 8 并发下约 3 轮完成，再高收益递减且更容易触发 API 限流。

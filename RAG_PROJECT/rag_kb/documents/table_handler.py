@@ -43,7 +43,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from langchain_core.documents import Document
 
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
 # 默认行数阈值：超过则触发行切 + 表头注入。
 # 取 30 与业界经验一致；实测 60 行表切成 2 块（667 / 715 字符），远小于语义切割阈值 5000。

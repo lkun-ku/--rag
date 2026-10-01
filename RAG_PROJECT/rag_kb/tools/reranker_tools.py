@@ -33,12 +33,19 @@ import os
 import pathlib
 import re
 
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
 # ---------------------------------------------------------------------------
 # 配置（环境变量驱动，默认关闭）
 # ---------------------------------------------------------------------------
-RERANK_ENABLED = os.getenv("RERANK_ENABLED", "0") not in ("", "0", "false", "False")
+# [ROADMAP 4.53] 开关统一为 `KB_` 前缀（短名、易辨认）：
+#   新名 `KB_RERANK` 优先，旧名 `RERANK_ENABLED` 兜底 —— 两种 .env 写法都可用。
+RERANK_ENABLED = (os.getenv("KB_RERANK") or os.getenv("RERANK_ENABLED", "0")) not in (
+    "",
+    "0",
+    "false",
+    "False",
+)
 RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "20"))
 RERANK_SCORE_THRESHOLD = float(os.getenv("RERANK_SCORE_THRESHOLD", "0"))
 RERANK_MAX_CHARS = int(os.getenv("RERANK_MAX_CHARS", "2000"))  # 单块送去打分的截断长度

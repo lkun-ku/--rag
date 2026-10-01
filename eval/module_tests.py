@@ -33,8 +33,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -72,7 +71,7 @@ def D(text: str, **meta) -> Document:
 # M1 · citation
 # ===========================================================================
 def m1() -> None:
-    from utils.citation import (
+    from rag_kb.utils.citation import (
         REFUSAL_TEXT,
         build_citation_meta,
         format_context,
@@ -138,7 +137,7 @@ def m1() -> None:
 # M2 · table_handler
 # ===========================================================================
 def m2() -> None:
-    from documents.table_handler import build_table_chunks, clean_cell, parse_table_html, restore_table_documents
+    from rag_kb.documents.table_handler import build_table_chunks, clean_cell, parse_table_html, restore_table_documents
 
     check("M2", "parse 空串 -> []", lambda: parse_table_html(""), [])
     check("M2", "parse 非表格 -> []", lambda: parse_table_html("<p>abc</p>"), [])
@@ -207,7 +206,7 @@ def m2() -> None:
 
     # ---- P1-1：PPT 表格必须复用通用表格规则（清洗 + 结构前缀）----
     # 用假 shape 对象，避免依赖真实 pptx 文件（构造畸形/特制 pptx 成本高）
-    from documents.pptx_parser import PPTParser
+    from rag_kb.documents.pptx_parser import PPTParser
 
     class _Cell:
         def __init__(self, t):
@@ -242,7 +241,7 @@ def m2() -> None:
 # M3 · markdown_parser（超短块合并 + 字节截断）
 # ===========================================================================
 def m3() -> None:
-    from documents.markdown_parser import MarkdownParser
+    from rag_kb.documents.markdown_parser import MarkdownParser
 
     M = MarkdownParser
     # **必须带 category="content"**：合并的 `_joinable()` 要求前一块 category == "content"，
@@ -292,7 +291,7 @@ def m3() -> None:
 # M4 · tracer
 # ===========================================================================
 def m4() -> None:
-    from utils import tracer as T
+    from rag_kb.utils import tracer as T
 
     t = T.Tracer("q?", enabled=False)
     t.step("n1", elapsed=1.0, extra=1)
@@ -321,7 +320,7 @@ def m4() -> None:
 # M5 · env_utils（配置解析）
 # ===========================================================================
 def m5() -> None:
-    from utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, TENANTS
+    from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, TENANTS
 
     check("M5", "DOC_SOURCES 非空", lambda: len(DOC_SOURCES) > 0, True)
     check(
@@ -346,7 +345,7 @@ def m5() -> None:
 # M6 · retriever_tools（集合发现 / 租户失败路径）
 # ===========================================================================
 def m6() -> None:
-    from tools.retriever_tools import _discover_collections, get_retriever, get_tenant, set_tenant, tenant_collections
+    from rag_kb.tools.retriever_tools import _discover_collections, get_retriever, get_tenant, set_tenant, tenant_collections
 
     cols = _discover_collections()
     check("M6", "_discover_collections 返回非空且无重复", lambda: len(cols) > 0 and len(cols) == len(set(cols)), True)

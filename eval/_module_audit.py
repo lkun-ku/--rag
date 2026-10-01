@@ -1,6 +1,6 @@
-"""深度模块化体检：**真实导入** 52 个业务模块，检查：
+"""深度模块化体检：**真实导入** 业务模块，检查：
   ① 能否 import（暴露循环导入 / 缺失依赖 / 语法问题）
-  ② 是否有 `__main__` 但缺 sys.path 兜底（直跑会炸）
+  ② 是否又出现了 `sys.path` 操盘（包已可安装，任何兜底都是回退）
   ③ 模块级公开符号是否**从未被任何文件引用**（死代码候选）
 
 全部基于真实执行结果，不做静态猜测。
@@ -16,7 +16,7 @@ import traceback
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 # ---- 1. 收集业务模块 -------------------------------------------------------
 biz = sorted(p for p in (ROOT / "RAG_PROJECT").rglob("*.py") if "__pycache__" not in str(p))
@@ -49,27 +49,26 @@ if fail:
 else:
     print("  ✅ 全部可导入")
 
-# ---- 2. 有 __main__ 但没有 sys.path 兜底 -----------------------------------
+# ---- 2. 不允许再出现 sys.path 操盘 -----------------------------------------
+# 历史：包内曾靠 `sys.path.insert(parent.parent)` 让「直接 python xxx.py」能跑。
+# 现在由 editable 安装（pip install -e .）解决，任何模块级的 sys.path 操作都属于回退。
 print()
 print("=" * 100)
-print("② 有 `__main__` 但缺 sys.path 兜底（直跑会 ModuleNotFoundError）")
+print("② 模块级 sys.path 操盘（包已装为 editable，出现即为回退）")
 print("=" * 100)
 bad_main = []
+main_count = 0
 for name, p in mods:
     t = p.read_text(encoding="utf-8", errors="replace")
-    if "__main__" not in t:
-        continue
-    has_fallback = "_ROOT = _pathlib.Path(__file__).resolve().parent.parent" in t
-    if not has_fallback:
+    if '__main__' in t:
+        main_count += 1
+    if re.search(r'(?m)^\s*sys\.path', t):
         bad_main.append(name)
-print(
-    "  有 __main__ 的模块 %d 个，缺兜底 %d 个"
-    % (sum(1 for _, p in mods if "__main__" in p.read_text(encoding="utf-8", errors="replace")), len(bad_main))
-)
+print("  有 __main__ 的模块 %d 个，仍做 sys.path 操作的 %d 个" % (main_count, len(bad_main)))
 for n in bad_main:
-    print("    [缺兜底] %s" % n)
+    print("    [sys.path] %s" % n)
 if not bad_main:
-    print("  ✅ 全部有兜底")
+    print("  ✅ 无任何 sys.path 兜底")
 
 # ---- 3. 模块级公开符号从未被引用（死代码候选）------------------------------
 print()
@@ -114,6 +113,6 @@ print("=" * 100)
 print("汇总")
 print("=" * 100)
 print("  导入失败       : %d" % len(fail))
-print("  缺 sys.path 兜底: %d" % len(bad_main))
+print("  sys.path 回退  : %d" % len(bad_main))
 print("  死代码候选     : %d" % len(dead))
 sys.exit(0 if not fail and not bad_main else 1)

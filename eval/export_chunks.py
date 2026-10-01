@@ -36,14 +36,13 @@ import os
 import pathlib
 import sys
 
-sys.path[:0] = [os.getcwd(), os.path.join(os.getcwd(), "RAG_PROJECT")]
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 
 from pymilvus import MilvusClient  # noqa: E402
 
-from utils.env_utils import DOC_SOURCES, MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_URI  # noqa: E402
 
 OUT = pathlib.Path(__file__).resolve().parent / "chunk_index.json"
 # Milvus query 单次上限（本项目块数远小于此值，留足余量）

@@ -21,18 +21,17 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # noqa: E402
 from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 
-from graph2.generate_node2 import (
+from rag_kb.graph2.generate_node2 import (
     MAX_HISTORY_TURNS,
     MAX_PER_MSG_CHARS,  # noqa: E402
     _format_history,
 )
-from graph2.graph_2 import create_graph, get_memory_graph, run_with_trace  # noqa: E402
+from rag_kb.graph2.graph_2 import create_graph, get_memory_graph, run_with_trace  # noqa: E402
 
 FAILED = []
 TOTAL = 0

@@ -160,7 +160,7 @@ def llm_health_check() -> Tuple[bool, str]:
         (可用, 说明)
     """
     try:
-        from llm_models.all_llm import llm
+        from rag_kb.llm_models.all_llm import llm
 
         resp = llm.invoke("回复一个字：好")
         text = getattr(resp, "content", str(resp))
@@ -197,7 +197,7 @@ def _is_llm_env_error(e: Exception) -> bool:
 def judge_faithfulness(question: str, generation: str, contexts: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Faithfulness（抗幻觉）：答案是否**只**基于给定上下文。
 
-    复用项目现有的幻觉判分器（graph2/grade_hallucinations_chain.py），
+    复用项目现有的幻觉判分器（rag_kb/graph2/grade_hallucinations_chain.py），
     它本来就在 CRAG 工作流里跑，因此这里评估的是**真实链路**的判断标准。
 
     Returns:
@@ -212,7 +212,7 @@ def judge_faithfulness(question: str, generation: str, contexts: str, cache: Opt
             return {"value": rec["value"], "raw": rec["raw"], "cached": True}
 
     try:
-        from graph2.grade_hallucinations_chain import hallucination_grader_chain
+        from rag_kb.graph2.grade_hallucinations_chain import hallucination_grader_chain
 
         score = hallucination_grader_chain.invoke({"documents": contexts, "generation": generation})
         raw = str(getattr(score, "binary_score", "")).strip().lower()
@@ -230,7 +230,7 @@ def judge_faithfulness(question: str, generation: str, contexts: str, cache: Opt
 def judge_answer_relevancy(question: str, generation: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Answer Relevancy：答案是否**真的回答了**问题。
 
-    复用 graph2/grade_answer_chain.py。
+    复用 rag_kb/graph2/grade_answer_chain.py。
 
     Raises:
         LLMUnavailable: 同上，绝不用 0 分掩盖环境故障
@@ -242,7 +242,7 @@ def judge_answer_relevancy(question: str, generation: str, cache: Optional[Judge
             return {"value": rec["value"], "raw": rec["raw"], "cached": True}
 
     try:
-        from graph2.grade_answer_chain import answer_grader_chain
+        from rag_kb.graph2.grade_answer_chain import answer_grader_chain
 
         score = answer_grader_chain.invoke({"question": question, "generation": generation})
         raw = str(getattr(score, "binary_score", "")).strip().lower()
@@ -280,7 +280,7 @@ def generate_answer(question: str, docs: Sequence, cache: Optional[JudgeCache] =
         if rec and rec.get("text"):
             return rec["text"], True
 
-    from graph2.generate_node2 import generate
+    from rag_kb.graph2.generate_node2 import generate
 
     result = generate({"question": question, "documents": list(docs)})
     ans = result["generation"]

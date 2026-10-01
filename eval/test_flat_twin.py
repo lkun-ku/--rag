@@ -39,8 +39,7 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -110,7 +109,7 @@ print("=" * 96)
 print()
 
 try:
-    from documents.table_handler import is_flat_twin
+    from rag_kb.documents.table_handler import is_flat_twin
 except ImportError as e:
     print("  [**FAIL**] 无法 import is_flat_twin（尚未实现）: %s" % e)
     print()

@@ -8,18 +8,15 @@
 """
 
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from langchain_core.documents import Document  # noqa: E402
 
-from utils.citation import _numbers_in_docs, validate_citations  # noqa: E402
+from rag_kb.utils.citation import _numbers_in_docs, validate_citations  # noqa: E402
 
 
 def D(t: str) -> Document:

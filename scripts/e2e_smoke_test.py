@@ -37,8 +37,7 @@ import traceback
 from hashlib import sha256
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "RAG_PROJECT"))
+
 
 try:
     from dotenv import load_dotenv
@@ -60,7 +59,7 @@ LITE_URI = os.getenv("SMOKE_MILVUS_URI", "")
 
 def apply_config():
     """在导入业务模块之前覆盖配置（模块顶层会把常量绑定到自己的命名空间）。"""
-    import utils.env_utils as env_utils
+    import rag_kb.utils.env_utils as env_utils
 
     if LITE_URI:
         env_utils.MILVUS_URI = LITE_URI
@@ -136,7 +135,7 @@ def build_embeddings():
 
 
 def parse_docs():
-    from documents.markdown_parser import MarkdownParser
+    from rag_kb.documents.markdown_parser import MarkdownParser
 
     print(f"  源文件: {MD_FILE}")
     parser = MarkdownParser()
@@ -154,7 +153,7 @@ def main():
     # utils.env_utils 的常量绑定到自己的命名空间（from ... import MILVUS_URI）。
     apply_config()
 
-    from documents.milvus_db import MilvusVectorSave
+    from rag_kb.documents.milvus_db import MilvusVectorSave
 
     step(1, "准备嵌入向量")
     emb, mode = build_embeddings()
@@ -163,7 +162,7 @@ def main():
     docs = parse_docs()
 
     step(3, f"重建集合 {COLLECTION}（使用项目自身的 schema 与索引参数）")
-    import utils.env_utils as env_utils
+    import rag_kb.utils.env_utils as env_utils
 
     env_utils.COLLECTION_NAME = COLLECTION
     os.environ["COLLECTION_NAME"] = COLLECTION
@@ -192,10 +191,10 @@ def main():
     mv.add_documents(docs)
     print(f"  已写入 {len(docs)} 个文档块")
 
-    step(5, "构造检索器（项目自身的 tools/retriever_tools.py 路径）")
+    step(5, "构造检索器（项目自身的 rag_kb/tools/retriever_tools.py 路径）")
     import importlib
 
-    import tools.retriever_tools as rt
+    import rag_kb.tools.retriever_tools as rt
 
     importlib.reload(rt)
     print(f"  检索器: {rt.retriever_tool.name}")

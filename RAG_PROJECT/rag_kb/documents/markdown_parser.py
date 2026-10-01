@@ -1,12 +1,3 @@
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import os
 import re
 import shutil
@@ -17,15 +8,15 @@ from typing import List
 # 不可用时降级为结构分块并打 WARNING，避免整个入库链路在 import 阶段就炸。
 
 # [UPGRADE ] 改用本地 bge_embedding：分块语义须与入库向量同源（路线图坑①）
-from llm_models.embeddings_model import bge_embedding
-from utils.env_utils import MD_DIR
-from tools.semantic_splitter import make_splitter
-from utils.log_utils import log
+from rag_kb.llm_models.embeddings_model import bge_embedding
+from rag_kb.utils.env_utils import MD_DIR
+from rag_kb.tools.semantic_splitter import make_splitter
+from rag_kb.utils.log_utils import log
 from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_core.documents import Document
 
 # [UPGRADE  / ROADMAP 2.4] 表格结构保护与表格感知切分
-from documents.table_handler import (
+from rag_kb.documents.table_handler import (
     DEFAULT_MAX_ROWS,
     has_restorable_table,
     is_flat_twin,
@@ -99,7 +90,7 @@ class MarkdownParser:
     专门负责markdown文件的解析和切片
     """
 
-    # Milvus schema（见 documents/milvus_db.py）中声明为「非空且无默认值」的字段。
+    # Milvus schema（见 rag_kb/documents/milvus_db.py）中声明为「非空且无默认值」的字段。
     # unstructured 并不会对所有元素都产出这些键（例如顶层正文块没有 category_depth），
     # 缺字段会在 add_documents 时报 DataNotMatchException。这里统一兜底，
     # 只补 metadata，不改动任何正文内容。
@@ -112,7 +103,7 @@ class MarkdownParser:
         'category_depth': 0,
     }
 
-    # Milvus schema 的 VARCHAR 上限（见 documents/milvus_db.py），**按字节**计
+    # Milvus schema 的 VARCHAR 上限（见 rag_kb/documents/milvus_db.py），**按字节**计
     # （中文 3 字节/字）。超长会让整批写入失败：实测表格块的 title 取自卫标题，
     # 而父标题在合并阶段会不断吸收子元素，曾累积到 1496 字符 ->
     # MilvusException code=1100 length of varchar field title exceeds max length。
@@ -492,8 +483,8 @@ class MarkdownParser:
     ) -> List[Document]:
         """从 Markdown **文本内容**解析成 Document 块。
 
-        供 PDF / Office 转换结果复用本管道（见 documents/pdf_parser.py、
-        documents/office_parser.py）——它们先转成 Markdown，再走与原生 .md
+        供 PDF / Office 转换结果复用本管道（见 rag_kb/documents/pdf_parser.py、
+        rag_kb/documents/office_parser.py）——它们先转成 Markdown，再走与原生 .md
         **完全相同**的合并、切片与字段兜底流程，因此检索层与工作流层零改动。
 
         为什么落地临时文件而不直接用 file=BytesIO：

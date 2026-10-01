@@ -40,8 +40,8 @@ import sqlite3
 import time
 import uuid
 
-from utils.env_utils import CHECKPOINT_DB
-from utils.log_utils import log
+from rag_kb.utils.env_utils import CHECKPOINT_DB
+from rag_kb.utils.log_utils import log
 
 # 默认 6 小时（用户确认）。语义是「6 小时不活跃」。
 SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "21600"))
@@ -159,7 +159,7 @@ def delete_session(sid: str) -> bool:
     try:
         # ① 历史向量集合
         try:
-            from tools import history_store
+            from rag_kb.tools import history_store
 
             history_store.purge_session(sid)
         except Exception as e:  # noqa: BLE001
@@ -235,18 +235,3 @@ def janitor_loop(interval: int | None = None, stop_event=None):
             stop_event.wait(gap)
         else:
             time.sleep(gap)
-    """删除「超过 TTL 不活跃」的会话，返回被删的 session_id 列表。
-
-    滑动语义：判据是 `now - last_active > ttl`，与创建时间无关。
-    """
-    ttl = SESSION_TTL_SECONDS if ttl_seconds is None else ttl_seconds
-    now = int(time.time())
-    cur = _get_conn().execute("SELECT id, last_active FROM sessions WHERE ? - last_active > ?", (now, int(ttl)))
-    stale = cur.fetchall()
-    removed = []
-    for sid, last in stale:
-        if delete_session(sid):
-            removed.append(sid)
-    if removed:
-        log.info("[session] TTL 清理：删除 %d 个过期会话（TTL=%ds）" % (len(removed), ttl))
-    return removed

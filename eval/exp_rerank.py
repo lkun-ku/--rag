@@ -24,18 +24,17 @@ import hashlib
 import json
 import os
 import pathlib
-import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from sentence_transformers import CrossEncoder  # noqa: E402
 
-from tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
 E = ROOT / "eval"
 cases = [json.loads(l) for l in (E / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]

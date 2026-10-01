@@ -36,14 +36,13 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from pymilvus import MilvusClient  # noqa: E402
-from utils.env_utils import MILVUS_URI, MD_DIR  # noqa: E402
-from documents.table_handler import is_flat_twin, _norm_ws  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI, MD_DIR  # noqa: E402
+from rag_kb.documents.table_handler import is_flat_twin, _norm_ws  # noqa: E402
 
 COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
 
@@ -164,8 +163,8 @@ print("=" * 104)
 print("B 段 · 管道级：真实 md 文件，改造前 vs 改造后（验证不丢内容）")
 print("=" * 104)
 
-import documents.markdown_parser as mp_mod  # noqa: E402
-from documents.markdown_parser import MarkdownParser  # noqa: E402  (类名以实测为准)
+import rag_kb.documents.markdown_parser as mp_mod  # noqa: E402
+from rag_kb.documents.markdown_parser import MarkdownParser  # noqa: E402  (类名以实测为准)
 
 md_files = sorted(p for p in pathlib.Path(MD_DIR).iterdir() if p.suffix == ".md")[:2]
 if not md_files:

@@ -12,7 +12,7 @@ import sqlite3
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 
-from utils.env_utils import CHECKPOINT_DB
+from rag_kb.utils.env_utils import CHECKPOINT_DB
 
 
 def create_checkpointer() -> SqliteSaver:

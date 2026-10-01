@@ -39,7 +39,7 @@ import tempfile
 from typing import List
 
 from langchain_core.documents import Document
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
 
 def _to_markdown_via_tempfile(md_text: str, stem: str) -> List[Document]:
@@ -49,7 +49,7 @@ def _to_markdown_via_tempfile(md_text: str, stem: str) -> List[Document]:
     `UnstructuredMarkdownLoader` + 文件级元数据）。走临时文件能**零改动复用**
     它的全部逻辑；代价是一次磁盘 IO（毫秒级），比复制一套切片逻辑更安全。
     """
-    from documents.markdown_parser import MarkdownParser
+    from rag_kb.documents.markdown_parser import MarkdownParser
 
     fd, tmp = tempfile.mkstemp(suffix=".md", prefix="conv_", text=False)
     try:

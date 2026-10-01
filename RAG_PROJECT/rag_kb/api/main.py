@@ -20,9 +20,8 @@
 `StreamingResponse` + `text/event-stream`，无需额外依赖与握手协议。
 若将来需要双向（如多轮打断），再换 WebSocket。
 
-启动：
-    $env:PYTHONPATH="RAG_PROJECT"
-    .venv\\Scripts\\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8000
+启动（前置：`pip install -e .`，见 pyproject.toml 的说明）：
+    .venv\\Scripts\\python.exe -m uvicorn rag_kb.api.main:app --host 127.0.0.1 --port 8000
 
     # 或用项目脚本
     .venv\\Scripts\\python.exe RAG_PROJECT/api/run.py
@@ -31,24 +30,17 @@
 from __future__ import annotations
 
 import json
-import pathlib
-import sys
 import time
 from typing import Any, Dict, List, Optional
 
-# 允许 `python RAG_PROJECT/api/main.py` 直接运行（正常应走 PYTHONPATH）
-_PKG_ROOT = pathlib.Path(__file__).resolve().parent.parent
-if str(_PKG_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PKG_ROOT))
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
-from fastapi import FastAPI, Header, HTTPException  # noqa: E402
-from fastapi.responses import StreamingResponse  # noqa: E402
-from pydantic import BaseModel, Field  # noqa: E402
-
-from utils import tracer  # noqa: E402
-from utils.citation import build_citation_meta, is_refusal, parse_citations  # noqa: E402
-from utils.env_utils import DOC_SOURCES, MILVUS_URI, TENANTS  # noqa: E402
-from utils.log_utils import log  # noqa: E402
+from rag_kb.utils import tracer
+from rag_kb.utils.citation import build_citation_meta, is_refusal, parse_citations
+from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_URI, TENANTS
+from rag_kb.utils.log_utils import log
 
 APP_VERSION = "1.0.0"
 
@@ -106,8 +98,8 @@ def _warmup():
     """
     t0 = time.time()
     try:
-        import tools.retriever_tools  # noqa: F401  触发检索器 + 嵌入模型加载
-        import graph2.graph_2  # noqa: F401        触发工作流图编译
+        import rag_kb.tools.retriever_tools  # noqa: F401  触发检索器 + 嵌入模型加载
+        import rag_kb.graph2.graph_2  # noqa: F401        触发工作流图编译
 
         log.info(f"[api] 预热完成，耗时 {time.time() - t0:.1f}s")
     except Exception as e:  # noqa: BLE001
@@ -139,7 +131,7 @@ def health() -> Dict[str, Any]:
 
     # 检索器（覆盖集合）
     try:
-        from tools.retriever_tools import retriever
+        from rag_kb.tools.retriever_tools import retriever
 
         covered = list(getattr(retriever, "retrievers", {}).keys())
         out["checks"]["retriever"] = {"ok": bool(covered), "collections": covered}
@@ -151,7 +143,7 @@ def health() -> Dict[str, Any]:
 
     # LLM（探活一次）
     try:
-        from llm_models.all_llm import llm
+        from rag_kb.llm_models.all_llm import llm
 
         resp = llm.invoke("回复一个字：好")
         out["checks"]["llm"] = {"ok": True, "reply": str(getattr(resp, "content", resp))[:20]}
@@ -196,7 +188,7 @@ def _tenant_collections_of(tenant: Optional[str]):
     if not tenant:
         return None
     try:
-        from tools.retriever_tools import tenant_collections
+        from rag_kb.tools.retriever_tools import tenant_collections
 
         return sorted(tenant_collections(tenant))
     except Exception as e:  # noqa: BLE001
@@ -220,7 +212,7 @@ def sessions_new(req: NewSessionRequest) -> Dict[str, Any]:
     之后 `/ask` 带这个 `session_id` 即可获得多轮记忆；
     `/ask/stream` 同理。
     """
-    from utils import session_store
+    from rag_kb.utils import session_store
 
     sid = session_store.create_session(req.title)
     return {"session_id": sid, "ttl_seconds": session_store.SESSION_TTL_SECONDS}
@@ -229,7 +221,7 @@ def sessions_new(req: NewSessionRequest) -> Dict[str, Any]:
 @app.get("/sessions")
 def sessions_list() -> Dict[str, Any]:
     """会话列表（按最后活跃倒序）。"""
-    from utils import session_store
+    from rag_kb.utils import session_store
 
     items = session_store.list_sessions()
     return {"count": len(items), "sessions": items}
@@ -238,7 +230,7 @@ def sessions_list() -> Dict[str, Any]:
 @app.delete("/sessions/{session_id}")
 def sessions_delete(session_id: str) -> Dict[str, Any]:
     """删除会话：历史向量块 + LangGraph 检查点 + 元数据，三处一起清。"""
-    from utils import session_store
+    from rag_kb.utils import session_store
 
     ok = session_store.delete_session(session_id)
     if not ok:
@@ -259,7 +251,7 @@ def _start_session_janitor():
     """
     import threading
 
-    from utils import session_store
+    from rag_kb.utils import session_store
 
     t = threading.Thread(target=session_store.janitor_loop, name="session-janitor", daemon=True)
     t.start()
@@ -275,7 +267,7 @@ def _run_once(question: str, with_trace: bool, session_id: Optional[str] = None)
     [ROADMAP 4.41] `session_id` 透传给 `run_with_trace(thread_id=...)`：
     None -> 无记忆（原行为）；有值 -> 该会话历史持久化。
     """
-    from graph2.graph_2 import run_with_trace
+    from rag_kb.graph2.graph_2 import run_with_trace
 
     t0 = time.time()
     result = run_with_trace(question, save=False, thread_id=session_id)
@@ -314,7 +306,7 @@ def ask(
     多租户：请求头 `X-Tenant-Id` 指定租户，检索被限制在该租户授权的集合内。
     未配置 `KB_TENANTS` 时该头被忽略（单租户模式）。
     """
-    from tools.retriever_tools import tenant_scope
+    from rag_kb.tools.retriever_tools import tenant_scope
 
     tenant = _resolve_tenant(x_tenant_id)
     try:
@@ -339,12 +331,12 @@ def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, descri
     """
     # [FIX  · 严重] SSE 分支**不能用** `tenant_scope()`（见 gen() 内注释），
     # 改用 `set_tenant`。
-    from tools.retriever_tools import set_tenant
+    from rag_kb.tools.retriever_tools import set_tenant
 
     tenant = _resolve_tenant(x_tenant_id)
 
     def gen():
-        from graph2.graph_2 import get_memory_graph, graph
+        from rag_kb.graph2.graph_2 import get_memory_graph, graph
 
         t = tracer.start(req.question, enabled=True)
         config: Dict[str, Any] = {"callbacks": t.callbacks} if t.callbacks else {}
@@ -353,8 +345,7 @@ def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, descri
         # [ROADMAP 4.41] 流式同样支持多轮：传了 session_id 就走带记忆的图。
         # 与 `run_with_trace` 的逻辑保持一致（同一 thread_id 才共享历史）。
         if req.session_id:
-            from utils import session_store
-            from tools import history_store
+            from rag_kb.utils import session_store
 
             g = get_memory_graph()
             # [FIX / 文档审计] 必须同时注入 `session_id` —— `generate` 用它判断
@@ -469,7 +460,7 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
         )
 
     try:
-        from documents.write_milvus import main as ingest_main
+        from rag_kb.documents.write_milvus import main as ingest_main
 
         # write_milvus.main(sources=<dict 列表>, batch_size, recreate)
         #

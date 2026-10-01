@@ -32,18 +32,16 @@ import collections
 import json
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 from pymilvus import MilvusClient  # noqa: E402
 
 COLLECTIONS = ["kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"]
@@ -120,7 +118,7 @@ print("  golden 同源块数 >= 3 的题: **%d / %d**" % (n_multi, len(rows)))
 # ---------------------------------------------------------------------------
 # 第二节：两种口径的指标对比（跑真实检索）
 # ---------------------------------------------------------------------------
-from tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
 print()
 print("=" * 104)

@@ -19,17 +19,15 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import metrics  # noqa: E402
-import tools.retriever_tools as rt  # noqa: E402
+import rag_kb.tools.retriever_tools as rt  # noqa: E402
 
 GRID = [(6, 18), (8, 24), (12, 36), (16, 48)]
 cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]

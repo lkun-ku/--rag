@@ -40,7 +40,7 @@ import json
 import pathlib
 import re
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent

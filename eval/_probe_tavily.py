@@ -15,11 +15,10 @@ from __future__ import annotations
 
 import os
 import pathlib
-import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from dotenv import load_dotenv  # noqa: E402
 
@@ -50,7 +49,7 @@ except Exception as e:  # noqa: BLE001
 print()
 print("[2] 项目封装（langchain_tavily / 或项目里的 web_search 工具）")
 try:
-    from tools.retriever_tools import web_search_tool
+    from rag_kb.tools.retriever_tools import web_search_tool
 
     t0 = time.time()
     r = web_search_tool.invoke("Milvus 是什么")

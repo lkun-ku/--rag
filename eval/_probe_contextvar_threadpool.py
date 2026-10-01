@@ -37,17 +37,14 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 import os
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from langchain_core.callbacks import UsageMetadataCallbackHandler  # noqa: E402
 from langchain_core.runnables import RunnableLambda  # noqa: E402
-from llm_models.all_llm import llm  # noqa: E402
+from rag_kb.llm_models.all_llm import llm  # noqa: E402
 
 PROMPT = "只回答一个词：好"
 

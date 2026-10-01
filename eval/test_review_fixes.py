@@ -17,14 +17,13 @@
 
 from __future__ import annotations
 
-import inspect
 import os
 import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -82,7 +81,7 @@ finally:
 print()
 print("[F3] grade_batch 对「重复 idx」与「越界 idx」的处理")
 from langchain_core.documents import Document  # noqa: E402
-import graph2.grade_documents_node as gdn  # noqa: E402
+import rag_kb.graph2.grade_documents_node as gdn  # noqa: E402
 
 DOCS = [Document(page_content="块 %d" % i, metadata={}) for i in range(1, 4)]
 
@@ -142,7 +141,7 @@ finally:
 # ---------------------------------------------------------------------------
 print()
 print("[F5] transform_query_node 显式传 config")
-tq_src = (ROOT / "RAG_PROJECT" / "graph2" / "transform_query_node.py").read_text(encoding="utf-8")
+tq_src = (ROOT / "RAG_PROJECT" / "rag_kb" / "graph2" / "transform_query_node.py").read_text(encoding="utf-8")
 check(
     "invoke 处带 config=",
     "config=" in tq_src.split("question_rewriter.invoke")[1][:220] if "question_rewriter.invoke" in tq_src else False,
@@ -154,7 +153,7 @@ check(
 # ---------------------------------------------------------------------------
 print()
 print("[F6] tracer.traced 对 `def fn(state, *, config=None)` 也要透传")
-from utils.tracer import traced  # noqa: E402
+from rag_kb.utils.tracer import traced  # noqa: E402
 
 seen = {}
 

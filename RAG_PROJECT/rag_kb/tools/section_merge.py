@@ -35,10 +35,15 @@ from __future__ import annotations
 
 import os
 
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
-SECTION_MERGE_ENABLED = os.getenv("SECTION_MERGE_ENABLED", "0") not in ("", "0", "false", "False")
-# 单个父块的字符上限。超过就**拆成多个父块**（而不是截断）——
+# [ROADMAP 4.53] 新名 `KB_SECTION_MERGE` 优先，旧名 `SECTION_MERGE_ENABLED` 兜底 —— 两种 .env 写法都可用。
+SECTION_MERGE_ENABLED = (os.getenv("KB_SECTION_MERGE") or os.getenv("SECTION_MERGE_ENABLED", "0")) not in (
+    "",
+    "0",
+    "false",
+    "False",
+)
 # 截断会丢内容，而一个章节拆成两段仍比散落的子块更有上下文。
 SECTION_MERGE_MAX_CHARS = int(os.getenv("SECTION_MERGE_MAX_CHARS", "8000"))
 # 至少要几块才值得合并（1 块没有合并意义）

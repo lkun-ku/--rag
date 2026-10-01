@@ -22,16 +22,13 @@
 from __future__ import annotations
 
 import os
-import pathlib
-import sys
 import time
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from utils.env_utils import (
+from rag_kb.utils.env_utils import (
     DEEPSEEK_API_KEY,
     LLM_BASE_URL,
     LLM_MODEL,  # noqa: E402
@@ -71,7 +68,7 @@ except Exception as e:  # noqa: BLE001
 print()
 print("[2] 项目 llm 对象（ChatOpenAI，未显式设 timeout）")
 try:
-    from llm_models.all_llm import llm
+    from rag_kb.llm_models.all_llm import llm
 
     t0 = time.time()
     r = llm.invoke("只回答两个字：正常")

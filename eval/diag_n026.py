@@ -18,18 +18,16 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from pymilvus import MilvusClient  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 import metrics  # noqa: E402
-from tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
 QID = "n026"
 MISSED = [
@@ -90,7 +88,7 @@ print()
 print("=" * 104)
 print("第二步：当前检索结果（final_k=24）里有什么")
 print("=" * 104)
-from tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
 
 docs = retriever.invoke(case["q"])
 ids = [metrics.chunk_id(d.page_content) for d in docs]

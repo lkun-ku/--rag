@@ -1,9 +1,8 @@
 from langchain_community.tools import TavilySearchResults
 from langchain_openai import ChatOpenAI
 
-from utils.env_utils import (
+from rag_kb.utils.env_utils import (
     OPENAI_API_KEY,
-    DEEPSEEK_API_KEY,
     LLM_BASE_URL,
     LLM_MODEL,
     LLM_TEMPERATURE,
@@ -11,7 +10,7 @@ from utils.env_utils import (
 )
 
 # [UPGRADE 2026-10] base_url / model / temperature 原先硬编码在这里，换服务商必须改代码；
-# 现改为从环境变量读取（见 utils/env_utils.py），默认值与迁移前一致。
+# 现改为从环境变量读取（见 rag_kb/utils/env_utils.py），默认值与迁移前一致。
 # 例：DeepSeek 官方
 #   LLM_BASE_URL=https://api.deepseek.com
 #   LLM_MODEL=deepseek-flash

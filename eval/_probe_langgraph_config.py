@@ -15,12 +15,9 @@
 
 from __future__ import annotations
 
-import pathlib
-import sys
 from typing import TypedDict
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 print("=" * 96)
 print("探针：LangGraph 节点能否收到 config")

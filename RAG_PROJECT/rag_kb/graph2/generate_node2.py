@@ -2,13 +2,13 @@ import os
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from utils.log_utils import log
-from tools import history_store
-from tools.section_merge import merge_section_blocks
+from rag_kb.utils.log_utils import log
+from rag_kb.tools import history_store
+from rag_kb.tools.section_merge import merge_section_blocks
 
-from graph2.grade_documents_node import _sub_config
-from llm_models.all_llm import llm
-from utils.citation import build_citation_meta, format_context, validate_citations
+from rag_kb.graph2.grade_documents_node import _sub_config
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.utils.citation import build_citation_meta, format_context, validate_citations
 
 # [UPGRADE  / ROADMAP 2.1] 强约束引用 prompt。
 #
@@ -462,14 +462,14 @@ def generate(state, config=None):
     # 显式传递把这个隐式依赖消掉。
     # [ROADMAP 4.46/4.47] 聚合类问题：**结构化计算 + 引导**。
     #
-    # 三层排查证明瓶颈在「模型扫不完 87 行表格」（见 tools/table_query.py 的文档）。
+    # 三层排查证明瓶颈在「模型扫不完 87 行表格」（见 rag_kb/tools/table_query.py 的文档）。
     # 所以这里先把跨行比较**交给 pandas 算准**，把结果作为「事实」注入 context，
     # 模型只需陈述；算不出来（返回 None）时才退回「让模型自己扫 + 引导」。
     #
     # 注意：`updates["messages"]` 用的仍是**原始 `question`** —— 引导语与事实
     # 都不进历史，否则下一轮会把它们当成用户说过的话。
-    from tools.reranker_tools import is_aggregation_query
-    from tools.table_query import answer_aggregation
+    from rag_kb.tools.reranker_tools import is_aggregation_query
+    from rag_kb.tools.table_query import answer_aggregation
 
     _is_agg = is_aggregation_query(question)
     _q = question + AGG_HINT if _is_agg else question

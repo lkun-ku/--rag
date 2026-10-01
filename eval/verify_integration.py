@@ -39,20 +39,20 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 RAG = ROOT / "RAG_PROJECT"
 
-# 用一个真实存在的源名（见 utils/env_utils.py 的 DOC_SOURCES）
+# 用一个真实存在的源名（见 rag_kb/utils/env_utils.py 的 DOC_SOURCES）
 TENANTS_JSON = '{"acme": ["milvus_docs"], "beta": ["manuals"]}'
 
 # 子进程里跑的探针：跑指定场景并打印一行 JSON 结果
 PROBE = r'''
 import json, os, pathlib, sys
 ROOT = pathlib.Path(r"{root}")
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from fastapi.testclient import TestClient
-from api.main import app
+from rag_kb.api.main import app
 
 SCEN = "{scen}"
 Q = "Milvus 支持哪些索引类型？"

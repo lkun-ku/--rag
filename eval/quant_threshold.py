@@ -19,20 +19,19 @@ import json
 import os
 import pathlib
 import statistics
-import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from pymilvus import AnnSearchRequest, MilvusClient, RRFRanker  # noqa: E402
 
-from llm_models.embeddings_model import bge_embedding  # noqa: E402
-from tools.retriever_tools import FETCH_K_PER_ROUTE, PER_COLLECTION_K, _discover_collections  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.llm_models.embeddings_model import bge_embedding  # noqa: E402
+from rag_kb.tools.retriever_tools import FETCH_K_PER_ROUTE, PER_COLLECTION_K, _discover_collections  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
 E = ROOT / "eval"
 EXPR = 'category == "content"'

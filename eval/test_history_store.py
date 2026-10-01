@@ -35,13 +35,12 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.documents import Document  # noqa: E402
 
-import tools.history_store as hs  # noqa: E402
-from tools.retriever_tools import _discover_collections  # noqa: E402
+import rag_kb.tools.history_store as hs  # noqa: E402
+from rag_kb.tools.retriever_tools import _discover_collections  # noqa: E402
 
 FAILED = []
 TOTAL = 0
@@ -221,6 +220,39 @@ check(
     )
     or True,
 )
+
+print()
+print("=" * 100)
+print("V15 `_MilvusHistoryStore.purge` 的返回归一化（真实 pymilvus 有两种形态）")
+print("=" * 100)
+# 为什么必须补这条：V11 用的是 `FakeStore.purge`（直接 return 3），
+# **测不到真实 store 的归一化逻辑** —— 而 `MilvusClient.delete` 的实际返回是
+# `Dict[str, int]`，且旧版本兼容路径返回**主键列表**。
+# 调用方写的是 `int(impl.purge(...))` -> 碰到 dict 会抛 TypeError。
+# 这条测试用 monkeypatch 替换 `MilvusClient.delete`，锁住归一化行为。
+from pymilvus import MilvusClient  # noqa: E402
+
+_store = hs._MilvusHistoryStore()
+_orig_delete = MilvusClient.delete
+try:
+    MilvusClient.delete = lambda self, *a, **k: {"delete_count": 7, "cost": {}}
+    v = _store.purge("x")
+    check("V15a dict{'delete_count':7} -> 7", v == 7, v)
+    check("V15a 返回值是 int 而非 dict", isinstance(v, int), type(v).__name__)
+
+    # OmitZeroDict 会**省略零值字段** —— 删 0 条时字典里没有 delete_count
+    MilvusClient.delete = lambda self, *a, **k: {"cost": {}}
+    check("V15b 省略 delete_count -> 0（不抛 KeyError）", _store.purge("x") == 0)
+
+    # 旧版本(<=2.3.2) 兼容路径：返回被删主键列表
+    MilvusClient.delete = lambda self, *a, **k: ["pk1", "pk2", "pk3"]
+    check("V15c 旧版本 pk 列表 -> 取长度 3", _store.purge("x") == 3)
+
+    # 未预期类型：保守返回 0 + WARNING，不能把非 int 抛给上游
+    MilvusClient.delete = lambda self, *a, **k: 12345
+    check("V15d 未预期类型 -> 0", _store.purge("x") == 0)
+finally:
+    MilvusClient.delete = _orig_delete
 
 print()
 print("%d/%d 通过" % (TOTAL - len(FAILED), TOTAL))

@@ -58,6 +58,9 @@ CHECKS = [
     ("语义分块封装", "eval/test_semantic_splitter.py", "quick", "SemanticChunker 封装 + 降级告警"),
     # [ROADMAP 4.49] 按章节聚合（Parent-Child 检索后轻量版，默认关）
     ("按章节聚合", "eval/test_section_merge.py", "quick", "同章节父子块聚合 + 超限拆分 + 默认关"),
+    # [ROADMAP 4.51/4.52] Parent-Child：结构感知切分 + 子块检索父块回查（默认关）
+    ("父子块切分", "eval/test_parent_child_splitter.py", "quick", "按标题切父块 + 段落/表格切子块"),
+    ("父子块检索", "eval/test_parent_child_retriever.py", "quick", "子块检索 + 父块批量回查 + 命中数排序"),
     # [ROADMAP 4.50] html / txt 解析器（统一转 Markdown 后复用同一管道）
     ("html/txt 解析", "eval/test_plain_converters.py", "quick", "HTML/TXT -> Markdown + 真实文件名元数据"),
     # [ROADMAP 4.47] 表格结构化查询：聚合类问题交给 pandas 算，不交给 LLM 猜

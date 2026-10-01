@@ -24,9 +24,7 @@ import os
 import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "RAG_PROJECT"))
+
 
 try:  # 允许在没有项目完整环境时独立运行（只需 pymilvus）
     from dotenv import load_dotenv  # noqa: E402
@@ -159,7 +157,7 @@ def judge_reranker_support(version):
     print("  langchain-milvus 源码明确：Function reranker 需要服务端 Milvus 2.6+")
     if not version:
         print("  版本未知 -> 直接跑 e2e_smoke_test.py 验证；若报 rerank 相关错误，")
-        print("  把 tools/retriever_tools.py 改回 ranker_type='rrf' + ranker_params={'k':100}")
+        print("  把 rag_kb/tools/retriever_tools.py 改回 ranker_type='rrf' + ranker_params={'k':100}")
         return
     digits = [int(x) for x in re.findall(r"\d+", version)[:2]]
     major = digits[0] if digits else 0

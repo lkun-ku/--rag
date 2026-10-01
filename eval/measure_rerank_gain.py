@@ -42,8 +42,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 # [FIX] **本脚本不能设 HF_HUB_OFFLINE=1**（其它 eval 脚本为了不联网都设了，
 # 但 reranker 首次运行需要下载 ~2.3GB 权重）。这里允许联网，并默认走**国内镜像**
@@ -52,8 +51,8 @@ os.environ.setdefault("HF_HUB_OFFLINE", "0")
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 
 import metrics  # noqa: E402
-from tools.retriever_tools import retriever  # noqa: E402
-from graph2.grader_chain import retrieval_grader_chain  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.graph2.grader_chain import retrieval_grader_chain  # noqa: E402
 
 LIMIT = int(os.environ.get("RERANK_LIMIT", "8"))
 TOPK = int(os.environ.get("RERANK_TOPK", "12"))

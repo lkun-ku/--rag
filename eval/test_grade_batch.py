@@ -39,8 +39,7 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -85,7 +84,7 @@ print("=" * 96)
 print()
 
 try:
-    from graph2.grade_documents_node import grade_batch
+    from rag_kb.graph2.grade_documents_node import grade_batch
 except ImportError as e:  # noqa: BLE001
     print("  [**FAIL**] 无法 import grade_batch（尚未实现）: %s" % e)
     print()

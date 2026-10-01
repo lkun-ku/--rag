@@ -1,8 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import Field, BaseModel
 
-from llm_models.all_llm import llm
-from utils.env_utils import LLM_STRUCTURED_METHOD
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 # 数据模型 - 回答质量评分

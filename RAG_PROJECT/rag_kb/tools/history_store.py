@@ -46,7 +46,7 @@ import datetime
 import os
 
 from langchain_core.documents import Document
-from utils.log_utils import log
+from rag_kb.utils.log_utils import log
 
 # ---------------------------------------------------------------------------
 # 配置
@@ -57,7 +57,14 @@ HISTORY_COLLECTION = os.getenv("HISTORY_COLLECTION", "kb_session_history_bge_lar
 # 影响面是**可控的**：只有「显式传 session_id 的请求」才会读写历史
 # （`run_with_trace(thread_id=...)` 才走记忆路径）。
 # 评测 / 回归 / 单轮 CLI 都不传 session_id -> 完全不触发，对既有指标零影响。
-HISTORY_ENABLED = os.getenv("HISTORY_ENABLED", "1") not in ("", "0", "false", "False")
+# [ROADMAP 4.53] 新名 `KB_HISTORY` 优先，旧名 `HISTORY_ENABLED` 兜底 —— 两种 .env 写法都可用。
+HISTORY_ENABLED = (os.getenv("KB_HISTORY") or os.getenv("HISTORY_ENABLED", "1")) not in (
+    "",
+    "0",
+    "false",
+    "False",
+)
+# [FIX] `_rename_flags.py` 的括号配平把本行一并吞掉了（测试 `NameError` 抓到）—— 补回。
 HISTORY_TOP_K = int(os.getenv("HISTORY_TOP_K", "3"))
 # 单轮 text 的字符上限。表 schema 的 VARCHAR 上限是 6000，留余量。
 # 轮次要**保留完整数值**，所以这里比历史的单条上限（500）宽松得多。
@@ -98,7 +105,7 @@ class _MilvusHistoryStore:
     """
 
     def _mv(self):
-        from documents.milvus_db import MilvusVectorSave
+        from rag_kb.documents.milvus_db import MilvusVectorSave
 
         return MilvusVectorSave(collection_name=HISTORY_COLLECTION)
 
@@ -113,7 +120,7 @@ class _MilvusHistoryStore:
         """
         mv.create_connection()
         from pymilvus import MilvusClient
-        from utils.env_utils import MILVUS_URI
+        from rag_kb.utils.env_utils import MILVUS_URI
 
         existing = MilvusClient(uri=MILVUS_URI).list_collections()
         if HISTORY_COLLECTION not in existing:
@@ -164,13 +171,35 @@ class _MilvusHistoryStore:
         return list(retriever.invoke(query or ""))
 
     def purge(self, filter_expr: str) -> int:
-        """按过滤条件删除历史块，返回删除条数。"""
+        """按过滤条件删除历史块，**统一返回删除条数（int）**。
+
+        [FIX] 此前直接 `return cli.delete(...)`，但 `MilvusClient.delete` 返回的是
+        `Dict[str, int]`（不是 `int`）—— basedpyright 报 `"Dict[str, int]" 与 "int" 不兼容`。
+
+        更要紧的是**运行时的两种返回形态**（看 pymilvus 源码）：
+
+            正常路径   -> {"delete_count": N, "cost": {...}}
+            兼容路径   -> 主键列表（旧版本 <= 2.3.2 遗留）
+
+        而调用方是 `int(impl.purge(...))` —— 碰到 dict 会直接抛 `TypeError`。
+        所以这里必须**归一化成 int**，而不是只把注解改宽。
+        """
         from pymilvus import MilvusClient
-        from utils.env_utils import MILVUS_URI
+
+        from rag_kb.utils.env_utils import MILVUS_URI
 
         cli = MilvusClient(uri=MILVUS_URI)
-        return cli.delete(HISTORY_COLLECTION, filter=filter_expr)
+        res = cli.delete(HISTORY_COLLECTION, filter=filter_expr)
 
+        if isinstance(res, dict):
+            # 正常路径。用 `or 0` 兜住 None（OmitZeroDict 可能省掉零值字段）
+            return int(res.get("delete_count") or 0)
+        if isinstance(res, (list, tuple)):
+            # 旧版本兼容路径：返回的是被删主键列表，条数即长度
+            return len(res)
+        # 理论上不会到这里；保守返回 0，不能让上游拿到非 int
+        log.warning("[history] purge 返回了未预期的类型: %r" % type(res).__name__)
+        return 0
 
 def _get_impl():
     global _impl, _impl_failed

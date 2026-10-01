@@ -27,18 +27,17 @@ import hashlib
 import json
 import os
 import pathlib
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 from pymilvus import AnnSearchRequest, MilvusClient, RRFRanker, WeightedRanker  # noqa: E402
 
-from llm_models.embeddings_model import bge_embedding  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.llm_models.embeddings_model import bge_embedding  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
 E = ROOT / "eval"
 

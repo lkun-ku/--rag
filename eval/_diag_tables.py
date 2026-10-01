@@ -9,17 +9,15 @@ from __future__ import annotations
 import os
 import pathlib
 import re
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 
 from pymilvus import MilvusClient  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
 TARGET = "vector_db_benchmark.xlsx.md"
 cli = MilvusClient(uri=MILVUS_URI)

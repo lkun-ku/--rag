@@ -1,7 +1,7 @@
 from langchain_core.documents import Document
 
-from llm_models.all_llm import web_search_tool
-from utils.log_utils import log
+from rag_kb.llm_models.all_llm import web_search_tool
+from rag_kb.utils.log_utils import log
 
 
 def web_search(state):

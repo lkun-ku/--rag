@@ -9,18 +9,17 @@
 import json
 import os
 import pathlib
-import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 Q = "Milvus-16c64g-sq4u-fp16-force_merge 的 QPS 是多少？"
 
-from graph2.graph_2 import run_with_trace  # noqa: E402
+from rag_kb.graph2.graph_2 import run_with_trace  # noqa: E402
 
 tp = ROOT / "logs" / "trace.jsonl"
 before = tp.stat().st_size if tp.exists() else 0

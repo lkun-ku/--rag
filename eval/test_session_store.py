@@ -27,14 +27,13 @@ import tempfile
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from tools import history_store  # noqa: E402
-from utils import session_store as ss  # noqa: E402
+from rag_kb.tools import history_store  # noqa: E402
+from rag_kb.utils import session_store as ss  # noqa: E402
 
 FAILED = []
 TOTAL = 0

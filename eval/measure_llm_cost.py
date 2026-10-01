@@ -30,11 +30,10 @@ import json
 import os
 import pathlib
 import re
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -67,12 +66,11 @@ print("=" * 104)
 print("  token 估算方法: %s" % METHOD)
 print()
 
-import metrics  # noqa: E402
-from tools.retriever_tools import retriever  # noqa: E402
-from graph2.grade_documents_node import _grade_one, MAX_GRADE_WORKERS  # noqa: E402
-from graph2.grader_chain import grade_prompt  # noqa: E402
-from graph2.generate_node2 import CITE_PROMPT  # noqa: E402
-from utils.citation import format_context  # noqa: E402
+from rag_kb.tools.retriever_tools import retriever  # noqa: E402
+from rag_kb.graph2.grade_documents_node import _grade_one, MAX_GRADE_WORKERS  # noqa: E402
+from rag_kb.graph2.grader_chain import grade_prompt  # noqa: E402
+from rag_kb.graph2.generate_node2 import CITE_PROMPT  # noqa: E402
+from rag_kb.utils.citation import format_context  # noqa: E402
 
 cases = [json.loads(l) for l in (HERE / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
 case = cases[0]

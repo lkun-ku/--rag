@@ -36,11 +36,10 @@ import sys
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.documents import Document  # noqa: E402
-from graph2.generate_node2 import merge_table_slices  # noqa: E402
+from rag_kb.graph2.generate_node2 import merge_table_slices  # noqa: E402
 
 FAILED = []
 TOTAL = 0

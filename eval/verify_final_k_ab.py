@@ -36,8 +36,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -74,9 +73,9 @@ def main() -> int:
     ap.add_argument("--rounds", type=int, default=2, help="每配置跑几轮")
     args = ap.parse_args()
 
-    import tools.retriever_tools as rt
-    from graph2.graph_2 import run_with_trace
-    from utils.env_utils import DOC_SOURCES  # noqa: F401  (确保配置已加载)
+    import rag_kb.tools.retriever_tools as rt
+    from rag_kb.graph2.graph_2 import run_with_trace
+    from rag_kb.utils.env_utils import DOC_SOURCES  # noqa: F401  (确保配置已加载)
 
     # 取稳定题（4.8 的产物）
     stab = HERE / "stability_audit.json"
@@ -252,7 +251,18 @@ def main() -> int:
         print("  [%s] %-28s %s" % ("PASS" if ok else "FAIL", name, detail))
     all_ok = all(ok for _n, ok, _d in checks)
     print()
-    print("  => **%s**" % ("采纳 final_k=%d" % FINAL_KS[1] if all_ok else "不采纳（未满足事先定义的标准）"))
+    # [FIX] 原为 `FINAL_KS[1]`，但 **FINAL_KS 从未定义**（ruff F821）——
+    # 该脚本实际用的是 `CONFIGS`（[(per_k, final_k), ...]），此处直接引用即可。
+    # 只改打印文案，不影响判定逻辑。
+    _b_final_k = CONFIGS[1][1] if len(CONFIGS) > 1 else None
+    print(
+        "  => **%s**"
+        % (
+            "采纳 final_k=%d" % _b_final_k if all_ok and _b_final_k else
+            "采纳 B 组配置" if all_ok else
+            "不采纳（未满足事先定义的标准）"
+        )
+    )
 
     (HERE / "final_k_ab.json").write_text(
         json.dumps(

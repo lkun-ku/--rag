@@ -29,20 +29,11 @@
 #
 # 业务逻辑保持不变：系统提示词原文、所用工具、会话标识 'zs123'、提问内容均未改动。
 # =============================================================================
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 from langchain.agents import create_agent
 
-from llm_models.all_llm import llm
-from tools.retriever_tools import retriever_tool
-from utils.checkpointer import create_checkpointer
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.tools.retriever_tools import retriever_tool
+from rag_kb.utils.checkpointer import create_checkpointer
 
 # 系统提示词：与迁移前逐字一致
 SYSTEM_PROMPT = '你是一个智能助手，尽可能的调用工具回答用户的问题'
@@ -52,7 +43,7 @@ SESSION_ID = 'zs123'
 
 # 检查点：1.x 中承担「按会话隔离的多轮对话记忆」
 # 由 InMemorySaver 改为官方推荐的 SqliteSaver（文件持久化），会话记忆在进程重启后
-# 仍可恢复；选型说明见 utils/checkpointer.py。
+# 仍可恢复；选型说明见 rag_kb/utils/checkpointer.py。
 checkpointer = create_checkpointer()
 
 agent = create_agent(

@@ -23,11 +23,11 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 from langchain_core.documents import Document  # noqa: E402
 
-from tools import semantic_splitter as ss  # noqa: E402
+from rag_kb.tools import semantic_splitter as ss  # noqa: E402
 
 FAILED = []
 TOTAL = 0
@@ -115,7 +115,7 @@ print()
 print("=" * 100)
 print("S7 markdown_parser 的接线")
 print("=" * 100)
-src = (ROOT / "RAG_PROJECT/documents/markdown_parser.py").read_text(encoding="utf-8")
+src = (ROOT / "RAG_PROJECT/rag_kb/documents/markdown_parser.py").read_text(encoding="utf-8")
 check("已 import make_splitter", "make_splitter" in src)
 # 只检查**代码行**（排除注释）—— 注释里出现 `SemanticChunker(` 字样是正常的说明文字
 code_lines = [l for l in src.splitlines() if not l.strip().startswith("#")]

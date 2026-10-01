@@ -17,12 +17,11 @@
 import json
 import os
 import pathlib
-import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
@@ -43,8 +42,8 @@ print("=" * 96)
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from api.main import app  # noqa: E402
-from utils.env_utils import DOC_SOURCES  # noqa: E402
+from rag_kb.api.main import app  # noqa: E402
+from rag_kb.utils.env_utils import DOC_SOURCES  # noqa: E402
 
 results = []
 

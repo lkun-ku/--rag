@@ -24,15 +24,14 @@
 import json
 import os
 import pathlib
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path[:0] = [str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from graph2.graph_2 import run_with_trace  # noqa: E402
+from rag_kb.graph2.graph_2 import run_with_trace  # noqa: E402
 
 # 取评测集里**有 golden 块**的前两题（库外题不算端到端问答的典型路径）
 _cases = [

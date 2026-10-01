@@ -25,13 +25,12 @@ import sys
 import uuid
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from graph2.graph_2 import run_with_trace  # noqa: E402
+from rag_kb.graph2.graph_2 import run_with_trace  # noqa: E402
 
 Q1 = "TurboPuffer 在带过滤向量检索、过滤比例 98% 的场景下，召回率是多少？"
 Q2 = "它在这个场景下的 QPS 是多少？"
@@ -61,7 +60,7 @@ o1 = run_with_trace(Q1, save=False, thread_id=T1)
 n1 = show("第1轮", o1)
 
 # [诊断] 第二轮开始前，直接用 checkpointer 读一下，确认历史是否真的落盘
-from graph2.graph_2 import get_memory_graph  # noqa: E402
+from rag_kb.graph2.graph_2 import get_memory_graph  # noqa: E402
 
 _g = get_memory_graph()
 _cfg = {"configurable": {"thread_id": T1}}

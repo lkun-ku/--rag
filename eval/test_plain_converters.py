@@ -21,7 +21,7 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 FAILED = []
 TOTAL = 0
@@ -47,7 +47,7 @@ def write_tmp(suffix: str, content: str) -> str:
 print("=" * 100)
 print("T1/T7 HTML -> Document（标题保留、filename 是真实名）")
 print("=" * 100)
-from documents.plain_converters import HTMLDocParser, TextDocParser  # noqa: E402
+from rag_kb.documents.plain_converters import HTMLDocParser, TextDocParser  # noqa: E402
 
 html = """<html><body>
 <h1>Milvus 检索性能</h1>
@@ -115,7 +115,7 @@ print()
 print("=" * 100)
 print("T5 write_milvus 分支")
 print("=" * 100)
-src = (ROOT / "RAG_PROJECT/documents/write_milvus.py").read_text(encoding="utf-8")
+src = (ROOT / "RAG_PROJECT/rag_kb/documents/write_milvus.py").read_text(encoding="utf-8")
 check("T5 有 html 分支", "parser_type == 'html'" in src)
 check(
     "T5 text 分支不再抛 NotImplementedError",
@@ -129,7 +129,7 @@ print()
 print("=" * 100)
 print("T6 DOC_SOURCES 的 web 源")
 print("=" * 100)
-from utils.env_utils import DOC_SOURCES  # noqa: E402
+from rag_kb.utils.env_utils import DOC_SOURCES  # noqa: E402
 
 web = next((s for s in DOC_SOURCES if s["name"] == "web"), None)
 check("T6 存在 web 源", web is not None)

@@ -23,15 +23,6 @@
 
 from __future__ import annotations
 
-# [FIX] 允许「直接 python xxx.py」运行：包内绝对导入需要把 RAG_PROJECT/ 加入 sys.path。
-# 用 `python -m` 运行时该路径已在 path 中，此段自动跳过（幂等）。
-import pathlib as _pathlib
-import sys as _sys
-
-_ROOT = _pathlib.Path(__file__).resolve().parent.parent
-if str(_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_ROOT))
-
 import os
 import re
 from typing import List
@@ -39,9 +30,9 @@ from typing import List
 from langchain_core.documents import Document
 
 # [FIX / P1-5] `MIN_MARKDOWN_CHARS` 已提升为共享常量（值不变），
-# 与 pdf_parser 统一 —— 详见 documents/markdown_parser.py 的定义处注释。
-from documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
-from utils.log_utils import log
+# 与 pdf_parser 统一 —— 详见 rag_kb/documents/markdown_parser.py 的定义处注释。
+from rag_kb.documents.markdown_parser import MIN_MARKDOWN_CHARS, MarkdownParser
+from rag_kb.utils.log_utils import log
 
 # markitdown 转 pptx 时会插入 `<!-- Slide number: N -->` 这类 HTML 注释。
 # 它们是结构标记而非文档内容，直接入库会污染块的正文，故默认清理。
@@ -73,7 +64,7 @@ class OfficeParser:
             strip_html_comments: 是否清理 markitdown 插入的 HTML 注释
                 （如 pptx 的 `<!-- Slide number: 1 -->`）。默认清理。
             use_pptx_structurer: [ROADMAP 2.6] pptx 是否走专用结构化解析器
-                （逐页提取 + 一页一块，见 documents/pptx_parser.py）。
+                （逐页提取 + 一页一块，见 rag_kb/documents/pptx_parser.py）。
                 **默认 True**：实测 markitdown 路径会把 3 页合并成 1 块，
                 且不解析演讲备注 / SmartArt / 图表数据。
             ocr_pptx_images: pptx 中图片是否做 OCR（默认 False，复用 2.3 的 RapidOCR）。
@@ -120,7 +111,7 @@ class OfficeParser:
         # markitdown 完全不解析的部分。
         if ext == '.pptx' and self.use_pptx_structurer:
             try:
-                from documents.pptx_parser import PPTParser
+                from rag_kb.documents.pptx_parser import PPTParser
 
                 return PPTParser(
                     keep_temp_md=self.keep_temp_md,
@@ -155,7 +146,7 @@ class OfficeParser:
 
 
 if __name__ == '__main__':
-    from utils.env_utils import DATAS_DIR
+    from rag_kb.utils.env_utils import DATAS_DIR
 
     # 演示：解析 datas/office 下的所有文档，保留中间 md 便于核对
     office_dir = os.path.join(DATAS_DIR, 'office')

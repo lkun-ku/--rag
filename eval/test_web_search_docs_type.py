@@ -38,7 +38,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -63,7 +63,7 @@ print("=" * 96)
 print()
 
 try:
-    from graph2.web_search_node import web_search
+    from rag_kb.graph2.web_search_node import web_search
 except ImportError as e:  # noqa: BLE001
     print("  [**FAIL**] import 失败: %s" % e)
     sys.exit(1)
@@ -98,7 +98,7 @@ else:
 # --- 顺带：generate 对两种形状都要能工作（防回归）-----------------------------
 print()
 print("[回归保护] generate 对「list」与「单个 Document」都应能工作")
-gen_src = (ROOT / "RAG_PROJECT" / "graph2" / "generate_node2.py").read_text(encoding="utf-8")
+gen_src = (ROOT / "RAG_PROJECT" / "rag_kb" / "graph2" / "generate_node2.py").read_text(encoding="utf-8")
 check("generate 仍保留 isinstance 兼容判断", "isinstance(documents, list) else [documents]" in gen_src, True)
 
 print()

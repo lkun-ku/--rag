@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import pathlib
 import re
-import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 print("=" * 100)
 print("1. DOC_SOURCES 声明的格式（唯一权威配置）")
 print("=" * 100)
-from utils.env_utils import DOC_SOURCES  # noqa: E402
+from rag_kb.utils.env_utils import DOC_SOURCES  # noqa: E402
 
 print("  %-12s %-10s %-34s %-9s %s" % ("源名", "格式", "集合", "parser", "启用"))
 for s in DOC_SOURCES:
@@ -32,7 +31,7 @@ print()
 print("=" * 100)
 print("2. write_milvus 的 parser 分派（决定「能不能入库」）")
 print("=" * 100)
-ls = (ROOT / "RAG_PROJECT/documents/write_milvus.py").read_text(encoding="utf-8").splitlines()
+ls = (ROOT / "RAG_PROJECT/rag_kb/documents/write_milvus.py").read_text(encoding="utf-8").splitlines()
 for i, l in enumerate(ls, 1):
     st = l.strip()
     if "parser_type ==" in st or "NotImplementedError" in st or "raise ValueError" in st:
@@ -43,7 +42,7 @@ print("=" * 100)
 print("3. 各 parser 支持的扩展名（从源码里找）")
 print("=" * 100)
 for f in ("markdown_parser", "pdf_parser", "office_parser", "pptx_parser"):
-    p = ROOT / ("RAG_PROJECT/documents/%s.py" % f)
+    p = ROOT / ("RAG_PROJECT/rag_kb/documents/%s.py" % f)
     if not p.exists():
         print("  [缺失] %s" % f)
         continue
@@ -56,15 +55,15 @@ print()
 print("=" * 100)
 print("4. 硬限制（写进源码的约束）")
 print("=" * 100)
-mv = (ROOT / "RAG_PROJECT/documents/milvus_db.py").read_text(encoding="utf-8")
+mv = (ROOT / "RAG_PROJECT/rag_kb/documents/milvus_db.py").read_text(encoding="utf-8")
 for i, l in enumerate(mv.splitlines(), 1):
     if "max_length" in l or "VARCHAR" in l:
         print("  milvus_db.py:%-4d %s" % (i, l.strip()[:88]))
-mp = (ROOT / "RAG_PROJECT/documents/markdown_parser.py").read_text(encoding="utf-8")
+mp = (ROOT / "RAG_PROJECT/rag_kb/documents/markdown_parser.py").read_text(encoding="utf-8")
 for i, l in enumerate(mp.splitlines(), 1):
     if "5000" in l or "table_max_rows" in l and "=" in l:
         print("  markdown_parser.py:%-4d %s" % (i, l.strip()[:88]))
-pp = (ROOT / "RAG_PROJECT/documents/pdf_parser.py").read_text(encoding="utf-8")
+pp = (ROOT / "RAG_PROJECT/rag_kb/documents/pdf_parser.py").read_text(encoding="utf-8")
 for i, l in enumerate(pp.splitlines(), 1):
     if "ocr" in l.lower() and ("use_ocr" in l or "ocr_fallback" in l):
         print("  pdf_parser.py:%-4d %s" % (i, l.strip()[:88]))
@@ -74,7 +73,7 @@ print("=" * 100)
 print("5. 实际语料（当前库里的真实分布）")
 print("=" * 100)
 from pymilvus import MilvusClient  # noqa: E402
-from utils.env_utils import MILVUS_URI  # noqa: E402
+from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
 cli = MilvusClient(uri=MILVUS_URI)
 for coll in ("kb_milvus_bge_large_1024", "kb_papers_bge_large_1024", "kb_manuals_bge_large_1024"):

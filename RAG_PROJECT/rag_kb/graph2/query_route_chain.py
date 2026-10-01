@@ -3,8 +3,8 @@ from typing import Literal
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from llm_models.all_llm import llm
-from utils.env_utils import LLM_STRUCTURED_METHOD
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.utils.env_utils import LLM_STRUCTURED_METHOD
 
 
 # 查询的动态路由： 根据用户的提问，决策采用哪种检索策略（网络检索，RAG）

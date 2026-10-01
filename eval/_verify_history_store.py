@@ -19,8 +19,7 @@ import sys
 import uuid
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parent
-sys.path[:0] = [str(HERE), str(ROOT), str(ROOT / "RAG_PROJECT")]
+
 
 # **必须在 import 前设置**：模块在加载时读 HISTORY_ENABLED
 os.environ["HISTORY_ENABLED"] = "1"
@@ -28,7 +27,7 @@ os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
 os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
-from tools import history_store  # noqa: E402
+from rag_kb.tools import history_store  # noqa: E402
 
 RUN = uuid.uuid4().hex[:6]
 SID_A = "__hist_%s_A" % RUN

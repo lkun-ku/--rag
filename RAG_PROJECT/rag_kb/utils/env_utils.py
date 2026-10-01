@@ -53,8 +53,10 @@ if MILVUS_LITE_PATH:
         os.makedirs(_lite_parent, exist_ok=True)
 
 # ---- 路径：消除硬编码 ----
-# PKG_ROOT 即 Python 包根（RAG_PROJECT/RAG_PROJECT），其下有 datas/ 等目录
-PKG_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# PKG_ROOT 是「数据根」：RAG_PROJECT/（含 datas/ models/ logs/），
+# 即 **Python 包 `rag_kb/` 的上一层** —— 代码在包里，数据在包外，二者刻意分离。
+# 层级：rag_kb/utils/env_utils.py -> rag_kb/utils -> rag_kb -> RAG_PROJECT
+PKG_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # ROOT_DIR 是工作区根（.venv、requirements.txt 所在层级）
 ROOT_DIR = os.path.dirname(PKG_ROOT)
 
@@ -208,7 +210,7 @@ def _parse_tenants(raw: str) -> dict:
 TENANTS = _parse_tenants(KB_TENANTS_JSON) if KB_TENANTS_JSON else {}
 
 # ---- LLM 服务商配置（换服务商/换模型不用改代码）----
-# 原项目把 base_url 与 model 硬编码在 llm_models/all_llm.py 里，换服务商必须改代码。
+# 原项目把 base_url 与 model 硬编码在 rag_kb/llm_models/all_llm.py 里，换服务商必须改代码。
 # 现改为环境变量读取，默认值保持迁移前的写法。
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', 'https://xiaoai.plus/v1')
 LLM_MODEL = os.getenv('LLM_MODEL', 'gpt-4o-mini')

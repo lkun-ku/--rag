@@ -68,12 +68,6 @@ def iter_py_files():
             yield p
 
 
-def add_pkgs_to_path() -> None:
-    for p in (str(WORKSPACE), str(PKG_ROOT)):
-        if p not in sys.path:
-            sys.path.insert(0, p)
-
-
 def ensure_placeholder_keys() -> list:
     injected = []
     for k, v in _DUMMY_KEYS.items():
@@ -86,7 +80,7 @@ def ensure_placeholder_keys() -> list:
 def enable_stub_milvus() -> str:
     """把 Milvus 适配器打桩为不发起网络连接的替身。
 
-    项目 utils/env_utils.py 中 MILVUS_URI 默认是硬编码的公网地址（已失效），
+    项目 rag_kb/utils/env_utils.py 中 MILVUS_URI 默认是硬编码的公网地址（已失效），
     不打桩则构图阶段会中断、无法验证 StateGraph 拓扑。仅替换向量库构造这一环。
     """
     import langchain_milvus
@@ -111,7 +105,6 @@ def import_real(mod_name: str):
     """真实 import 项目模块（Milvus 已打桩、占位密钥已注入）。"""
     import importlib
 
-    add_pkgs_to_path()
     ensure_placeholder_keys()
     enable_stub_milvus()
     importlib.invalidate_caches()
@@ -282,7 +275,7 @@ def gate_probes():
 
 # ------------------------------------------------------------ G4 切片
 def replicate_merge(datas):
-    """原样复刻 documents/markdown_parser.py 的 merge_title_content。"""
+    """原样复刻 rag_kb/documents/markdown_parser.py 的 merge_title_content。"""
     merged_data = []
     parent_dict = {}
     for document in datas:
@@ -307,7 +300,6 @@ def replicate_merge(datas):
 
 
 def gate_chunk():
-    add_pkgs_to_path()
     from collections import Counter
     from langchain_community.document_loaders import UnstructuredMarkdownLoader
     if not MD_SAMPLE.is_file():
@@ -397,7 +389,7 @@ def gate_agent_standard():
     from langchain_core.messages import AIMessage
     from langchain_core.outputs import ChatGeneration, ChatResult
     from langgraph.checkpoint.memory import InMemorySaver
-    from tools.retriever_tools import retriever_tool
+    from rag_kb.tools.retriever_tools import retriever_tool
 
     seen = []
 
@@ -414,13 +406,12 @@ def gate_agent_standard():
             reply = AIMessage(content=f"回答：{messages[-1].content}")
             return ChatResult(generations=[ChatGeneration(message=reply)])
 
-    add_pkgs_to_path()
     ensure_placeholder_keys()
     enable_stub_milvus()
-    import agent.rag_agent as ra
+    import rag_kb.agent.rag_agent as ra
     res = []
     g = ra.agent.get_graph()
-    res.append(Result("G7-1.x写法", "真实 import agent.rag_agent.py", "PASS",
+    res.append(Result("G7-1.x写法", "真实 import rag_kb.agent.rag_agent", "PASS",
                       f"create_agent 构造成功，节点={sorted(g.nodes.keys())}",
                       [f"checkpointer 类型={type(ra.checkpointer).__name__}",
                        f"SYSTEM_PROMPT={ra.SYSTEM_PROMPT!r}", f"SESSION_ID={ra.SESSION_ID!r}"]))
@@ -509,7 +500,6 @@ def main():
     if not PKG_ROOT.is_dir():
         print(f"ERROR: 找不到包根目录 {PKG_ROOT}")
         return 3
-    add_pkgs_to_path()
     results = []
     results += gate_compile()
     results += gate_imports_ast()

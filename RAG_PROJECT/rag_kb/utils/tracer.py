@@ -36,10 +36,17 @@ import time
 from contextvars import ContextVar
 from typing import Any, Dict, List, Optional
 
-from utils.env_utils import PKG_ROOT
+from rag_kb.utils.env_utils import ROOT_DIR
+# [FIX] 本文件在 `UsageMetadataCallbackHandler` 不可用时用 `log.warning` 降级提示，
+# 但此前**从未 import log** —— 一旦走到该分支就 `NameError`，而那时恰好是
+# 「token 统计已失效」的场景，等于二次故障。ruff F821 抓到的就是这处。
+from rag_kb.utils.log_utils import log
 
-# trace 落盘位置：与 eval/ 同级放在项目根下的 logs/ 里
-TRACE_DIR = pathlib.Path(os.getenv("TRACE_DIR") or (pathlib.Path(PKG_ROOT).parent / "logs"))
+# trace 落盘位置：**工作区根**的 logs/（与 .venv、requirements.txt 同级）。
+# 注意与 `log_utils.log_dir`（包级 RAG_PROJECT/logs）不是同一个目录 —— 这是既有行为，
+# 历史 trace（200+ 条）都在工作区根下，改动会让 show_trace.py 看不到旧记录，
+# 故此处保持不动；要统一请单独作为一次决策（需迁移历史文件）。
+TRACE_DIR = pathlib.Path(os.getenv("TRACE_DIR") or (pathlib.Path(ROOT_DIR) / "logs"))
 TRACE_FILE = TRACE_DIR / "trace.jsonl"
 
 
