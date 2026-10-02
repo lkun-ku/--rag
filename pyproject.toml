@@ -2,17 +2,16 @@
 # 打包配置：把本项目做成**可安装包**（editable 安装）
 #
 # 为什么需要它：
-#   源码根目录是 `RAG_PROJECT/`（`utils`、`documents`、`graph2`… 的父目录），
-#   包内一律使用绝对导入（`from utils.env_utils import ...`）。若不做成可安装包，
-#   只有 `python -m`（cwd=RAG_PROJECT/）或设置 PYTHONPATH 才能解析，
-#   于是各模块顶部不得不写 `sys.path.insert(0, ...)` 兜底 —— 那是临时手段：
-#   会污染全局 import 顺序、可能遮蔽同名第三方包（`tools`/`utils` 在 PyPI 上都有
-#   同名包），并且**在被别人 import 时也产生副作用**。
+#   项目根下只有一个包 `rag_kb/`（agent / api / cli / documents / graph_react /
+#   graph_crag / llm_models / tools / utils），包内一律使用绝对导入
+#   （`from rag_kb.utils.env_utils import ...`）。若不做成可安装包，
+#   只有设置 PYTHONPATH 才能解析，于是各模块顶部不得不写 `sys.path.insert(0, ...)`
+#   兜底 —— 那是临时手段：会污染全局 import 顺序，并且**在被别人 import 时产生副作用**。
 #
 # 标准做法（一次性）：
 #   .venv\Scripts\python.exe -m pip install -e .
 #
-# 装完之后 `python xxx.py`、`python -m documents.xxx`、任意 cwd 下 import 均可正常工作，
+# 装完之后 `python xxx.py`、`python -m rag_kb.doctor`、任意 cwd 下 import 均可正常工作，
 # 源码仍就地修改、无需重装。
 # =============================================================================
 [build-system]
@@ -30,12 +29,13 @@ requires-python = ">=3.12"
 dependencies = []
 
 [tool.setuptools]
-# 源码根目录：`rag_kb/` 的父目录就是 RAG_PROJECT/，不是仓库根
-package-dir = { "" = "RAG_PROJECT" }
+# 源码根目录：`rag_kb/` 的父目录，即项目根
+package-dir = { "" = "." }
 
 [tool.setuptools.packages.find]
-# 只会找到 rag_kb 及其子包；datas/ models/ logs/ 没有 __init__.py，不会被当成包
-where = ["RAG_PROJECT"]
+# 只收 rag_kb 及其子包；eval/ tests/ scripts/ models/ 都不在包内
+where = ["."]
+include = ["rag_kb*"]
 
 [tool.ruff]
 # 行宽 120：主流上限（black/ruff 默认 88，团队常见 100~120）。
@@ -47,7 +47,7 @@ target-version = "py312"
 # 排除：模型目录、虚拟环境、缓存
 extend-exclude = [
     ".venv",
-    "RAG_PROJECT/models",
+    "models",
     "**/__pycache__",
     "scratch",
 ]

@@ -1,5 +1,5 @@
 {
-  "extraPaths": ["./RAG_PROJECT"],
+  "extraPaths": ["."],
   "reportImplicitRelativeImport": "none",
   "venvPath": ".",
   "venv": ".venv",
@@ -11,4 +11,5 @@
   "reportCallIssue": "none",
   "reportOperatorIssue": "none",
   "reportGeneralTypeIssues": "none"
-}
+}
+

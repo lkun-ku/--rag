@@ -1,0 +1,144 @@
+import uuid
+from typing import Literal
+
+from langchain_core.prompts import PromptTemplate
+from langgraph.constants import START, END
+from langgraph.graph import StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from rag_kb.graph_react.agent_node import agent_node
+from rag_kb.graph_react.generate_node import generate
+from rag_kb.graph_react.get_human_message import get_last_human_message
+from rag_kb.graph_react.react_state import AgentState, Grade
+from rag_kb.graph_react.rewrite_node import rewrite
+from rag_kb.llm_models.all_llm import llm
+from rag_kb.tools.retriever_tools import retriever_tool
+from rag_kb.utils.checkpointer import create_checkpointer
+from rag_kb.utils.log_utils import log
+from rag_kb.utils.print_utils import _print_event
+from rag_kb.utils.env_utils import LLM_STRUCTURED_METHOD
+
+
+def grade_documents(state) -> Literal["generate", "rewrite"]:
+    """
+    判断检索到的文档是否与问题相关。
+    参数:
+        state (messages): 当前状态
+    返回:
+        str: 判断结果，文档是否相关
+    """
+    log.info("---检查document的相关性---")
+    #  带结构化输出的LLM
+    llm_with_structured = llm.with_structured_output(Grade, method=LLM_STRUCTURED_METHOD)
+
+    # 提示模板
+    prompt = PromptTemplate(
+        template="""你是一个评估检索文档与用户问题相关性的评分器。\n
+            这是检索到的文档：\n\n {context} \n\n
+            这是用户的问题：{question} \n
+            如果文档包含与用户问题相关的关键词或语义含义，则评为相关。\n
+            给出二元评分 'yes' 或 'no' 来表示文档是否与问题相关。""",
+        input_variables=["context", "question"],
+    )
+
+    # 处理链
+    chain = prompt | llm_with_structured
+
+    messages = state["messages"]
+    last_message = messages[-1]
+
+    question = get_last_human_message(messages).content
+    docs = last_message.content
+
+    scored_result = chain.invoke({"question": question, "context": docs})
+
+    score = scored_result.binary_score
+
+    if score == "yes":
+        print("---输出：文档相关---")
+        return "generate"
+
+    else:
+        print("---输出：文档不相关---")
+        print(score)
+        return "rewrite"
+
+
+def create_graph():
+    """构建并编译工作流图，返回已编译的图对象。
+
+    依据 LangGraph 官方 Application structure 文档，langgraph.json 的 graphs 入口
+    可以是「已编译的图对象」，也可以是「一个用于创建图的函数」。本函数即后者，
+    使构图逻辑可被独立调用与测试。
+
+    拓扑、节点、条件边均与迁移前逐字一致；仅检查点实现由 MemorySaver（仅内存、
+    重启即丢）改为官方推荐的 SqliteSaver（文件持久化），与 rag_kb/agent/rag_agent.py 一致，
+    选型说明见 rag_kb/utils/checkpointer.py。
+    """
+    # 定义一个新的工作流图
+    workflow = StateGraph(AgentState)
+
+    # 添加节点
+    workflow.add_node('agent', agent_node)
+    workflow.add_node('retrieve', ToolNode([retriever_tool]))
+    workflow.add_node('rewrite', rewrite)
+    workflow.add_node('generate', generate)
+
+    workflow.add_edge(START, 'agent')
+    workflow.add_conditional_edges('agent', tools_condition, {'tools': 'retrieve', END: END})
+
+    workflow.add_conditional_edges(
+        'retrieve',
+        grade_documents,
+    )
+
+    workflow.add_edge('rewrite', 'agent')
+    workflow.add_edge('generate', END)
+
+    # 检查点让状态图可以持久化其状态
+    checkpointer = create_checkpointer()
+
+    # 编译状态图，配置检查点，并配置中断点
+    return workflow.compile(checkpointer=checkpointer)
+
+
+# 模块级导出已编译的图，保持原有 `from graph.graph_react import graph` 的用法不变
+graph = create_graph()
+
+
+# draw_graph(graph, 'graph_rag1-2.png')
+def main():
+    """交互式运行入口。
+
+    这段循环原先位于模块顶层，import 即执行、无法复用；现移入 main() 并由
+    __main__ 守卫。交互逻辑、退出条件、打印方式均未改动。
+    """
+    config = {
+        "configurable": {
+            # 检查点由session_id访问
+            "thread_id": str(uuid.uuid4()),
+        }
+    }
+
+    _printed = set()  # set集合，避免重复打印
+
+    # 执行工作流
+    while True:
+        question = input('用户：')
+        if question.lower() in ['q', 'exit', 'quit']:
+            log.info('对话结束，拜拜！')
+            break
+        else:
+            inputs = {
+                "messages": [
+                    ("user", question),
+                ]
+            }
+            events = graph.stream(inputs, config=config, stream_mode='values')
+            # 打印消息
+            for event in events:
+                _print_event(event, _printed)
+
+
+if __name__ == '__main__':
+    main()

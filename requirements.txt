@@ -80,12 +80,18 @@ onnxruntime==1.30.0
 rapidocr-onnxruntime==1.4.4
 
 # ---- 本地 Embedding（BAAI/bge-large-zh-v1.5，输出 1024 维）-----------------
-# 模型文件随项目放在 RAG_PROJECT/models/ 下，**不进 git**（约 1.3 GB），
+# 模型文件随项目放在 models/ 下，**不进 git**（约 1.3 GB），
 # 用 scripts/fetch_models.py 重建（ModelScope 源实测 ~14 MB/s，约 1.5 分钟）。
 # 做 512 维 A/B 对照时改 EMBEDDING_MODEL / EMBEDDING_DIM 即可；
 # bge-small-zh-v1.5 **保留不删**，否则失去新旧对照能力（见 ROADMAP 1.1.6）。
 langchain-huggingface==1.2.3
 torch==2.14.1 # 与 transformers 5.19 / sentence-transformers 6.1 配套
+# GPU 加速（可选，强烈建议有 NVIDIA 卡时启用）：上面的 `torch==2.14.1` 从 PyPI 装到的是
+# **CPU-only** 构建，`torch.cuda.is_available()` 恒为 False。装 CUDA 版（版本号不变，只有本地标签变）：
+#   .venv\Scripts\python.exe -m pip install --index-url https://download.pytorch.org/whl/cu126 torch==2.14.1
+# 需要驱动 ≥ CUDA 12.6（本机驱动 566.03 / CUDA 12.7 实测可用）。装完用 /health 的
+# checks.embedding.device 确认是 cuda；如果显示 cpu，说明回落了（吞吐约差 40x）。
+# 实测：md 源 216 块 114.5s -> 16.4s；GPU 与 CPU 的向量余弦 = 1.000000（已有集合无需重建）。
 transformers==5.19.0 # 固定 4.x 末班；5.x 与 langchain-huggingface 1.x 兼容性未验证
 sentence-transformers==6.1.0 # 固定 5.x 末班
 
@@ -93,9 +99,8 @@ sentence-transformers==6.1.0 # 固定 5.x 末班
 pymilvus==3.0.2 # 3.x 全部枚举路径已实测与项目用法一致
 
 # ---- Web 搜索 -------------------------------------------------------------
-# 原 requirements.txt 遗漏了 tavily-python，但 all_llm.py 的 TavilySearchResults 必需它。
-# langchain-tavily 为 1.x 下的官方 partner 包，本次未改动代码故暂未使用，
-# 保留安装以便将来迁移时直接切换。
+# [2026-10-28] 已从 langchain_community.tools.TavilySearchResults（0.3.25 起弃用、1.0 移除）
+# 迁移到官方 partner 包 langchain-tavily 的 TavilySearch；tavily-python 仍是其底层 HTTP 依赖。
 tavily-python==0.8.5
 langchain-tavily==0.2.18
 
@@ -103,6 +108,8 @@ langchain-tavily==0.2.18
 # 只装这两个：SSE 流式用标准库 + StreamingResponse 即可，无需 sse-starlette；
 # 本项目 API 不接收文件上传，故不需要 python-multipart。
 fastapi==0.143.0
+# 直接依赖：api/main.py 的 /health 探活 + llm_models/remote_embeddings.py 的 HTTP 客户端
+httpx==0.28.1
 uvicorn==0.54.0
 
 # ---- 基础设施 -------------------------------------------------------------
