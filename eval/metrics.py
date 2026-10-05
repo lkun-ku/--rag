@@ -11,8 +11,8 @@
         块 ID 已知时，集合运算比让 LLM 反推**更精确**（无歧义），且完全可复现。
 
     Layer 1 —— 生成层：复用项目**已有的判分器**（它们本来就在工作流里用）
-        Faithfulness      ≈ graph2.grade_hallucinations_chain
-        Answer Relevancy  ≈ graph2.grade_answer_chain
+        Faithfulness      ≈ graph_crag.grade_hallucinations_chain
+        Answer Relevancy  ≈ graph_crag.grade_answer_chain
 
         这层依赖外部 LLM，因此配了「缓存 + 失效保护」两道措施。
 
@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -66,18 +67,129 @@ def score_retrieval(golden_blocks: Sequence[str], retrieved_blocks: Sequence[str
     }
 
 
+def _hit_points(points: Sequence[str], texts: Sequence[str]) -> tuple:
+    """要点命中判定：要点字符串是否出现在任一召回块正文里。
+
+    为什么用「包含」而不是 embedding 相似度：
+    * 要点通常是数字、专有名词、版本号（`9575.69` / `RaBitQ` / `2.6`），
+      字符串包含已经足够精确，且**完全确定性**（同输入必同输出，无抖动）；
+    * 相似度阈值需要校准，换语料后阈值失效 —— 与本模块「换材料不失效」的目标冲突。
+    """
+    blob = "\n".join(texts)
+    hit, missed = [], []
+    for p in points:
+        (hit if p in blob else missed).append(p)
+    return hit, missed
+
+
+def score_case(case: Dict, recalled: Sequence[Dict], top_n: int = 0) -> Dict:
+    """**通用化**的单题打分：判据与语料内容解耦。
+
+    三种情况，按优先级：
+
+    1. `key_points` 非空 -> **要点命中**
+       判据是「答案里的关键数字/结论有没有出现在召回块中」。
+       换一批文档、重切片、改格式都不影响 —— 这是通用化的核心。
+    2. `key_points` 为空但 `source_blocks` 非空 -> **块 ID 命中**（旧逻辑，向后兼容）
+    3. 两者都为空 -> **拒答题**：返回 `recall=None`（**不是 0.0**），聚合时跳过。
+
+    Args:
+        case: golden 条目，可含 `key_points` / `source_blocks` / `expect_doc`。
+        recalled: 召回结果 `[{"id":..., "text":..., "filename":...}]`。
+        top_n: 只取前 N 条参与判定（0 = 全部）。用于模拟生成阶段的上下文预算。
+
+    Returns:
+        {recall, precision, hit, basis, is_refusal_case, matched_points,
+         missed_points, doc_hit}
+        `recall=None` 表示「不适用」（拒答题），聚合时必须跳过。
+    """
+    case = case or {}
+    items = list(recalled or [])
+    if top_n:
+        items = items[:top_n]
+
+    texts = [str(i.get("text") or "") for i in items]
+    ids = [str(i.get("id") or "") for i in items]
+
+    points = [str(p) for p in (case.get("key_points") or []) if str(p).strip()]
+    blocks = [str(b) for b in (case.get("source_blocks") or []) if str(b).strip()]
+    expect_doc = (case.get("expect_doc") or "").strip()
+
+    if points:
+        basis = "key_points"
+        matched, missed = _hit_points(points, texts)
+        recall = len(matched) / len(points)
+        hit = 1 if matched else 0
+        # 要点匹配下 precision **不适用**（分母是固定召回条数，与质量无关）。
+        # 必须用 None 而不是 0.0 —— 0.0 会被聚合与门禁当成真值，把整套评测判成 FAIL
+        # （实测自动题 8 道 recall 全 1.0 却因 precision=0 触发 FAIL）。
+        precision = None
+    elif blocks:
+        basis = "source_blocks"
+        g, r = set(blocks), set(ids)
+        inter = g & r
+        recall = len(inter) / len(g)
+        precision = len(inter) / len(r) if r else 0.0
+        hit = 1 if inter else 0
+        matched, missed = sorted(inter), sorted(g - r)
+    else:
+        # 拒答题：没有「应召回」的目标，召回率不适用
+        return {
+            "recall": None,
+            "precision": 0.0,
+            "hit": 0.0,
+            "basis": "refusal",
+            "is_refusal_case": True,
+            "matched_points": [],
+            "missed_points": [],
+            "doc_hit": None,
+        }
+
+    doc_hit = None
+    if expect_doc:
+        doc_hit = 1 if any(expect_doc in str(i.get("filename") or "") for i in items) else 0
+
+    return {
+        "recall": recall,
+        "precision": precision,
+        "hit": hit,
+        "basis": basis,
+        "is_refusal_case": False,
+        "matched_points": matched,
+        "missed_points": missed,
+        "doc_hit": doc_hit,
+    }
+
+
 def aggregate_layer0(per_case: List[Dict]) -> Dict[str, float]:
     """汇总 Layer 0：**宏平均**（每题的权重相同）。
 
     为什么用宏平均而非微平均：不同题标注的块数不同（1~3 个），
     微平均会让「多块题」主导总分。门禁关心的是「平均每题表现如何」。
+
+    [FIX 2026-11] **跳过 `recall is None` 的拒答题**。
+    原实现把所有题都塞进分母，而拒答题的 recall 恒为 0（`len(hit)/len(g)` 中 g 为空），
+    于是「正确拒答」被记成「零召回」：2/32 道题直接把 context_recall 压低 6.25 个点，
+    实测 0.8048 vs 真实 0.8584 —— 让门禁贴着告警线，掩盖了检索的真实水平。
     """
-    if not per_case:
-        return {"context_recall": 0.0, "context_precision": 0.0, "hit_rate": 0.0}
+    all_cases = list(per_case or [])
+    scorable = [c for c in all_cases if c.get("recall") is not None]
+    refusal_n = len(all_cases) - len(scorable)
+
+    if not scorable:
+        return {
+            "context_recall": 0.0,
+            "context_precision": None,
+            "hit_rate": 0.0,
+            "refusal_cases": refusal_n,
+        }
+    # precision 只在「块 ID 口径」下有定义；要点口径的题不计入（见 score_case）
+    _precs = [c.get("precision") for c in scorable if c.get("precision") is not None]
     return {
-        "context_recall": sum(c["recall"] for c in per_case) / len(per_case),
-        "context_precision": sum(c["precision"] for c in per_case) / len(per_case),
-        "hit_rate": sum(c.get("hit", 0.0) for c in per_case) / len(per_case),
+        "context_recall": sum(c["recall"] for c in scorable) / len(scorable),
+        "context_precision": sum(_precs) / len(_precs) if _precs else None,
+        "hit_rate": sum(c.get("hit", 0.0) or 0.0 for c in scorable) / len(scorable),
+        "refusal_cases": refusal_n,
     }
 
 
@@ -149,24 +261,37 @@ class LLMUnavailable(RuntimeError):
     """LLM 不可用（余额/网络/服务故障）——与「判定为否」严格区分。"""
 
 
-def llm_health_check() -> Tuple[bool, str]:
+def llm_health_check(retries: int = 3, delay: float = 2.0) -> Tuple[bool, str]:
     """评估前探活：确认 LLM 能正常响应。
 
     为什么必须做：实测遇到过 DeepSeek 返回 `402 Insufficient Balance`，
     此时若把失败当成「得 0 分」，门禁会把**环境故障误报为质量崩塌**。
     先探活就能明确区分这两种情况。
 
+    [FIX 2026-11] 原实现只试一次：一次网络抖动的 `OpenAITimeoutError` 就把
+    整个生成层判为 SKIPPED —— 398 题的评测跑完检索层后白等一场。
+    现改为 3 次尝试、间隔 2s：瞬时超时/限流能自愈；
+    持续故障（余额不足 / key 无效）每次都是秒级失败，三次后快速放弃，不会拖时间。
+
     Returns:
         (可用, 说明)
     """
-    try:
-        from rag_kb.llm_models.all_llm import llm
+    import time
 
-        resp = llm.invoke("回复一个字：好")
-        text = getattr(resp, "content", str(resp))
-        return True, f"OK ({str(text)[:20]!r})"
-    except Exception as e:  # noqa: BLE001
-        return False, f"{type(e).__name__}: {str(e)[:160]}"
+    from rag_kb.llm_models.all_llm import llm
+
+    last_err = ""
+    for attempt in range(1, retries + 1):
+        try:
+            resp = llm.invoke("回复一个字：好")
+            text = getattr(resp, "content", str(resp))
+            return True, f"OK ({str(text)[:20]!r})"
+        except Exception as e:  # noqa: BLE001
+            last_err = f"{type(e).__name__}: {str(e)[:160]}"
+            if attempt < retries:
+                print(f"  [重试] LLM 探活第 {attempt}/{retries} 次失败，{delay}s 后重试…")
+                time.sleep(delay)
+    return False, last_err
 
 
 def _is_llm_env_error(e: Exception) -> bool:
@@ -197,7 +322,7 @@ def _is_llm_env_error(e: Exception) -> bool:
 def judge_faithfulness(question: str, generation: str, contexts: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Faithfulness（抗幻觉）：答案是否**只**基于给定上下文。
 
-    复用项目现有的幻觉判分器（rag_kb/graph2/grade_hallucinations_chain.py），
+    复用项目现有的幻觉判分器（rag_kb/graph_crag/grade_hallucinations_chain.py），
     它本来就在 CRAG 工作流里跑，因此这里评估的是**真实链路**的判断标准。
 
     Returns:
@@ -212,7 +337,7 @@ def judge_faithfulness(question: str, generation: str, contexts: str, cache: Opt
             return {"value": rec["value"], "raw": rec["raw"], "cached": True}
 
     try:
-        from rag_kb.graph2.grade_hallucinations_chain import hallucination_grader_chain
+        from rag_kb.graph_crag.grade_hallucinations_chain import hallucination_grader_chain
 
         score = hallucination_grader_chain.invoke({"documents": contexts, "generation": generation})
         raw = str(getattr(score, "binary_score", "")).strip().lower()
@@ -230,7 +355,7 @@ def judge_faithfulness(question: str, generation: str, contexts: str, cache: Opt
 def judge_answer_relevancy(question: str, generation: str, cache: Optional[JudgeCache] = None) -> Dict:
     """Answer Relevancy：答案是否**真的回答了**问题。
 
-    复用 rag_kb/graph2/grade_answer_chain.py。
+    复用 rag_kb/graph_crag/grade_answer_chain.py。
 
     Raises:
         LLMUnavailable: 同上，绝不用 0 分掩盖环境故障
@@ -242,7 +367,7 @@ def judge_answer_relevancy(question: str, generation: str, cache: Optional[Judge
             return {"value": rec["value"], "raw": rec["raw"], "cached": True}
 
     try:
-        from rag_kb.graph2.grade_answer_chain import answer_grader_chain
+        from rag_kb.graph_crag.grade_answer_chain import answer_grader_chain
 
         score = answer_grader_chain.invoke({"question": question, "generation": generation})
         raw = str(getattr(score, "binary_score", "")).strip().lower()
@@ -258,7 +383,7 @@ def judge_answer_relevancy(question: str, generation: str, cache: Optional[Judge
 
 
 def generate_answer(question: str, docs: Sequence, cache: Optional[JudgeCache] = None) -> Tuple[str, bool]:
-    """用项目自身的生成链产出答案（复用 graph2/generate_node2.generate）。
+    """用项目自身的生成链产出答案（复用 graph_crag/generate_node.generate）。
 
     为什么直接调 generate() 而不是跑完整工作流：
       评测需要**控制变量** —— 上下文就是我们刚检索到的那批块。
@@ -280,7 +405,7 @@ def generate_answer(question: str, docs: Sequence, cache: Optional[JudgeCache] =
         if rec and rec.get("text"):
             return rec["text"], True
 
-    from rag_kb.graph2.generate_node2 import generate
+    from rag_kb.graph_crag.generate_node import generate
 
     result = generate({"question": question, "documents": list(docs)})
     ans = result["generation"]
@@ -305,13 +430,58 @@ def generate_answer(question: str, docs: Sequence, cache: Optional[JudgeCache] =
 #                      它低**不代表检索差**，因此只作监控（阈值设在基线附近，
 #                      用于发现「检索严重发散」这一类异常），不作为主要门禁。
 #   生成层两项         LLM 判定，阈值放宽（判定本身有抖动）。
-THRESHOLDS = {
+DEFAULT_THRESHOLDS = {
     "context_recall": {"fail": 0.60, "warn": 0.80},
     "hit_rate": {"fail": 0.75, "warn": 0.85},
     "context_precision": {"fail": 0.03, "warn": 0.05},
     "faithfulness": {"fail": 0.60, "warn": 0.80},
     "answer_relevancy": {"fail": 0.60, "warn": 0.80},
 }
+
+# 阈值文件：**换语料后只改这个文件，不改代码**。
+# 环境变量 `EVAL_THRESHOLDS` 可指向别的路径（便于多语料并行评测）。
+THRESHOLDS_FILE = pathlib.Path(os.getenv("EVAL_THRESHOLDS") or (HERE / "thresholds.json"))
+
+
+def load_thresholds(path=None) -> Dict[str, Dict[str, float]]:
+    """读取阈值配置，缺失/损坏时回退默认值。
+
+    设计约束：
+    * **增量合并**，不是整体替换 —— 只写 `context_recall` 不会把其它指标搞没；
+    * 非法 JSON **不抛异常** —— 评测工具不该因为一个配置笔误而崩掉，
+      回退默认并让门禁照常工作，比中断更有用；
+    * 未知指标名直接忽略，避免配置里留了历史字段就污染结果。
+
+    Args:
+        path: 阈值文件路径；None 时用 `THRESHOLDS_FILE`。
+
+    Returns:
+        {指标名: {"fail": float, "warn": float}}
+    """
+    base = {k: dict(v) for k, v in DEFAULT_THRESHOLDS.items()}
+    p = pathlib.Path(path) if path else THRESHOLDS_FILE
+    try:
+        if not p.exists():
+            return base
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[警告] 阈值文件不可用（{type(e).__name__}: {e}），已回退内置默认值：{p}")
+        return base
+
+    for name, conf in (data or {}).items():
+        if name not in base or not isinstance(conf, dict):
+            continue
+        for key in ("fail", "warn"):
+            if key in conf:
+                try:
+                    base[name][key] = float(conf[key])
+                except (TypeError, ValueError):
+                    print(f"[警告] 阈值 {name}.{key} 不是数字（{conf[key]!r}），保持默认")
+    return base
+
+
+# 模块级取值：保持 `metrics.THRESHOLDS` 的既有用法不变
+THRESHOLDS = load_thresholds()
 
 # 哪些指标参与「**告警**」（warn）—— 不在集合里的只参与**硬门禁**（fail）。
 #
@@ -350,10 +520,11 @@ def gate(scores: Dict[str, Optional[float]], gen_requested: bool = False) -> Tup
 
     for name in ("context_recall", "hit_rate", "context_precision"):
         v = scores.get(name)
-        # hit_rate 是后加的指标，旧记录里可能没有 —— 缺失时跳过而非判失败
+        # None = 「该指标不适用」，跳过而非判失败：
+        #   hit_rate           旧记录里可能没有
+        #   context_precision  要点匹配口径下无定义（见 score_case 的说明）
         if v is None:
-            if name == "hit_rate":
-                continue
+            continue
             reasons.append(f"{name}: 未计算（Layer 0 应始终可用，请检查）")
             failed = True
             continue

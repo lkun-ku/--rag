@@ -1,148 +1,137 @@
-"""从 Milvus 导出块清单，作为 Golden Dataset 的 `source_blocks` 依据。
+"""导出块清单（`chunk_index.json`）—— 换语料后重造评测的第一步。
+
+## 为什么需要它
+
+`golden_dataset.jsonl` 的标注指向「具体的块」。块的 ID 是**内容指纹**
+（`md5(text)[:12]`），所以：
+
+    换一批文档 / 重新切片 / 改一个标点  ->  ID 变了  ->  旧标注意义消失
+
+要重造标注，先得知道「现在库里有哪些块」。这个脚本就干这件事。
+
+## 用法
+
+    # 导出全部集合（默认）
+    .venv\\Scripts\\python.exe eval\\export_chunks.py
+
+    # 只看某个集合 / 抽样
+    .venv\\Scripts\\python.exe eval\\export_chunks.py --collection kb_frontend_bge_large_1024 --limit 50
 
 产物：`eval/chunk_index.json`
+    [{"id","text","filename","title","source","collection"}, ...]
 
-```json
-{
-  "source": "milvus",
-  "server_version": "3.0.1",
-  "total_chunks": 135,
-  "collections": {
-    "kb_milvus_bge_large_1024": {
-      "count": 102,
-      "chunks": [
-        {"chunk_id": "a1b2c3d4e5f6", "filename": "overview.md",
-         "title": "...", "chars": 547, "preview": "..."}
-      ]
-    }
-  }
-}
-```
-
-chunk_id 用 `md5(page_content)[:12]` —— 内容指纹，与 ROADMAP 1.5.1 的设计一致。
-这样 Golden Dataset 里标注的 `source_blocks` 是**内容指纹**而非行 ID，
-即使重建集合（换维度/换模型）也能对应上（只要块内容不变）。
-
-用法：
-    $env:PYTHONPATH="RAG_PROJECT"
-    .venv\\Scripts\\python.exe eval\\export_chunks.py
+`id` 的算法与 `metrics.chunk_id` **必须完全一致**，否则标注对不上。
 """
 
 from __future__ import annotations
 
+import pathlib as _pl
+import sys as _sy
+
+# 解释器护栏：裸 python（Anaconda）跑本脚本会 ModuleNotFoundError，自动切到项目 .venv
+_HERE = _pl.Path(__file__).resolve().parent
+if str(_HERE) not in _sy.path:
+    _sy.path.insert(0, str(_HERE))
+import venv_guard  # noqa: E402
+
+venv_guard.ensure_venv()
+
+import argparse
 import hashlib
 import json
-import os
 import pathlib
 import sys
 
+HERE = pathlib.Path(__file__).resolve().parent
+OUT = HERE / "chunk_index.json"
 
-os.environ.setdefault("OPENAI_API_KEY", "sk-placeholder")
-os.environ.setdefault("TAVILY_API_KEY", "tvly-placeholder")
-
-from pymilvus import MilvusClient  # noqa: E402
-
+sys.path.insert(0, str(HERE))
 from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_URI  # noqa: E402
-
-OUT = pathlib.Path(__file__).resolve().parent / "chunk_index.json"
-# Milvus query 单次上限（本项目块数远小于此值，留足余量）
-QUERY_LIMIT = 16384
 
 
 def chunk_id(text: str) -> str:
-    """内容指纹：与检索无关，只保证「同样内容 -> 同样 ID」。"""
+    """与 `metrics.chunk_id` 保持字节级一致。"""
     return hashlib.md5(text.encode("utf-8")).hexdigest()[:12]
 
 
-def main() -> int:
-    print("=" * 78)
-    print("导出块清单（Golden Dataset 的 source_blocks 依据）")
-    print("=" * 78)
-    print(f"MILVUS_URI = {MILVUS_URI}")
-
-    client = MilvusClient(uri=MILVUS_URI)
-    try:
-        version = client.get_server_version()
-    except Exception:  # noqa: BLE001
-        version = "unknown"
-    print(f"服务端版本 = {version}")
-
-    existing = set(client.list_collections())
-    index = {
-        "source": "milvus",
-        "server_version": str(version),
-        "total_chunks": 0,
-        "collections": {},
-    }
-
+def _target_collections(explicit: str = "") -> list:
+    if explicit:
+        return [explicit]
+    seen, out = set(), []
     for s in DOC_SOURCES:
         if not s.get("enabled", True):
             continue
-        coll = s["collection"]
-        if coll not in existing:
-            print(f"  [跳过] 集合不存在: {coll}")
-            continue
+        c = s.get("collection")
+        if c and c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
 
-        # 只导出**可被检索到**的块（category == 'content'），
-        # 因为 Golden Dataset 标注的是「检索应该命中什么」，
-        # 而非 content 的块（frontmatter / 纯标题）本来就不会被召回。
-        rows = client.query(
-            collection_name=coll,
-            filter="category == 'content'",
-            output_fields=["text", "filename", "title", "category"],
-            limit=QUERY_LIMIT,
+
+def export(collection: str, limit: int, client) -> list:
+    """分页拉取一个集合的块，返回统一结构的字典列表。"""
+    rows, offset, page = [], 0, 1000
+    while True:
+        batch = client.query(
+            collection_name=collection,
+            filter="id >= 0",
+            output_fields=["text", "filename", "title", "source"],
+            limit=page,
+            offset=offset,
         )
-
-        chunks = []
-        for r in rows:
+        if not batch:
+            break
+        for r in batch:
             text = r.get("text") or ""
-            chunks.append(
+            rows.append(
                 {
-                    "chunk_id": chunk_id(text),
-                    "filename": r.get("filename") or "",
-                    "title": (r.get("title") or "")[:80],
-                    "chars": len(text),
-                    "preview": text[:160].replace("\n", " "),
-                    # 完整文本仅用于本地核对，体积较大但便于人工标注
+                    "id": chunk_id(text),
                     "text": text,
+                    "filename": r.get("filename") or "",
+                    "title": r.get("title") or "",
+                    "source": r.get("source") or "",
+                    "collection": collection,
                 }
             )
-        chunks.sort(key=lambda c: (c["filename"], c["chunk_id"]))
+        offset += len(batch)
+        if len(batch) < page or (limit and len(rows) >= limit):
+            break
+    return rows[:limit] if limit else rows
 
-        index["collections"][coll] = {
-            "name": s["name"],
-            "parser": s["parser"],
-            "count": len(chunks),
-            "chunks": chunks,
-        }
-        index["total_chunks"] += len(chunks)
-        print(f"  {coll:<34} {len(chunks):>4} 块  (源 {s['name']})")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+def main() -> int:
+    ap = argparse.ArgumentParser(description="导出 Milvus 块清单，供评测标注使用")
+    ap.add_argument("--collection", default="", help="只导出指定集合（默认全部 enabled 源）")
+    ap.add_argument("--limit", type=int, default=0, help="每个集合最多导出多少块（0 = 全部）")
+    ap.add_argument("--out", default=str(OUT), help="输出路径")
+    args = ap.parse_args()
 
+    from pymilvus import MilvusClient
+
+    targets = _target_collections(args.collection)
+    print("=" * 84)
+    print("导出块清单")
+    print("=" * 84)
+    print("Milvus :", MILVUS_URI)
+    print("集合   :", targets)
     print()
-    print(f"总计 {index['total_chunks']} 个可检索块")
-    print(f"已写入: {OUT}")
 
-    # 重复指纹检查：同内容不同来源会让标注产生歧义
-    seen = {}
-    dups = []
-    for coll, info in index["collections"].items():
-        for c in info["chunks"]:
-            if c["chunk_id"] in seen:
-                dups.append((c["chunk_id"], seen[c["chunk_id"]], coll))
-            else:
-                seen[c["chunk_id"]] = coll
-    if dups:
-        print()
-        print(f"[!] 发现 {len(dups)} 个跨集合重复的内容指纹（标注时需注意区分来源）:")
-        for cid, c1, c2 in dups[:5]:
-            print(f"    {cid}  同时出现在 {c1} 与 {c2}")
-    else:
-        print("无跨集合重复指纹（每个块内容唯一，标注无歧义）")
+    client = MilvusClient(uri=MILVUS_URI)
+    all_rows = []
+    for c in targets:
+        try:
+            rows = export(c, args.limit, client)
+        except Exception as e:  # noqa: BLE001
+            print("  [跳过] %-40s %s: %s" % (c, type(e).__name__, str(e)[:80]))
+            continue
+        print("  %-40s %5d 块" % (c, len(rows)))
+        all_rows.extend(rows)
 
-    print("=" * 78)
+    out = pathlib.Path(args.out)
+    out.write_text(json.dumps(all_rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    print()
+    print("总计 %d 块 -> %s" % (len(all_rows), out))
+    print("下一步：python eval/gen_testset.py --per-collection 3   （自动出题，生成 golden_auto.jsonl）")
     return 0
 
 

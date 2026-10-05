@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "评测阈值（可随语料更新，不需要改代码）。",
+    "口径说明：context_recall / hit_rate 的分母**不含拒答题** ——",
+    "  拒答题（source_blocks 与 key_points 都为空）的正确行为是「召不回东西」，",
+    "  把它算进召回率会把 2/32 的正确拒答记成零召回，凭空压低 6.25 个百分点。",
+    "调法：换语料后先跑一次 `python eval/run_eval.py --no-save` 看真实水平，",
+    "      再把 warn 设成「略低于该水平」、fail 设成「明显不可接受」。",
+    "注意：不要让阈值自动跟随基线 —— 那会把「变差」变成「新基线」。"
+  ],
+  "context_recall": { "fail": 0.70, "warn": 0.84 },
+  "hit_rate": { "fail": 0.80, "warn": 0.92 },
+  "context_precision": { "fail": 0.03, "warn": 0.05 },
+  "faithfulness": { "fail": 0.60, "warn": 0.80 },
+  "answer_relevancy": { "fail": 0.60, "warn": 0.80 }
+}

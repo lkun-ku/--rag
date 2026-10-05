@@ -1,7 +1,7 @@
 """评测主流程：跑 Golden Dataset，输出四项指标与门禁判定。
 
 用法：
-    $env:PYTHONPATH="RAG_PROJECT"
+    $env:PYTHONPATH="."
 
     # 只跑检索层（默认）—— 0 LLM 调用、0 抖动、秒级
     .venv\\Scripts\\python.exe eval\\run_eval.py
@@ -25,12 +25,24 @@
 
 from __future__ import annotations
 
+import pathlib as _pl
+import sys as _sy
+
+# 解释器护栏：裸 python（Anaconda）跑本脚本会 ModuleNotFoundError，自动切到项目 .venv
+_HERE = _pl.Path(__file__).resolve().parent
+if str(_HERE) not in _sy.path:
+    _sy.path.insert(0, str(_HERE))
+import venv_guard  # noqa: E402
+
+venv_guard.ensure_venv()
+
 import argparse
 import json
 import os
 import pathlib
 import sys
 import time
+from typing import Sequence
 
 HERE = pathlib.Path(__file__).resolve().parent
 # 用 `import metrics` 而不是 `from eval import metrics`：`python eval/run_eval.py` 启动时
@@ -44,14 +56,40 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 import metrics  # noqa: E402
 from rag_kb.utils.env_utils import MILVUS_URI  # noqa: E402
 
-GOLDEN = HERE / "golden_dataset.jsonl"
-BASELINE = HERE / "baseline.json"
-HISTORY = HERE / "history.jsonl"
+GOLDEN_DATASET = HERE / "golden_dataset.jsonl"   # 手工题集（绑定旧语料，语料变了会失效）
+GOLDEN_AUTO = HERE / "golden_auto.jsonl"         # 自动题集（gen_testset 生成，与当前向量库对齐）
 
 
-def load_golden(limit: int = 0):
+def _pick_golden(explicit: str, candidates: Sequence[pathlib.Path]) -> pathlib.Path:
+    """评测集选择：显式 --golden > 自动题（与当前向量库对齐）> 手工题集 > 第一个存在的。"""
+    if explicit:
+        p = pathlib.Path(explicit)
+        if not p.exists():
+            raise FileNotFoundError(f"指定的评测集不存在: {p}")
+        return p
+    for p in candidates:
+        if p.exists():
+            return p
+    raise FileNotFoundError("没有找到任何评测集（候选: %s）" % ", ".join(str(p) for p in candidates))
+
+
+def _output_paths(gold: pathlib.Path) -> tuple:
+    """baseline/history 跟随评测集派生：不同题集的基线**互不覆盖**。"""
+    if gold.name == "golden_dataset.jsonl":
+        return HERE / "baseline.json", HERE / "history.jsonl"
+    tag = gold.stem.replace("golden_", "") or "auto"
+    return HERE / f"baseline_{tag}.json", HERE / f"history_{tag}.jsonl"
+
+
+def goldens_of(case: dict) -> list:
+    """题目的「应召回目标」：要点优先，其次块 ID。两者都空 = 拒答题。"""
+    return list(case.get("key_points") or []) + list(case.get("source_blocks") or [])
+
+
+def load_golden(limit: int = 0, path=None):
+    src = pathlib.Path(path) if path else GOLDEN_DATASET
     cases = []
-    for line in GOLDEN.read_text(encoding="utf-8").splitlines():
+    for line in src.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line:
             cases.append(json.loads(line))
@@ -67,13 +105,23 @@ def main() -> int:
     ap.add_argument("--verbose", action="store_true", help="打印每题详情")
     ap.add_argument("--no-cache", action="store_true", help="忽略判定缓存")
     ap.add_argument("--no-save", action="store_true", help="不写 baseline/history（用于验证性测试，避免污染正式基线）")
+    ap.add_argument(
+        "--golden", default="", help="评测集路径（默认 golden_dataset.jsonl；自动生成题为 golden_auto.jsonl）"
+    )
     args = ap.parse_args()
 
-    if not GOLDEN.exists():
-        print(f"缺少 {GOLDEN}，请先运行 eval/build_dataset.py")
+    candidates = [pathlib.Path(args.golden)] if args.golden else [GOLDEN_AUTO, GOLDEN_DATASET]
+    try:
+        gold_path = _pick_golden(args.golden, candidates)
+    except FileNotFoundError as e:
+        print(str(e))
+        if not args.golden:
+            print("生成方式（换语料后）：")
+            print("    python eval/export_chunks.py                    # 导出块清单")
+            print("    python eval/gen_testset.py --per-collection 3   # 自动出题 -> eval/golden_auto.jsonl")
         return 2
 
-    cases = load_golden(args.limit)
+    cases = load_golden(args.limit, gold_path)
     print("=" * 84)
     print("RAG 评测（Golden Dataset）")
     print("=" * 84)
@@ -111,17 +159,35 @@ def main() -> int:
 
     for i, case in enumerate(cases, 1):
         q = case["q"]
-        golden_ids = case["source_blocks"]
+        golden_ids = goldens_of(case)  # 要点 + 块 ID 都记录，诊断信息更完整
         row = {"id": case.get("id", f"#{i}"), "source": case.get("source", "?"), "q": q, "golden_blocks": golden_ids}
 
         # Layer 0
+        # [2026-11] 改用 `score_case`：判据优先用 `key_points`（与语料内容解耦），
+        # 没有时才退回 `source_blocks`；拒答题返回 recall=None（不参与聚合）。
         try:
             docs = retriever.invoke(q)
-            rids = [metrics.chunk_id(d.page_content) for d in docs]
-            s = metrics.score_retrieval(golden_ids, rids)
+            recalled = [
+                {
+                    "id": metrics.chunk_id(d.page_content),
+                    "text": d.page_content,
+                    "filename": str((getattr(d, "metadata", None) or {}).get("filename") or ""),
+                }
+                for d in docs
+            ]
+            s = metrics.score_case(case, recalled)
         except Exception as e:  # noqa: BLE001
             print(f"  [{row['id']}] 检索失败: {type(e).__name__}: {str(e)[:120]}")
-            row.update({"recall": 0.0, "precision": 0.0, "error": str(e)[:120]})
+            is_refusal = not goldens_of(case)
+            row.update(
+                {
+                    "recall": None if is_refusal else 0.0,
+                    "precision": 0.0,
+                    "hit": 0.0,
+                    "basis": "refusal" if is_refusal else "error",
+                    "error": str(e)[:120],
+                }
+            )
             per_case.append(row)
             continue
 
@@ -130,17 +196,25 @@ def main() -> int:
                 "recall": s["recall"],
                 "precision": s["precision"],
                 "hit": s["hit"],
-                "retrieved_n": len(rids),
-                "missed": s["missed_ids"],
+                "basis": s["basis"],
+                "doc_hit": s["doc_hit"],
+                "retrieved_n": len(recalled),
+                "missed": s["missed_points"],
             }
         )
         per_case.append(row)
 
         if args.verbose:
-            flag = "OK " if s["recall"] == 1.0 else ("部分" if s["recall"] > 0 else "未命中")
-            print(f"  [{row['id']}] R={s['recall']:.2f} P={s['precision']:.2f} ({flag}) | {q[:44]}")
-            if s["missed_ids"]:
-                print(f"        漏召回: {s['missed_ids']}")
+            if s["recall"] is None:
+                print(f"  [{row['id']}] 拒答题（不参与召回统计）| {q[:40]}")
+            else:
+                flag = "OK " if s["recall"] == 1.0 else ("部分" if s["recall"] > 0 else "未命中")
+                extra = " doc=%s" % ("hit" if s["doc_hit"] else "miss") if s["doc_hit"] is not None else ""
+                print(
+                    f"  [{row['id']}] R={s['recall']:.2f} ({flag}) [{s['basis']}]{extra} | {q[:40]}"
+                )
+                if s["missed_points"]:
+                    print(f"        漏召回: {s['missed_points']}")
 
         # Layer 1（可选）
         if args.with_generation and llm_ok:
@@ -152,8 +226,18 @@ def main() -> int:
                 l1["faithfulness"].append(f["value"])
                 l1["answer_relevancy"].append(r["value"])
                 if args.verbose:
+                    # 题目与回答一一对应展示，肉眼即可核对「答得对不对」
+                    _gen = (gen or "").replace("\n", " ")
+                    _gold = (case.get("answer") or "").replace("\n", " ")
+                    print("        " + "─" * 60)
+                    print(f"        题: {q[:70]}")
                     print(
-                        f"        faith={f['raw']}({f['value']:.0f}) "
+                        f"        答({len(gen)}字): {_gen[:220]}{'…' if len(_gen) > 220 else ''}"
+                    )
+                    if _gold:
+                        print(f"        参考: {_gold[:70]}")
+                    print(
+                        f"        判分: faith={f['raw']}({f['value']:.0f}) "
                         f"relev={r['raw']}({r['value']:.0f})"
                         f"{' [生成缓存]' if gen_cached else ''}"
                         f"{' [判定缓存]' if f['cached'] else ''}"
@@ -167,10 +251,12 @@ def main() -> int:
 
     # ---- 汇总 ----
     l0 = metrics.aggregate_layer0(per_case)
+    n_refusal = l0.get("refusal_cases", 0)
+    n_scored = len(per_case) - n_refusal
     scores = {
         "context_recall": l0["context_recall"],
         "hit_rate": l0["hit_rate"],
-        "context_precision": l0["context_precision"],
+        "context_precision": l0.get("context_precision"),
         "faithfulness": (sum(l1["faithfulness"]) / len(l1["faithfulness"]) if l1["faithfulness"] else None),
         "answer_relevancy": (
             sum(l1["answer_relevancy"]) / len(l1["answer_relevancy"]) if l1["answer_relevancy"] else None
@@ -193,12 +279,25 @@ def main() -> int:
     }
     for k, v in scores.items():
         thk = th[k]
-        vs = "SKIPPED" if v is None else "%.4f" % v
-        print("%-20s %10s %10.2f %10.2f   %s" % (k, vs, thk["fail"], thk["warn"], labels[k]))
+        if v is None:
+            vs = "N/A"
+            # None 有两种语义，必须区分说明（否则用户会以为检索层也出问题了）：
+            #   生成层指标 -> 本次未启用 / LLM 不可用
+            #   context_precision（要点口径）-> 该口径下指标无定义
+            if k in ("faithfulness", "answer_relevancy"):
+                why = "LLM 不可用" if args.with_generation else "未启用（加 --with-generation）"
+                label = "%s（%s）" % (labels[k], why)
+            else:
+                label = labels[k] + "（要点口径下无定义）"
+        else:
+            vs = "%.4f" % v
+            label = labels[k]
+        print("%-20s %10s %10.2f %10.2f   %s" % (k, vs, thk["fail"], thk["warn"], label))
 
     verdict, reasons = metrics.gate(scores, gen_requested=args.with_generation)
 
     print()
+    print("分母说明: 可评测 %d 道；拒答题 %d 道（不参与召回统计）" % (n_scored, n_refusal))
     print(f"耗时: {elapsed:.1f}s")
     if cache:
         print(f"判定缓存: 命中 {cache.hits} / 新增 {cache.misses}")
@@ -219,8 +318,12 @@ def main() -> int:
         print("分源召回率（验证集合隔离与跨集合检索）")
         print("-" * 84)
         for s, rows in sorted(by_src.items()):
-            avg = sum(r["recall"] for r in rows) / len(rows)
-            print("  %-14s %3d 条  平均 Recall=%.4f" % (s, len(rows), avg))
+            scored = [r for r in rows if r["recall"] is not None]
+            if not scored:
+                print("  %-14s %3d 条  拒答题，不参与召回统计" % (s, len(rows)))
+                continue
+            avg = sum(r["recall"] for r in scored) / len(scored)
+            print("  %-14s %3d 条  平均 Recall=%.4f" % (s, len(scored), avg))
 
     # ---- 落盘 ----
     result = {
@@ -234,23 +337,53 @@ def main() -> int:
         "collections": covered,
         "per_source": {
             s: {
-                "n": len(rows),
-                "recall": sum(r["recall"] for r in rows) / len(rows),
-                "precision": sum(r["precision"] for r in rows) / len(rows),
+                "n": len([r for r in rows if r.get("recall") is not None]),
+                "recall": (
+                    sum(r["recall"] for r in rows if r.get("recall") is not None)
+                    / max(1, len([r for r in rows if r.get("recall") is not None]))
+                ),
+                # 要点口径的题 precision 为 None，不参与平均
+                "precision": (
+                    sum(r["precision"] for r in rows if r.get("precision") is not None)
+                    / max(1, len([r for r in rows if r.get("precision") is not None]))
+                    if any(r.get("precision") is not None for r in rows)
+                    else None
+                ),
+                "refusal_n": len([r for r in rows if r.get("recall") is None]),
             }
             for s, rows in by_src.items()
         },
         "per_case": per_case,
     }
-    if args.no_save:
+    # [FIX] `--limit N` 是「只跑前 N 条」的调试模式：它的指标只代表子集，
+    # 若照常写入 baseline 就会把正式基线覆盖成片面的数字（实测踩过：
+    # `--limit 5` 把 context_recall 覆盖成 1.0、verdict 覆盖成 INCONCLUSIVE）。
+    # 这里强制当作验证性运行，避免污染基线。
+    #
+    # [FIX 2026-11 同类第二处] `verdict == INCONCLUSIVE`（生成层未评测）的**不完整结果
+    # 也不该落盘** —— 实测：不带 --with-generation 跑一次，baseline.json 被覆盖成
+    # 「faithfulness/answer_relevancy 缺失」的残缺版，history.jsonl 追加了一条
+    # INCONCLUSIVE 记录。基线/历史是用来对比「有没有变差」的，残缺记录混进去后
+    # 「抖动 vs 持续回退」的判断就失真了。与项目原则一致：**未完成 ≠ 不合格，但未完成也不能当基线**。
+    save_blocked = args.no_save or bool(args.limit) or verdict == "INCONCLUSIVE"
+    if save_blocked:
         print()
-        print("[--no-save] 未写入 baseline/history（验证性运行）")
+        if args.no_save:
+            print("[--no-save] 未写入 baseline/history（验证性运行）")
+        elif args.limit:
+            print(f"[--limit {args.limit}] 只跑了子集，已自动跳过 baseline/history 写入（避免污染正式基线）")
+        else:
+            print(
+                "[未落盘] 门禁为 INCONCLUSIVE（生成层缺失），不完整结果不写入 baseline/history ——"
+                "\n         补 `--with-generation` 得到完整结论后再落盘"
+            )
     else:
-        BASELINE.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        with open(HISTORY, "a", encoding="utf-8") as f:
+        baseline_path, history_path = _output_paths(gold_path)
+        baseline_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        with open(history_path, "a", encoding="utf-8") as f:
             f.write(json.dumps({k: v for k, v in result.items() if k != "per_case"}, ensure_ascii=False) + "\n")
         print()
-        print(f"已写入 {BASELINE.name} 与追加 {HISTORY.name}")
+        print(f"已写入 {baseline_path.name} 与追加 {history_path.name}")
 
     if verdict == "FAIL":
         return 1
