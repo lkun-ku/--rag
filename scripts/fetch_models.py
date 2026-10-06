@@ -6,7 +6,7 @@
     避免依赖「记得手动下过什么」。
 
 用法：
-    # 默认：下载 bge-large-zh-v1.5 到 RAG_PROJECT/models/（等价于项目默认配置）
+    # 默认：下载 bge-large-zh-v1.5 到 models/（等价于项目默认配置）
     .venv/Scripts/python.exe scripts/fetch_models.py
 
     # 指定模型与目标目录
@@ -47,7 +47,7 @@ HF_MIRROR = "https://hf-mirror.com"
 MODELSCOPE = "https://www.modelscope.cn"
 # 项目根（scripts/ 的上一级）
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_DEST_ROOT = ROOT / "RAG_PROJECT" / "models"
+DEFAULT_DEST_ROOT = ROOT / "models"
 
 # ModelScope 已知缺失、需要从 hf-mirror 补齐的文件（相对路径）
 MISSING_ON_MODELSCOPE = ("1_Pooling/config.json",)

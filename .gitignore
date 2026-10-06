@@ -1,39 +1,40 @@
-# ---- 虚拟环境（位于工作区根目录）----
+# 虚拟环境
 .venv/
 venv/
 env/
 
-# ---- 密钥：绝不入库 ----
+# 密钥
 .env
-# .env 的备份/派生文件（如 .env.bak）同样含密钥，一并排除；
-# 但模板文件 .env.example 必须入库，用 ! 例外。
 .env.*
 !.env.example
 
-# ---- Python 缓存 ----
+# Python 缓存
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# ---- 打包产物 ----
+# 打包产物
 build/
 dist/
 *.egg-info/
 .eggs/
 
-# ---- LangGraph 会话记忆持久化文件（SqliteSaver 运行时生成）----
+# 运行时持久化
 checkpoints.db
 checkpoints.db-wal
 checkpoints.db-shm
 
-# ---- 本地模型（体积大，不进版本控制）----
-# 嵌入模型跟随项目放在 models/ 下，但**不入库**：
-# bge-large-zh-v1.5 约 1.3 GB，提交进 git 会让仓库无法使用。
-# 需要时用 scripts/fetch_models.py 重建（见 ROADMAP 1.1.1）。
+# 本地模型
 models/
 
-# ---- 安装/探测/下载过程日志（临时产物）----
+# 语料（第三方资料，约 19 MB；clone 后自备放进 datas/<主题目录>/ 即可入库）
+datas/
+
+# 过程日志
+*.log
+*.err
+!requirements*.txt
 install*.log
 install*.err
 mlite_install*.log
@@ -54,67 +55,49 @@ scan*.err
 ca.log
 cb.log
 c*.err
-
-# ---- 评测运行产物 ----
-# eval/ 下需要**入库**的资产：
-#   chunk_index.json    块清单（Golden Dataset 的 source_blocks 依据）
-#   golden_dataset.jsonl 评测集（45 条，人工维护）
-#   baseline.json       最新基线（ROADMAP 1.6 要求记录初始分数）
-#   history.jsonl       历史趋势（用于区分「抖动」与「持续回退」）
-# 只有缓存属于运行态产物（换模型/换语料即失效，体积随时间增长），排除。
-eval/cache.jsonl
-
-# ---- 公开仓库不发布的本地证据/备份 ----
-# 迁移前旧代码快照：含 .idea/workspace.xml、__pycache__，仅本地回滚用。
-_source_snapshot_before_upgrade.zip
-# 集合重建前的备份：source 字段含本机绝对路径，仅本地保留。
-eval/_backup_collections/
-
 lite.log
 lite.err
-local_milvus.db/
-*.db.lock
-
-# ---- Milvus Lite 本地库（嵌入式，运行时生成；它其实是目录不是文件）----
-*_test_lite*/
-milvus.db/
-
-# ---- 可观测性轨迹（ROADMAP 3.1 运行态产物）----
-# logs/trace.jsonl 每问一条、追加写，体积随时间增长；
-# 它是「运行记录」而非「资产」，需要用 scripts/show_trace.py 现场查看。
-logs/
-
-# ---- 临时验证工作区 ----
-# scratch/ 放一次性诊断脚本（定位过程用）。有价值的结论已写入 ROADMAP，
-# 可复用的工具已迁到 eval/（scan_fetch_k / exp_rerank / probe_*），
-# 因此整个目录不入库。
-scratch/
-
-# ---- 工具 / 编辑器本地状态 ----
-# 说明：.idea/ 下保留了 misc.xml、modules.xml、*.iml、inspectionProfiles/
-# 这类可共享的项目配置（仅含本机绝对路径的 workspace.xml 已删除），
-# 但按 PyCharm 默认约定整体不入库。
-.idea/
-.vscode/
-*.swp
-.codebuddy/
-
-# ---- 提交信息临时文件（git commit -F 用）----
-.git-commit-msg.txt
-
-# ---- 临时产物：评测/调试的输出文件（补）----
-# 教训：此前只「删文件」不加规则，下次 git add -A 又会把它们提交进来 ——
-# 治标不治本。这些是**运行产物**，不是源码或证据（证据应写进 ROADMAP 或 eval/*.json）。
-*.err
 rac*.txt
 th.txt
-# eval/ 下的一次性分析输出（内容已摘入 ROADMAP 的才可忽略）
+
+# 评测运行产物
+eval/cache.jsonl
+eval/chunk_index.json
+eval/golden_auto.jsonl
+eval/golden_frontend_draft.jsonl
+eval/baseline_auto.json
+eval/history_auto.jsonl
+eval/_backup_collections/
 eval/citation_audit.txt
 eval/content_survey.txt
 eval/ingest_audit_new.txt
 eval/nan_check.txt
 eval/new_corpus_audit.txt
 
-# ---- 运行日志（入库过程的临时产物）----
-*.log
-!requirements*.txt
+# 本地快照与数据库
+_source_snapshot_before_upgrade.zip
+local_milvus.db/
+*_test_lite*/
+milvus.db/
+*.db.lock
+
+# 测试报告产物
+tests/deep_scan.json
+tests/module_tests.json
+tests/fullchain_audit.json
+
+# 运行轨迹
+logs/
+
+# 临时工作区
+scratch/
+
+# 工具缓存
+.ruff_cache/
+
+# 编辑器与工具状态
+.idea/
+.vscode/
+*.swp
+.codebuddy/
+.git-commit-msg.txt
