@@ -85,7 +85,7 @@ class AskResponse(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    source: str = Field(..., description="DOC_SOURCES 里的源名，即 datas/ 下的目录名，如 前端复习笔记")
+    source: str = Field(..., description="DOC_SOURCES 里的源名，即 datas/ 下的目录名，如 docs")
     reset: bool = Field(False, description="入库前是否清空该集合（危险，默认否）")
 
 

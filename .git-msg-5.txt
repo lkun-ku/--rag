@@ -1,0 +1,8 @@
+chore(sanitize): 文档与示例移除个人语料名与硬件型号
+
+README 与代码注释中的示例原先取自实际使用的语料目录，替换为通用占位：
+
+- 入库示例改为 datas/{docs,manuals}，调用示例改为与领域无关的问题
+- KB_TENANTS 示例与多租户测试配置改用 docs / manuals / papers
+- 性能实测注释去掉具体设备型号，改为「8 GB 显存 GPU」
+- .env.example 补齐 GRAPH_RECURSION_LIMIT 与 PDF_OCR_FALLBACK

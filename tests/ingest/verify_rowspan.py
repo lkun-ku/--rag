@@ -97,7 +97,7 @@ PROBE = (
     "    print('RAISED', type(e).__name__, '|', str(e)[:150])\n"
 )
 
-for bad in ('{acme: [前端复习笔记]}', '["前端复习笔记"]', '{"acme": ["no_such_source"]}'):
+for bad in ('{acme: [docs]}', '["docs"]', '{"acme": ["no_such_source"]}'):
     env = dict(os.environ, KB_TENANTS=bad, PYTHONIOENCODING="utf-8")
     r = subprocess.run(
         [sys.executable, "-c", PROBE], capture_output=True, text=True, encoding="utf-8", errors="replace", env=env

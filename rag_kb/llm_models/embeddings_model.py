@@ -65,7 +65,7 @@ def resolve_device(env_value: Optional[str] = None, cuda_available: Optional[boo
 def batch_size_for(device: str) -> int:
     """按设备返回 embedding 的批大小（均为实测最优，不要凭直觉调大）。
 
-    实测（本机 16 线程 CPU / RTX 4060 Laptop）：
+    实测（16 线程 CPU / 8 GB 显存 GPU）：
       * CPU：批 20 -> 1.76 块/秒；批 32 -> 1.11（慢 35%），批 64 同样更慢；
       * GPU：批 16 -> 70 块/秒；批 32 -> 45；批 64/128 -> 24。
     批越大越慢的主要原因是块长不均导致的 padding 浪费。
