@@ -106,13 +106,13 @@ COLLECTION_NAME = os.getenv('COLLECTION_NAME') or 'kb_milvus_bge_large_1024'
 # 不再需要手工维护源清单。
 #
 #   datas/
-#   └── 前端复习笔记/      ← 一个目录 = 一个主题包 = 一个 Milvus 集合
+#   └── docs/      ← 一个目录 = 一个主题包 = 一个 Milvus 集合
 #       ├── 01-HTML5.md
 #       ├── 某论文.pdf      ← 格式混放：按扩展名自动选解析器（parser='auto'）
 #       └── 某手册.docx
 #
 # 规则：
-#   1. 目录名 = 源名（`main.py ingest --sources 前端复习笔记`）；
+#   1. 目录名 = 源名（`main.py ingest --sources docs`）；
 #   2. 集合名自动生成：kb_auto_<md5(目录名)[:8]>_bge_large_1024（稳定且唯一）；
 #   3. **支持递归**：子目录里的文件也会被收进来；
 #   4. 目录内可以混放 md / pdf / docx / xlsx / pptx / html / txt；
@@ -210,11 +210,11 @@ KB_TOPIC_BLOCK = '\n'.join(
 #   本来就在不同集合里，租户只需在这条边界上做**集合子集映射**。
 #   这样零 schema 改动、零迁移成本，**且能被测试证明**（租户 A 检索不到租户 B 的块）。
 #
-# 若将来真需要「同一集合内多租户」（例如两个部门共用「前端复习笔记」集合），
+# 若将来真需要「同一集合内多租户」（例如两个部门共用同一集合），
 # 那就必须加 schema 字段并重建 —— 届时先跑评测基线再动。
 #
 # 格式（.env 或环境变量），源名即 datas/ 下的目录名：
-#   KB_TENANTS={"acme": ["前端复习笔记", "AI-agent"], "beta": ["公司制度"]}
+#   KB_TENANTS={"acme": ["docs", "manuals"], "beta": ["papers"]}
 KB_TENANTS_JSON = os.getenv('KB_TENANTS')
 
 
@@ -224,7 +224,7 @@ def _parse_tenants(raw: str) -> dict:
     """解析 KB_TENANTS；格式错误时抛出**带上下文**的错误。
 
     [FIX / P0-4] 原先是一行裸的 `json.loads(...)`，无任何保护。
-    实测设 `KB_TENANTS='{acme: [前端复习笔记]}'`（键忘加引号）会让本模块
+    实测设 `KB_TENANTS='{acme: [docs]}'`（键忘加引号）会让本模块
     **在 import 期**抛 `json.decoder.JSONDecodeError`，而 `env_utils` 是全项目的
     基础依赖（retriever / api / graph / eval 全部 import 它）——
     于是**所有入口都起不来**，且错误信息里完全看不出问题出在租户配置上。
@@ -238,7 +238,7 @@ def _parse_tenants(raw: str) -> dict:
     except json.JSONDecodeError as e:
         raise ValueError(
             f"KB_TENANTS 不是合法 JSON：{e.msg}（位置 {e.pos}）。收到的是 {raw!r}。"
-            '正确格式示例：{"acme": ["前端复习笔记", "AI-agent"], "beta": ["公司制度"]}'
+            '正确格式示例：{"acme": ["docs", "manuals"], "beta": ["papers"]}'
             "（键名与字符串都要用双引号）"
         ) from e
     if not isinstance(parsed, dict):

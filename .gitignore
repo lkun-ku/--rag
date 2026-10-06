@@ -95,6 +95,9 @@ scratch/
 # 工具缓存
 .ruff_cache/
 
+# 临时提交信息文件
+/.git-msg-*.txt
+
 # 编辑器与工具状态
 .idea/
 .vscode/

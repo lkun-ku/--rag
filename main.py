@@ -21,10 +21,10 @@ r"""RAG 企业知识库 —— 统一入口。
     # 第 1 步：把文档放进 datas/ 下的一个**主题目录**里。
     #   目录名随意（它就是源名），md/pdf/docx/xlsx/pptx/html/txt 可混放，支持子目录：
     #       datas/产品手册/
-    #       datas/前端复习笔记/
+    #       datas/docs/
     python main.py ingest --list               # 确认识别到多少文件
     python main.py ingest                      # 入库（--no-recreate 为增量，只处理变化文件）
-    python main.py ingest --sources 前端复习笔记  # 只处理指定源
+    python main.py ingest --sources docs  # 只处理指定源
 
     # 第 2 步：导出块清单（评测标注的依据）
     python eval\export_chunks.py

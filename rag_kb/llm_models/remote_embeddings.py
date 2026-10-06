@@ -3,7 +3,7 @@
 ## 为什么需要
 
 `bge-large-zh-v1.5` 权重 1.24GB。若每个 uvicorn worker 各自加载一份：
-  * 4 worker = 4 份显存（RTX 4060 Laptop 只有 8GB，两份就吃掉一半）；
+  * 4 worker = 4 份显存（8 GB 显存的机器上，两份就占掉一半）；
   * 每个 worker 启动都要 +2s（GPU）/+13s（CPU）；
   * 同一块 GPU 上多个进程抢算力，吞吐并不随 worker 数线性增长。
 

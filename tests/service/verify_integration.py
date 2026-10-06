@@ -41,7 +41,7 @@ RAG = ROOT
 
 # 用一个真实存在的源名（见 rag_kb/utils/env_utils.py 的 DOC_SOURCES；
 # 自动源机制下源名 = datas/ 下的目录名）
-TENANTS_JSON = '{"acme": ["前端复习笔记"], "beta": ["AI-agent"]}'
+TENANTS_JSON = '{"acme": ["docs"], "beta": ["manuals"]}'
 
 # 子进程里跑的探针：跑指定场景并打印一行 JSON 结果
 PROBE = r'''
