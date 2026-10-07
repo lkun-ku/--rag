@@ -1,4 +1,5 @@
 import os
+import threading
 from typing import Optional
 
 from rag_kb.utils.env_utils import EMBEDDING_DIM, EMBEDDING_MODEL
@@ -83,55 +84,116 @@ def resolve_backend(env_value: Optional[str] = None) -> str:
     return 'local'
 
 
-EMBEDDING_BACKEND = resolve_backend()
+EMBEDDING_BACKEND = resolve_backend()  # 纯环境变量解析，不 import torch
 
-if EMBEDDING_BACKEND == 'http':
-    # 远程模式：**绝不加载本地模型**（否则多 worker 又会各占一份显存，等于没做）
-    EMBEDDING_URL = (os.getenv('EMBEDDING_URL') or DEFAULT_EMBEDDING_URL).rstrip('/')
-    EMBEDDING_DEVICE = 'remote'
-    EMBEDDING_BATCH_SIZE = 16  # 客户端分批粒度；服务端仍会按自己的最优批再分批
+EMBEDDING_URL = (
+    (os.getenv('EMBEDDING_URL') or DEFAULT_EMBEDDING_URL).rstrip('/')
+    if EMBEDDING_BACKEND == 'http'
+    else None
+)
 
-    from rag_kb.llm_models.remote_embeddings import build_remote_embeddings
+# 设备与批大小**延迟解析**：`resolve_device()` 需要 import torch 探测 CUDA（约 3s），
+# 而 import 本模块的进程大多不会立刻用到嵌入模型。缓存结构见 `get_embedding_info()`。
+_RUNTIME: dict = {}
 
-    bge_embedding = build_remote_embeddings(EMBEDDING_URL, batch_size=EMBEDDING_BATCH_SIZE)
-    log.info(f'embedding 后端: http（{EMBEDDING_URL}），本进程不加载模型；model={EMBEDDING_MODEL} dim={EMBEDDING_DIM}')
-    EMBEDDING_INFO = {
-        'model': EMBEDDING_MODEL,
-        'dim': EMBEDDING_DIM,
-        'normalize': True,
-        'backend': 'http',
-        'device': 'remote',
-        'url': EMBEDDING_URL,
-        'batch_size': EMBEDDING_BATCH_SIZE,
-        'cuda_available': None,  # 本进程不知道（也不加载 torch），以服务端 /health 为准
-    }
-else:
+
+def get_embedding_info() -> dict:
+    """设备 / 批大小 / 后端信息（惰性解析，结果缓存）。
+
+    第一次调用会 import torch 探测 CUDA（约 3s）；之后直接返回缓存。
+    `/health` 与 `doctor` 用它展示真实设备，其余路径不关心。
+    """
+    if 'info' in _RUNTIME:
+        return _RUNTIME['info']
+
+    if EMBEDDING_BACKEND == 'http':
+        device, batch_size = 'remote', 16  # 客户端分批粒度；服务端会按自己的最优批再分批
+        info = {
+            'model': EMBEDDING_MODEL,
+            'dim': EMBEDDING_DIM,
+            'normalize': True,
+            'backend': 'http',
+            'device': 'remote',
+            'url': EMBEDDING_URL,
+            'batch_size': batch_size,
+            'cuda_available': None,  # 本进程不知道（也不加载 torch），以服务端 /health 为准
+        }
+    else:
+        import torch  # 局部导入：只为探测设备
+
+        device = resolve_device()
+        batch_size = batch_size_for(device)
+        info = {
+            'model': EMBEDDING_MODEL,
+            'dim': EMBEDDING_DIM,
+            'normalize': True,
+            'backend': 'local',
+            'device': device,
+            'batch_size': batch_size,
+            'cuda_available': torch.cuda.is_available(),
+        }
+
+    _RUNTIME.update(device=device, batch_size=batch_size, info=info)
+    return info
+
+
+def _build_embedding():
+    """真正构造嵌入模型（首次访问 `bge_embedding` 时才调用）。
+
+    [2026-11] 新增：原先是模块级直接构造，导致**任何 import 本模块的进程都要等
+    模型加载**（实测 25.45s，占冷启动绝大部分）；`uvicorn --workers N` 时每个
+    worker 各加载一份（N × 1.3GB 显存），测试只要 import 到相关模块也白等 20s。
+    改为惰性后，import 只做参数解析与设备探测。
+    """
+    info = get_embedding_info()
+
+    if EMBEDDING_BACKEND == 'http':
+        from rag_kb.llm_models.remote_embeddings import build_remote_embeddings
+
+        log.info(
+            f'embedding 后端: http（{EMBEDDING_URL}），本进程不加载模型；'
+            f'model={EMBEDDING_MODEL} dim={EMBEDDING_DIM}'
+        )
+        return build_remote_embeddings(EMBEDDING_URL, batch_size=info['batch_size'])
+
     from langchain_huggingface import HuggingFaceEmbeddings
-
-    EMBEDDING_URL = None
-    EMBEDDING_DEVICE = resolve_device()
-    EMBEDDING_BATCH_SIZE = batch_size_for(EMBEDDING_DEVICE)
-
-    # bge_embedding 保持原名：markdown_parser（分块）与 milvus_db（入库）都引用它，
-    # 保证「分块语义」与「入库向量」始终同源。
-    bge_embedding = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"device": EMBEDDING_DEVICE},
-        encode_kwargs={"normalize_embeddings": True, "batch_size": EMBEDDING_BATCH_SIZE},
-    )
-
-    import torch  # 仅本地模式需要
 
     log.info(
         f'embedding 后端: local；已加载 model={EMBEDDING_MODEL} dim={EMBEDDING_DIM} '
-        f'device={EMBEDDING_DEVICE} batch={EMBEDDING_BATCH_SIZE} (cuda_available={torch.cuda.is_available()})'
+        f'device={info["device"]} batch={info["batch_size"]} '
+        f'(cuda_available={info["cuda_available"]})'
     )
-    EMBEDDING_INFO = {
-        'model': EMBEDDING_MODEL,
-        'dim': EMBEDDING_DIM,
-        'normalize': True,
-        'backend': 'local',
-        'device': EMBEDDING_DEVICE,
-        'batch_size': EMBEDDING_BATCH_SIZE,
-        'cuda_available': torch.cuda.is_available(),
-    }
+    # 名字保持 bge_embedding：markdown_parser（分块）与 milvus_db（入库）都引用它，
+    # 保证「分块语义」与「入库向量」始终同源。
+    return HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device": info['device']},
+        encode_kwargs={"normalize_embeddings": True, "batch_size": info['batch_size']},
+    )
+
+
+_EMBEDDING = None
+_EMBEDDING_LOCK = threading.Lock()
+
+
+def get_embedding():
+    """全局嵌入模型（**惰性单例**）：首次调用触发加载，之后复用同一实例。"""
+    global _EMBEDDING
+    if _EMBEDDING is None:
+        with _EMBEDDING_LOCK:
+            if _EMBEDDING is None:
+                _EMBEDDING = _build_embedding()
+    return _EMBEDDING
+
+
+def __getattr__(name):
+    """PEP 562：保持旧引用方式可用（全部惰性）。
+
+    * `bge_embedding` / `embedding` -> 惰性构造模型（25s 级）
+    * `EMBEDDING_INFO`             -> 惰性解析设备（torch 3s 级）
+    """
+    if name in ('bge_embedding', 'embedding'):
+        return get_embedding()
+    if name == 'EMBEDDING_INFO':
+        return get_embedding_info()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

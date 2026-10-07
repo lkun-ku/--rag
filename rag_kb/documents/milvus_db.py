@@ -8,7 +8,7 @@ from pymilvus import IndexType, MilvusClient, Function
 from pymilvus.client.types import MetricType, DataType, FunctionType
 
 from rag_kb.documents.markdown_parser import MarkdownParser
-from rag_kb.llm_models.embeddings_model import bge_embedding
+from rag_kb.llm_models.embeddings_model import get_embedding
 from rag_kb.utils.env_utils import MILVUS_URI, COLLECTION_NAME, MD_DIR, EMBEDDING_DIM, EMBEDDING_MODEL
 from rag_kb.utils.log_utils import log
 
@@ -220,7 +220,8 @@ class MilvusVectorSave:
         """建立 langchain Milvus 连接（内部先做维度自检）。"""
         self.check_dim_consistency()
         self.vector_store_saved = Milvus(
-            embedding_function=bge_embedding,
+            # 惰性：连接集合时才加载嵌入模型（import 期不加载）
+            embedding_function=get_embedding(),
             collection_name=self.collection_name,
             builtin_function=BM25BuiltInFunction(),
             vector_field=['dense', 'sparse'],

@@ -6,7 +6,7 @@ from typing import List
 # [4.48] 走 make_splitter 封装：避免实验包 sunset 后 import 直接崩溃。
 
 # [UPGRADE ] 改用本地 bge_embedding：分块语义须与入库向量同源（路线图坑①）
-from rag_kb.llm_models.embeddings_model import bge_embedding
+from rag_kb.llm_models.embeddings_model import get_embedding
 from rag_kb.utils.env_utils import MD_DIR
 from rag_kb.tools.semantic_splitter import make_splitter
 from rag_kb.utils.log_utils import log
@@ -97,7 +97,8 @@ class MarkdownParser:
                 且每块重复完整表头（表头注入）。默认 30 行。
         """
         # [4.48] 可用时仍是 SemanticChunker(percentile)，不可用时降级 + WARNING。
-        self.text_splitter = make_splitter(bge_embedding)
+        # 惰性：真正构造解析器时才加载嵌入模型（import 期不加载）
+        self.text_splitter = make_splitter(get_embedding())
         self.table_max_rows = table_max_rows
 
     def parse_markdown_to_documents(self, md_file: str, encoding='utf-8') -> List[Document]:

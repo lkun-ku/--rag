@@ -1,5 +1,6 @@
 import inspect
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pprint import pprint
@@ -399,9 +400,33 @@ def create_graph(checkpointer=None):
     return workflow.compile(checkpointer=checkpointer)
 
 
-# 模块级导出已编译的图，保持原有 `from graph_crag.crag_graph import graph` 的用法不变
+# [2026-11] 模块级编译改为**惰性单例**。
+#
+# 原先 `graph = create_graph()` 在 import 阶段执行，而 create_graph 会 import 全部
+# 节点模块（其中 history_store → milvus_db → embeddings_model 会拉起 1.3GB 模型），
+# 实测 `import rag_kb.graph_crag.crag_graph` 18.48s。
+#
+# 现在 import 只定义函数；首次 `graph` 访问或 `get_graph()` 调用时才编译。
 # **注意：这是「无记忆」的图** —— 单轮调用、评测、回归都走它。
-graph = create_graph()
+_graph = None
+_graph_lock = threading.Lock()
+
+
+def get_graph():
+    """无记忆图（惰性单例）。"""
+    global _graph
+    if _graph is None:
+        with _graph_lock:
+            if _graph is None:
+                _graph = create_graph()
+    return _graph
+
+
+def __getattr__(name):
+    """PEP 562：兼容 `from rag_kb.graph_crag.crag_graph import graph`。"""
+    if name == "graph":
+        return get_graph()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # [ROADMAP 4.41] 带记忆的图：**惰性单例**。
@@ -473,7 +498,7 @@ def run_with_trace(question: str, enabled: bool = True, save: bool = True, threa
         }
         config = {**base_config, "configurable": {"thread_id": str(thread_id)}, "recursion_limit": MAX_RECURSION}
     else:
-        g = graph
+        g = get_graph()
         inputs = {"question": question, "original_question": question}
         config = {**base_config, "recursion_limit": MAX_RECURSION}
 
@@ -567,7 +592,7 @@ def main():
         else:
             inputs = {"question": question}
             # 流式执行工作流
-            for output in graph.stream(inputs):
+            for output in get_graph().stream(inputs):
                 for key, value in output.items():
                     # 打印当前节点名称
                     pprint(f"Node '{key}':")  # 显示当前执行的节点名称
