@@ -1,5 +1,4 @@
 import hashlib
-import json
 import os
 import pathlib
 from typing import Any, Dict, List
@@ -194,59 +193,6 @@ DOC_SOURCES: List[Dict[str, Any]] = [
 KB_TOPIC_BLOCK = '\n'.join(
     '%d. %s' % (i, s['topic']) for i, s in enumerate([x for x in DOC_SOURCES if x.get('enabled', True) and x.get('topic')], 1)
 )
-
-# ============================================================================
-# 多租户配置（ROADMAP 3.3）
-# ============================================================================
-# 租户 -> 允许访问的**源名**列表（源名见上方 DOC_SOURCES）。
-#
-# 为什么用「源名」而不是「集合名」：DOC_SOURCES 已经定义了「源 -> 集合」的映射，
-# 再配一遍集合名容易出现两处不一致（改了 collection 忘了改租户表）。
-#
-# 为什么**不给 schema 加 tenant 字段**（ROADMAP 3.3 的原始设想）：
-#   加字段意味着**重建所有集合**，而当前语料里并没有真实的租户数据 ——
-#   加了也无法验证，属于「造出没人用的功能」。
-#   而阶段一的「一源一集合」本身就是天然的隔离边界：不同语义域的文档
-#   本来就在不同集合里，租户只需在这条边界上做**集合子集映射**。
-#   这样零 schema 改动、零迁移成本，**且能被测试证明**（租户 A 检索不到租户 B 的块）。
-#
-# 若将来真需要「同一集合内多租户」（例如两个部门共用同一集合），
-# 那就必须加 schema 字段并重建 —— 届时先跑评测基线再动。
-#
-# 格式（.env 或环境变量），源名即 datas/ 下的目录名：
-#   KB_TENANTS={"acme": ["docs", "manuals"], "beta": ["papers"]}
-KB_TENANTS_JSON = os.getenv('KB_TENANTS')
-
-
-# 未配置时为空 dict -> 退化为「单租户模式」（可访问全部 enabled 源）。
-# 这是**刻意的默认**：不设置该环境变量时，行为与引入本功能前完全一致。
-def _parse_tenants(raw: str) -> dict:
-    """解析 KB_TENANTS；格式错误时抛出**带上下文**的错误。
-
-    [FIX / P0-4] 原先是一行裸的 `json.loads(...)`，无任何保护。
-    实测设 `KB_TENANTS='{acme: [docs]}'`（键忘加引号）会让本模块
-    **在 import 期**抛 `json.decoder.JSONDecodeError`，而 `env_utils` 是全项目的
-    基础依赖（retriever / api / graph / eval 全部 import 它）——
-    于是**所有入口都起不来**，且错误信息里完全看不出问题出在租户配置上。
-
-    为什么是「显式报错」而不是「退化为单租户模式」：
-        静默退化会让调用方以为多租户隔离已生效，实际却放开了全部集合 ——
-        **这是越权风险，比启动失败严重得多**。与项目「不得静默降级」的约定一致。
-    """
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise ValueError(
-            f"KB_TENANTS 不是合法 JSON：{e.msg}（位置 {e.pos}）。收到的是 {raw!r}。"
-            '正确格式示例：{"acme": ["docs", "manuals"], "beta": ["papers"]}'
-            "（键名与字符串都要用双引号）"
-        ) from e
-    if not isinstance(parsed, dict):
-        raise ValueError(f"KB_TENANTS 必须是 JSON 对象（租户名 -> 源名列表），收到 {type(parsed).__name__}: {parsed!r}")
-    return parsed
-
-
-TENANTS = _parse_tenants(KB_TENANTS_JSON) if KB_TENANTS_JSON else {}
 
 # ---- LLM 服务商配置（换服务商/换模型不用改代码）----
 # 原项目把 base_url 与 model 硬编码在 rag_kb/llm_models/all_llm.py 里，换服务商必须改代码。

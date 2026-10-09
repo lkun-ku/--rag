@@ -23,9 +23,6 @@ def retrieve(state, config=None):
     if is_agg:
         log.info("---识别为聚合类查询，启用深检索---")
 
-    # [ROADMAP 3.3] get_retriever() 会读 ContextVar 里的租户上下文，
-    # 有租户时返回只含授权集合的检索器；无租户时返回全局检索器，
-    # **行为与改动前完全一致**（单租户模式下零差异）。
     documents = get_retriever(deep=is_agg).invoke(question)
 
     # [ROADMAP 4.42] reranker 精排 + 分数门槛。**默认关闭**：

@@ -34,13 +34,13 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from rag_kb.utils import tracer
 from rag_kb.utils.citation import build_citation_meta, is_refusal, parse_citations
-from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_URI, TENANTS
+from rag_kb.utils.env_utils import DOC_SOURCES, MILVUS_URI
 from rag_kb.utils.log_utils import log
 
 APP_VERSION = "1.0.0"
@@ -80,7 +80,6 @@ class AskResponse(BaseModel):
     )
     citations: List[Citation] = []
     elapsed_sec: float = 0.0
-    tenant: Optional[str] = Field(None, description="本次请求生效的租户（单租户模式下为 null）")
     trace: Optional[Dict[str, Any]] = None
 
 
@@ -101,15 +100,23 @@ app = FastAPI(
 
 @app.on_event("startup")
 def _warmup():
-    """预热：import 时构造的重资源（嵌入模型 / Milvus 连接 / 工作流图）在此完成加载。
+    """预热：把惰性单例真正构造出来，让首个请求不必等模型加载。
 
-    `tools.retriever_tools` 与 `graph_crag.crag_graph` 都在模块级构造单例，
-    这里显式 import 一次即可触发 —— 目的是让**首个请求**不必等模型加载。
+    [2026-11] 惰性化改造后 import 不再触发构造，因此这里必须**显式调用**：
+      * `get_embedding_info()`  设备探测（torch，约 3s）
+      * `get_global_retriever()` 连 Milvus + 加载嵌入模型（约 25s）
+      * `get_graph()`            编译工作流图
+    没有这一步，加载成本会转嫁到第一个用户请求上。
     """
     t0 = time.time()
     try:
-        import rag_kb.tools.retriever_tools  # noqa: F401  触发检索器 + 嵌入模型加载
-        import rag_kb.graph_crag.crag_graph  # noqa: F401        触发工作流图编译
+        from rag_kb.graph_crag.crag_graph import get_graph
+        from rag_kb.llm_models.embeddings_model import get_embedding_info
+        from rag_kb.tools.retriever_tools import get_global_retriever
+
+        get_embedding_info()
+        get_global_retriever()
+        get_graph()
 
         log.info(f"[api] 预热完成，耗时 {time.time() - t0:.1f}s")
     except Exception as e:  # noqa: BLE001
@@ -197,47 +204,7 @@ def health() -> Dict[str, Any]:
         out["checks"]["llm"] = {"ok": False, "error": f"{type(e).__name__}: {str(e)[:160]}"}
         out["ok"] = False
 
-    # 多租户（只读配置，不触发检索器构造）
-    out["checks"]["tenants"] = {
-        "enabled": bool(TENANTS),
-        "configured": {t: sorted(v or []) for t, v in TENANTS.items()} if TENANTS else {},
-        "note": "未配置 KB_TENANTS -> 单租户模式（可访问全部集合）" if not TENANTS else "",
-    }
-
     return out
-
-
-# ---------------------------------------------------------------------------
-# 多租户（ROADMAP 3.3）
-# ---------------------------------------------------------------------------
-def _resolve_tenant(x_tenant_id: Optional[str]) -> Optional[str]:
-    """把 HTTP 头解析成租户 ID，并**在进入检索前**校验合法性。
-
-    为什么在 API 层就校验而不是等检索时报错：
-        越权应当快速失败（400/403），而不是让请求跑到检索器构造那里才抛异常。
-        另外 `KB_TENANTS` 未配置时 header 一律忽略 —— 单租户模式不该被一个
-        随手的 header 改变行为。
-    """
-    if not TENANTS:
-        return None
-    if not x_tenant_id:
-        # 配置了多租户但请求未带租户头 -> 拒绝，而不是悄悄放行到全部集合
-        raise HTTPException(status_code=400, detail="服务已启用多租户，请在 X-Tenant-Id 头中指定租户")
-    if x_tenant_id not in TENANTS:
-        raise HTTPException(status_code=403, detail="未知租户 %r" % x_tenant_id)
-    return x_tenant_id
-
-
-def _tenant_collections_of(tenant: Optional[str]):
-    """给健康检查/调试用：列出某租户实际可访问的集合。"""
-    if not tenant:
-        return None
-    try:
-        from rag_kb.tools.retriever_tools import tenant_collections
-
-        return sorted(tenant_collections(tenant))
-    except Exception as e:  # noqa: BLE001
-        return {"error": "%s: %s" % (type(e).__name__, str(e)[:160])}
 
 
 # ---------------------------------------------------------------------------
@@ -339,22 +306,10 @@ def _run_once(question: str, with_trace: bool, session_id: Optional[str] = None)
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(
-    req: AskRequest, x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")
-) -> Dict[str, Any]:
-    """同步问答：返回答案 + 引用溯源（+ 可选轨迹）。
-
-    多租户：请求头 `X-Tenant-Id` 指定租户，检索被限制在该租户授权的集合内。
-    未配置 `KB_TENANTS` 时该头被忽略（单租户模式）。
-    """
-    from rag_kb.tools.retriever_tools import tenant_scope
-
-    tenant = _resolve_tenant(x_tenant_id)
+def ask(req: AskRequest) -> Dict[str, Any]:
+    """同步问答：返回答案 + 引用溯源（+ 可选轨迹）。"""
     try:
-        with tenant_scope(tenant):
-            out = _run_once(req.question, req.with_trace, req.session_id)
-        out["tenant"] = tenant
-        return out
+        return _run_once(req.question, req.with_trace, req.session_id)
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
@@ -364,20 +319,20 @@ def ask(
 
 
 @app.post("/ask/stream")
-def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, description="租户 ID（多租户模式下必填）")):
-    """SSE 流式问答：逐节点推送进度，最后推 event=answer。
+async def ask_stream(req: AskRequest):
+    """SSE 流式问答：节点进度 + 生成 token 逐块下发，最后推 event=answer。
 
-    为什么值得流式：完整链路实测可达 42s（含 multi-round 的判分与改写），
-    用户等待期间能看到「正在检索 / 正在判分 / 正在生成」比空等体验好得多。
+    [2026-11] 新增 `event: token`：实测生成阶段首 token 0.11s、整包 2.53s（369 字），
+    逐字下发让答案边生成边显示。`event: answer` 仍保留整包，旧客户端不受影响。
+
+    首字体验的真实瓶颈在**判分**（36 块约 13s）：本改动只改善生成阶段，
+    整体首字仍需配合「判分降级」才能降到 3s 级。
     """
-    # [FIX  · 严重] SSE 分支**不能用** `tenant_scope()`（见 gen() 内注释），
-    # 改用 `set_tenant`。
-    from rag_kb.tools.retriever_tools import set_tenant
+    # 开关：置 0 时退回旧的「仅节点进度」模式（不启用 LLM 流式）
+    token_stream_enabled = os.getenv("TOKEN_STREAM_ENABLED", "1") != "0"
 
-    tenant = _resolve_tenant(x_tenant_id)
-
-    def gen():
-        from rag_kb.graph_crag.crag_graph import get_memory_graph, graph
+    async def gen():
+        from rag_kb.graph_crag.crag_graph import get_graph, get_memory_graph
 
         t = tracer.start(req.question, enabled=True)
         config: Optional[Dict[str, Any]] = {"callbacks": t.callbacks} if t.callbacks else {}
@@ -397,27 +352,24 @@ def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, descri
             inputs: Dict[str, Any] = {"question": req.question, "messages": [], "session_id": req.session_id}
             config = {**(config or {}), "configurable": {"thread_id": req.session_id}}
         else:
-            g = graph
+            g = get_graph()
             inputs = {"question": req.question}
             config = config or None
 
-        # [FIX  · 严重回归] **不能用 `tenant_scope()` 的 token-reset**。
-        #
-        # 根因：SSE 的 `gen()` 是**生成器**，由 FastAPI 在**另一个上下文**
-        # （AnyIO worker thread）里迭代；而 `ContextVar.reset(token)` 要求
-        # token 与 reset 在**同一 Context** 中，否则抛
-        #     ValueError: Token ... was created in a different Context
-        # 实测后果：SSE 直接发 `event: error`，**连 answer 事件都拿不到**，SSE 形同废弃。
-        #
-        # 这个 bug 是 3.3 引入多租户时植入的（当时的 `verify_api.py` 是在 3.3 **之前**
-        # 跑的，之后 SSE 再没被测过 —— 直到本次 P1-2 修复顺带暴露）。
-        #
-        # 改用「set + finally 归零」：只设值、不碰 token，因此与上下文无关。
-        # `retriever_node` 每次迭代都在同一上下文读取该值，语义等价。
-        set_tenant(tenant)
         try:
-            for output in g.stream(inputs, config=config):
-                for node, value in output.items():
+            # [2026-11] 同时订阅两类事件：
+            #   updates  -> 节点级进度（原有行为，前端进度条用它）
+            #   messages -> 生成节点的 token 流（新增；判分/路由的结构化输出不产生 token）
+            modes = ["updates", "messages"] if token_stream_enabled else ["updates"]
+            async for mode, chunk in g.astream(inputs, config=config, stream_mode=modes):
+                if mode == "messages":
+                    msg, meta = chunk
+                    if (meta or {}).get("langgraph_node") == "generate":
+                        delta = getattr(msg, "content", "") or ""
+                        if delta:
+                            yield "event: token\ndata: %s\n\n" % json.dumps({"delta": delta}, ensure_ascii=False)
+                    continue
+                for node, value in (chunk or {}).items():
                     if isinstance(value, dict):
                         final.update(value)
                     yield "event: step\ndata: %s\n\n" % json.dumps(
@@ -442,7 +394,6 @@ def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, descri
                 {
                     "answer": answer,
                     "refused": is_refusal(answer),
-                    "tenant": tenant,
                     "citations": [
                         {
                             "n": m.get("n"),
@@ -461,11 +412,6 @@ def ask_stream(req: AskRequest, x_tenant_id: Optional[str] = Header(None, descri
             yield "event: error\ndata: %s\n\n" % json.dumps(
                 {"error": f"{type(e).__name__}: {str(e)[:200]}"}, ensure_ascii=False
             )
-        finally:
-            # 归零租户。用 `set(None)` 而不是 token.reset()（跨上下文会抛，见上）。
-            # 不归零的后果很严重：同一 worker 的**后续请求会继承上一个租户** ——
-            # 那是越权风险（租户 A 的查询会被限制到租户 B 的集合上）。
-            set_tenant(None)
 
     return StreamingResponse(
         gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}

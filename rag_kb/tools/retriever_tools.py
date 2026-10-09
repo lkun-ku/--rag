@@ -26,8 +26,6 @@ from __future__ import annotations
 import hashlib
 import os
 import threading
-from contextlib import contextmanager
-from contextvars import ContextVar
 from typing import Dict, List, Optional
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
@@ -255,7 +253,7 @@ def _discover_collections(only: Optional[set] = None) -> List[str]:
     """从 DOC_SOURCES 收集启用源的目标集合（去重、保持顺序）。
 
     Args:
-        only: 只保留这些集合（多租户用，见 ROADMAP 3.3）。None 表示不过滤。
+        only: 只保留这些集合（测试用）。None 表示不过滤。
     """
     seen, out = set(), []
     for s in DOC_SOURCES:
@@ -269,15 +267,13 @@ def _discover_collections(only: Optional[set] = None) -> List[str]:
 
 
 def _build_multi_retriever(
-    only_collections: Optional[set] = None, per_k: Optional[int] = None, final_k: Optional[int] = None
+    per_k: Optional[int] = None, final_k: Optional[int] = None
 ) -> MultiCollectionRetriever:
     """为每个启用集合各建一个 retriever，组装成跨集合检索器。
 
     集合不存在时跳过（首次运行还没入库时的正常情况），只记 warning。
 
     Args:
-        only_collections: 只构造这些集合（多租户用）。**该模式下不做兜底回退** ——
-            兜底会连到默认集合，等于绕过租户边界把别的数据暴露出去。
         per_k: 覆盖「每集合取几块」。None 表示用模块常量 `PER_COLLECTION_K`。
         final_k: 覆盖「最终交给下游几块」。None 表示用模块常量 `FINAL_K`。
 
@@ -309,7 +305,7 @@ def _build_multi_retriever(
         # 必须一并覆盖 —— 只改 `per_collection_k` 字段是不会生效的。
         kwargs["k"] = per_k
     built: Dict[str, object] = {}
-    for coll in _discover_collections(only=only_collections):
+    for coll in _discover_collections():
         if existing is not None and coll not in existing:
             log.warning(f"集合 {coll} 尚不存在，跳过（入库后重启即可生效）")
             continue
@@ -321,13 +317,6 @@ def _build_multi_retriever(
             log.warning(f"集合 {coll} 检索器构造失败，跳过: {type(e).__name__}: {e}")
 
     if not built:
-        if only_collections is not None:
-            # 租户模式下**禁止兜底**：回退到默认集合等于越过租户边界。
-            # 显式报错，让「租户配置指向了不存在的集合」立刻可见。
-            raise RuntimeError(
-                f"租户授权的集合一个都不可用: {sorted(only_collections)}。"
-                f"请检查集合是否已入库（Milvus 中现有: {sorted(existing) if existing else '未知'}）。"
-            )
         # 兜底：一个都没建成时，退回默认集合，让错误在真正检索时暴露得更清楚
         log.warning("未构造出任何集合检索器，回退到默认集合 COLLECTION_NAME")
         mv = MilvusVectorSave()
@@ -346,89 +335,46 @@ def _build_multi_retriever(
     )
 
 
-retriever = _build_multi_retriever()
-
-
-# ---------------------------------------------------------------------------
-# 多租户（ROADMAP 3.3）
-# ---------------------------------------------------------------------------
-# 设计：用 ContextVar 传递「当前租户」，检索时据此选用**只含该租户集合**的检索器。
+# [2026-11] 模块级构造改为**惰性单例**。
 #
-# 为什么用 ContextVar 而不是给节点函数加参数：
-#   与 tracer 同理 —— LangGraph 节点签名固定为 fn(state)，无法追加参数；
-#   ContextVar 上下文安全，并发请求之间不会串租户。
+# 原先 `retriever = _build_multi_retriever()` 在 import 阶段执行：它会连 Milvus，
+# 并（经由 milvus_db → embeddings_model）加载 bge-large-zh-v1.5 —— 实测 import
+# 耗时 17.93s。后果：每个 `python xxx.py`、每个 uvicorn worker、每个测试进程都要
+# 付一次 25s 级的模型加载。
 #
-# 为什么在检索器层做而不是在检索结果上过滤：
-#   在结果上过滤等于「先查出别人的数据再丢掉」，既浪费又危险（一旦过滤逻辑有 bug
-#   就是数据泄露）。在构造检索器时就只连接授权的集合，**越权数据根本不会进入查询**。
-_CURRENT_TENANT: ContextVar[Optional[str]] = ContextVar("kb_tenant", default=None)
-_TENANT_RETRIEVERS: Dict[str, MultiCollectionRetriever] = {}
-_TENANT_LOCK = threading.Lock()
+# 现在 import 只做常量与函数定义；首次访问 `retriever` / 调用 `get_retriever()`
+# 时才构造。旧引用方式（`from ... import retriever`）通过模块级 `__getattr__`
+# 保持可用，无需改任何调用方。
+_retriever = None
+_retriever_lock = threading.Lock()
 
 
-def tenant_collections(tenant: str) -> set:
-    """把租户 ID 解析成「允许访问的集合名」集合。
-
-    Raises:
-        PermissionError: 租户未在 KB_TENANTS 中登记（不隐式放行）。
-        ValueError: 租户配置里出现了 DOC_SOURCES 中不存在的源名（配置错误要显式暴露）。
-    """
-    from rag_kb.utils.env_utils import TENANTS
-
-    if tenant not in TENANTS:
-        raise PermissionError(f"未知租户 {tenant!r}；已登记: {sorted(TENANTS.keys()) or '（未配置 KB_TENANTS）'}")
-    wanted = set(TENANTS[tenant] or [])
-    if not wanted:
-        raise PermissionError(f"租户 {tenant!r} 未授权任何源")
-
-    name2coll = {s["name"]: s.get("collection") for s in DOC_SOURCES}
-    unknown = wanted - set(name2coll)
-    if unknown:
-        raise ValueError(f"租户 {tenant!r} 配置了不存在的源 {sorted(unknown)}；可用源: {sorted(name2coll)}")
-    return {name2coll[n] for n in wanted if name2coll.get(n)}
+def get_global_retriever():
+    """全局检索器（惰性单例）。构造会连 Milvus 并触发嵌入模型加载。"""
+    global _retriever
+    if _retriever is None:
+        with _retriever_lock:
+            if _retriever is None:
+                _retriever = _build_multi_retriever()
+    return _retriever
 
 
-def build_tenant_retriever(tenant: str) -> MultiCollectionRetriever:
-    """构造（并缓存）租户专属检索器。"""
-    if tenant in _TENANT_RETRIEVERS:
-        return _TENANT_RETRIEVERS[tenant]
-    with _TENANT_LOCK:
-        if tenant in _TENANT_RETRIEVERS:  # 双检，避免并发重复构造
-            return _TENANT_RETRIEVERS[tenant]
-        colls = tenant_collections(tenant)
-        r = _build_multi_retriever(only_collections=colls)
-        log.info(f"租户 {tenant} 检索器就绪，授权集合: {sorted(colls)}")
-        _TENANT_RETRIEVERS[tenant] = r
-        return r
-
-
-def set_tenant(tenant: Optional[str]):
-    """设置当前租户（None 表示回到单租户模式）。"""
-    _CURRENT_TENANT.set(tenant)
-
-
-def get_tenant() -> Optional[str]:
-    return _CURRENT_TENANT.get()
+def __getattr__(name):
+    """PEP 562：兼容 `from rag_kb.tools.retriever_tools import retriever`。"""
+    if name == "retriever":
+        return get_global_retriever()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def get_retriever(deep: bool = False):
-    """取当前生效的检索器。
-
-    * 未设置租户上下文 -> 返回全局检索器（**单租户模式，行为与引入本功能前一致**）
-    * 设置了租户       -> 返回该租户专属检索器（只含授权集合）
+    """取全局检索器。
 
     Args:
         deep: [ROADMAP 4.42] True = 用**深检索**配额（`PER_COLLECTION_K_DEEP`）。
             供「跨行比较/统计」类查询使用：粗排多取，由 reranker 负责收敛。
             **默认 False，非聚合类调用方零差异**。
-
-    ⚠️ **深检索只在无租户的全局路径生效**：租户路径涉及授权边界
-    （多取是否会越权要看租户的集合划分），留给后续；当前先保证全局路径的企业级能力可用。
     """
-    t = _CURRENT_TENANT.get()
-    if not t:
-        return get_deep_retriever() if deep else retriever
-    return build_tenant_retriever(t)
+    return get_deep_retriever() if deep else get_global_retriever()
 
 
 # [ROADMAP 4.42] 深检索检索器（惰性 + 单例缓存）。
@@ -443,19 +389,6 @@ def get_deep_retriever():
     if _deep_retriever is None:
         _deep_retriever = _build_multi_retriever(per_k=PER_COLLECTION_K_DEEP, final_k=FINAL_K_DEEP)
     return _deep_retriever
-
-
-@contextmanager
-def tenant_scope(tenant: Optional[str]):
-    """租户上下文管理器：`with tenant_scope("acme"): ...`。
-
-    用 token 精确还原，避免嵌套时把外层租户也清掉。
-    """
-    token = _CURRENT_TENANT.set(tenant)
-    try:
-        yield
-    finally:
-        _CURRENT_TENANT.reset(token)
 
 
 @tool('rag_retriever')
@@ -475,7 +408,6 @@ def retriever_tool(query: str) -> str:
         工具名（rag_retriever）、入参（query: str）、描述语义均保持不变，
         `llm.bind_tools([retriever_tool])` 的用法不受影响。
     """
-    # [ROADMAP 3.3] 用 get_retriever() 而非全局 retriever：前者会读租户上下文，
-    # 未设置租户时行为完全不变（返回全局检索器）。
+    # 用 get_retriever() 而非模块级 retriever：聚合类查询时切换到深检索配额。
     docs = get_retriever().invoke(query)
     return format_context(docs)
