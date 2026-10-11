@@ -10,7 +10,7 @@
     M3 markdown_parser 超短块合并（首块 / 结构块 / 跨文件）、字节截断
     M4 tracer        启用/停用、step、to_dict、save 的健壮性
     M5 env_utils     配置解析的边界（含非法值）
-    M6 retriever_tools 集合发现、租户解析的失败路径
+    M6 retriever_tools 集合发现、检索器获取
 
 ## 设计原则
 
@@ -52,7 +52,7 @@ def check(group: str, name: str, fn, expect=_UNSET) -> None:
 
     **为什么需要哨兵**：首版用 `expect=None` 兼表「未指定」，于是
     「期望返回 None」的用例永远判 FAIL（`bool(None)` 为 False）——
-    实测 2 个用例因此误报（M4 的 disabled save、M6 的 get_tenant）。
+    实测 2 个用例因此误报（M4 的 disabled save、M6 的空集合发现）。
     """
     try:
         got = fn()
@@ -320,7 +320,7 @@ def m4() -> None:
 # M5 · env_utils（配置解析）
 # ===========================================================================
 def m5() -> None:
-    from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, TENANTS
+    from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM
 
     check("M5", "DOC_SOURCES 非空", lambda: len(DOC_SOURCES) > 0, True)
     check(
@@ -336,32 +336,19 @@ def m5() -> None:
         True,
     )
     check("M5", "EMBEDDING_DIM 为正整数", lambda: isinstance(EMBEDDING_DIM, int) and EMBEDDING_DIM > 0, True)
-    check("M5", "未配置 KB_TENANTS 时 TENANTS 为空 dict", lambda: isinstance(TENANTS, dict), True)
-    # 非法 JSON 的错误信息必须带上下文（P0-4），这里只验证正常路径；
-    # 非法路径在 tests/verify_rowspan.py 里用子进程验证
 
 
 # ===========================================================================
-# M6 · retriever_tools（集合发现 / 租户失败路径）
+# M6 · retriever_tools（集合发现 / 检索器获取）
 # ===========================================================================
 def m6() -> None:
-    from rag_kb.tools.retriever_tools import _discover_collections, get_retriever, get_tenant, set_tenant, tenant_collections
+    from rag_kb.tools.retriever_tools import _discover_collections, get_retriever
 
     cols = _discover_collections()
     check("M6", "_discover_collections 返回非空且无重复", lambda: len(cols) > 0 and len(cols) == len(set(cols)), True)
     check("M6", "_discover_collections(only=子集) 生效", lambda: _discover_collections(only={cols[0]}), [cols[0]])
     check("M6", "_discover_collections(only=空集) -> []", lambda: _discover_collections(only=set()), [])
-    try:
-        tenant_collections("definitely_not_a_tenant")
-        RESULTS.append(("M6", "未登记租户抛 PermissionError", False, "PermissionError", "未抛"))
-    except PermissionError:
-        RESULTS.append(("M6", "未登记租户抛 PermissionError", True, "PermissionError", "PermissionError"))
-    except Exception as e:  # noqa: BLE001
-        RESULTS.append(("M6", "未登记租户抛 PermissionError", False, "PermissionError", type(e).__name__))
-
     check("M6", "默认 get_retriever() 返回非 None", lambda: get_retriever() is not None, True)
-    set_tenant(None)
-    check("M6", "set_tenant(None) 后 get_tenant() 为 None", lambda: get_tenant(), None)
 
 
 GROUPS = {"M1": m1, "M2": m2, "M3": m3, "M4": m4, "M5": m5, "M6": m6}

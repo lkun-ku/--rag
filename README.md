@@ -10,6 +10,7 @@
 - **目录即集合** — `datas/` 下每个子目录自动注册为一个源和一个 Milvus 集合，目录内可混放格式、可嵌套子目录
 - **混合检索** — 稠密 HNSW 与 BM25 稀疏检索，集合内 RRF、跨集合二次 RRF
 - **四条应答路径** — 查库 / 联网 / 直接回答 / 降级作答，响应中标注 `source_type` 与 `grounded`
+- **SSE 流式** — 节点进度 + 生成阶段逐 token 下发（`event: token`），整包 `answer` 事件保留
 - **多轮记忆** — 最近 13 轮原文、超长对话摘要、历史语义索引三层
 - **可评测** — 自动出题 + 要点匹配，检索层指标 0 次 LLM 调用
 - **回归测试** — 23 项判定，覆盖解析、检索、判分、记忆、服务
@@ -156,7 +157,7 @@ python eval\run_eval.py --with-generation --verbose   # 追加生成层指标，
 
 ```powershell
 python tests\run_all_checks.py          # 23 项
-python tests\run_all_checks.py --full   # 追加 API/SSE 与多租户
+python tests\run_all_checks.py --full   # 追加 API/SSE 集成
 ```
 
 ## 配置项
@@ -172,12 +173,12 @@ python tests\run_all_checks.py --full   # 追加 API/SSE 与多租户
 | `SESSION_TTL_SECONDS` | 会话过期时间，默认 6 小时 |
 | `GRAPH_RECURSION_LIMIT` | 工作流最大步数，默认 20 |
 | `PDF_OCR_FALLBACK` | 扫描件 OCR，默认关闭 |
+| `TOKEN_STREAM_ENABLED` | SSE 是否逐 token 下发，默认开启 |
 
 ## 已知限制
 
 - **扫描件 PDF** 默认不做 OCR，需要时设置 `PDF_OCR_FALLBACK=1` 并安装 Tesseract
 - **HTML/TXT** 需转换为 Markdown 后入库；`.doc`、`.xls`、`.csv` 与图片不支持
-- **多租户** 只做集合级隔离，不含身份认证
 - **大集合召回** 受每集合召回数限制，块数上万的集合中，部分问题的目标块可能进不了最终上下文
 - **reranker** 在本项目语料上未观察到增益，默认关闭
 

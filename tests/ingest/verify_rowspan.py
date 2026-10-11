@@ -1,4 +1,4 @@
-"""验证 P0-2（rowspan 展开）与 P0-4（KB_TENANTS 报错）的修复。
+"""验证 P0-2（rowspan 展开）的修复。
 
 P0-2 的原始用例来自 ROADMAP：
     输入两行（首格 rowspan=2）
@@ -8,8 +8,6 @@ P0-2 的原始用例来自 ROADMAP：
 
 import os
 import pathlib
-import subprocess
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 
@@ -80,27 +78,3 @@ print(
     "  合并值「甲组」出现次数: %d（期望 2——两行都要有组名，否则 LLM 读不出第 2 行属于哪组）"
     % sum(c.count("甲组") for c in chunks)
 )
-
-# ---------------------------------------------------------------------------
-# P0-4：KB_TENANTS 非法时必须抛出**带上下文**的错误（且不能是裸 JSONDecodeError）
-# ---------------------------------------------------------------------------
-print()
-print("=" * 96)
-print("P0-4 KB_TENANTS 非法配置的处理（子进程，因为 env_utils 在 import 期就读环境变量）")
-print("=" * 96)
-
-PROBE = (
-    "try:\n"
-    "    from rag_kb.utils.env_utils import TENANTS\n"
-    "    print('FAIL_NO_ERROR', TENANTS)\n"
-    "except Exception as e:\n"
-    "    print('RAISED', type(e).__name__, '|', str(e)[:150])\n"
-)
-
-for bad in ('{acme: [docs]}', '["docs"]', '{"acme": ["no_such_source"]}'):
-    env = dict(os.environ, KB_TENANTS=bad, PYTHONIOENCODING="utf-8")
-    r = subprocess.run(
-        [sys.executable, "-c", PROBE], capture_output=True, text=True, encoding="utf-8", errors="replace", env=env
-    )
-    line = (r.stdout or "").strip().splitlines()
-    print("  KB_TENANTS=%-32s -> %s" % (bad[:32], line[-1] if line else "(无输出)"))

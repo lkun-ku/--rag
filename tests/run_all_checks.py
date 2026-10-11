@@ -2,7 +2,7 @@
 
 ## 为什么需要它
 
-SSE 的教训：3.3 引入多租户后**没有任何测试覆盖 SSE**，它一直坏到 P1-2 才被发现
+SSE 的教训：SSE 端点曾长期**没有任何测试覆盖**，它坏到 P1-2 才被发现
 （`answer` 事件从未发出）。而当时并不是「没有验证脚本」，而是**没有一个地方能把
 所有验证串起来跑** —— 于是新加的路径没人测、改动的路径靠记忆去测。
 
@@ -11,7 +11,7 @@ SSE 的教训：3.3 引入多租户后**没有任何测试覆盖 SSE**，它一�
 ## 两档
 
     --quick   只跑**秒级**的检查（静态扫描 / 模块边界 / 纯逻辑验证），默认档
-    --full    加上需要 LLM 或起服务的检查（API+SSE、多租户联动矩阵），约 3~5 分钟
+    --full    加上需要 LLM 或起服务的检查（API+SSE 集成），约 3~5 分钟
 
 ## 判定方式
 
@@ -91,7 +91,6 @@ CHECKS = [
     ("门禁告警集合", "tests/quality/test_gate_precision.py", "quick", "context_precision 只作监控、不参与告警（保留硬门禁）"),
     ("引用校验", "tests/workflow/verify_citations.py", "quick", "越界 / 原文编号 / 幻觉的区分"),
     ("API + SSE", "tests/service/verify_p1_batch.py", "slow", "SSE 事件类型、trace 落盘、disabled 源"),
-    ("多租户联动", "tests/service/verify_integration.py", "slow", "配置 x 入口 矩阵（5 场景）"),
 ]
 
 

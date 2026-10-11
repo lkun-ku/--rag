@@ -271,14 +271,26 @@ eval/baseline_auto.json + history_auto.jsonl（按题集派生，不同题集互
 
 ## 10. 启动时序（排查"为什么慢/为什么起不来"）
 
-```
-import main
-  ├─ rag_kb.utils.env_utils      读 .env；解析 DOC_SOURCES；解析 KB_TENANTS（错则立即抛错）
-  ├─ rag_kb.llm_models.*         构造 LLM 客户端（不联网）
-  └─ rag_kb.tools.retriever_tools  模块级单例：
-        ├─ 加载 bge-large-zh-v1.5（首次约 20s，占显存）
-        └─ 对每个集合构造 MilvusVectorSave + as_retriever
-              └─ connect() 里覆盖 ef=128
+[2026-11] 重资源已改为**惰性单例**：import 只定义函数，首次使用才构造。
 
-耗时热点：模型加载 20s（进程级一次）> 检索 0.1~0.5s/次 > 判分 5 次 LLM/题
 ```
+import main                                   耗时（实测）
+  ├─ rag_kb.utils.env_utils                   0.02s   读 .env；解析 DOC_SOURCES
+  ├─ rag_kb.llm_models.all_llm                1.55s   构造 LLM 客户端（不联网）
+  ├─ rag_kb.tools.retriever_tools             1.35s   **不加载模型**
+  └─ rag_kb.graph_crag.crag_graph             2.73s   **不编译图、不加载模型**
+
+显式初始化（首次用到时才发生）
+  get_embedding_info()      import torch 探测设备              ~3s
+  get_global_retriever()    加载 bge-large-zh-v1.5 + 连 Milvus  ~25s
+  get_graph()               编译工作流图                        ~0.1s
+
+预热入口
+  api lifespan 的 _warmup() 显式调用上述三者（启动时完成，不转嫁给首个请求）
+  CLI                       由首次使用自动触发（chat / ask / ingest）
+
+耗时热点：模型加载 25s（进程级一次）> 判分 13s/题（36 块）> 检索 0.1~0.5s
+```
+
+> 惰性化的动机：原来 `import` 就加载模型（17.9~18.5s），`--workers N` 时每个进程
+> 各加载一份（N × 1.3GB 显存），任何脚本只要 import 到相关模块都白等 20s。
