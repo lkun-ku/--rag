@@ -28,6 +28,11 @@ requires-python = ">=3.12"
 # 长注释），两处清单必然漂移。首次使用请先：pip install -r requirements.txt
 dependencies = []
 
+# CLI 入口：`pip install -e .` 之后可直接用 `rag-kb <子命令>`。
+# 根目录 `main.py` 保留为兼容 shim，两者等价。
+[project.scripts]
+rag-kb = "rag_kb.cli.main:main"
+
 [tool.setuptools]
 # 源码根目录：`rag_kb/` 的父目录，即项目根
 package-dir = { "" = "." }
@@ -36,6 +41,42 @@ package-dir = { "" = "." }
 # 只收 rag_kb 及其子包；eval/ tests/ scripts/ models/ 都不在包内
 where = ["."]
 include = ["rag_kb*"]
+
+[tool.pytest.ini_options]
+# 只收集纯逻辑单测（不依赖 Milvus / LLM / 模型文件）；
+# 端到端与检索层回归仍在 tests/run_all_checks.py 里按脚本执行。
+testpaths = ["tests/unit"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["rag_kb"]
+# 覆盖率只统计被单测实际导入的模块；端到端路径由脚本化回归覆盖。
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+# ============================================================================
+# 类型检查：**基线模式**（strict=false），目标是「已注解代码自洽 + 不倒退」。
+#
+# 为什么不直接 strict：全项目当前 52% 函数有完整标注，strict 会一次产生上千条
+# 告警，与「可执行的门禁」相悖。先固定基线，再按模块逐步收紧（见下方 overrides）。
+#
+# 为什么 ignore_missing_imports：主要依赖（langchain / pymilvus / pymupdf 等）
+# 多数未随包分发 py.typed 或存根不完整，强开会让第三方类型缺失淹没自身问题。
+# ============================================================================
+python_version = "3.12"
+files = ["rag_kb"]
+ignore_missing_imports = true
+# 未注解的函数体也参与检查：本次已修到 0 错误，作为基线保持，
+# 避免「新写的未注解函数」成为检查盲区。
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
+exclude = ['(?x)^(models|\.venv|scratch)/']
 
 [tool.ruff]
 # 行宽 120：主流上限（black/ruff 默认 88，团队常见 100~120）。
