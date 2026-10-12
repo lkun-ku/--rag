@@ -35,6 +35,8 @@ from __future__ import annotations
 
 import os
 
+from langchain_core.documents import Document
+
 from rag_kb.utils.log_utils import log
 
 # [ROADMAP 4.53] 新名 `KB_SECTION_MERGE` 优先，旧名 `SECTION_MERGE_ENABLED` 兜底 —— 两种 .env 写法都可用。
@@ -73,13 +75,13 @@ def merge_section_blocks(docs, max_chars: int | None = None):
 
     limit = SECTION_MERGE_MAX_CHARS if max_chars is None else max_chars
 
-    groups: dict[tuple, list[tuple[int, object]]] = {}
+    groups: dict[tuple, list[tuple[int, Document]]] = {}
     for i, d in enumerate(docs):
         md = getattr(d, "metadata", None) or {}
         key = (md.get("filename"), md.get("title"))
         groups.setdefault(key, []).append((i, d))
 
-    out: list[tuple[int, object]] = []
+    out: list[tuple[int, Document]] = []
     merged_groups = 0
     for _key, items in groups.items():
         if len(items) < _MERGE_MIN_BLOCKS:
@@ -88,7 +90,7 @@ def merge_section_blocks(docs, max_chars: int | None = None):
 
         buf_lines: list[str] = []
         buf_size = 0
-        buf_items: list[tuple[int, object]] = []
+        buf_items: list[tuple[int, Document]] = []
 
         def flush():
             nonlocal buf_lines, buf_size, buf_items

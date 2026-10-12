@@ -94,6 +94,9 @@ scratch/
 
 # 工具缓存
 .ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
 
 # 临时提交信息文件
 /.git-msg-*.txt

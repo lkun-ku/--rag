@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import datetime
 import os
+from typing import Any, Dict
 
 from rag_kb.utils.log_utils import log
 
@@ -162,7 +163,7 @@ class _MilvusHistoryStore:
             "category_depth": 0,
             "dense": bge_embedding.embed_query(text),
         }
-        client = mv.vector_store_saved.client
+        client = mv.store.client
         client.insert(collection_name=HISTORY_COLLECTION, data=[row])
         client.flush(collection_name=HISTORY_COLLECTION)
         return True
@@ -170,10 +171,10 @@ class _MilvusHistoryStore:
     def search(self, session_id: str, query: str, top_k: int, filter_expr: str = "") -> list:
         mv = self._mv()
         mv.create_connection()
-        kwargs = {"k": int(top_k)}
+        kwargs: Dict[str, Any] = {"k": int(top_k)}
         if filter_expr:
             kwargs["expr"] = filter_expr
-        retriever = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
+        retriever = mv.store.as_retriever(search_type="similarity", search_kwargs=kwargs)
         return list(retriever.invoke(query or ""))
 
     def purge(self, filter_expr: str) -> int:

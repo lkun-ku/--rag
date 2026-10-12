@@ -1,5 +1,6 @@
 from langchain_tavily import TavilySearch
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from rag_kb.utils.env_utils import (
     OPENAI_API_KEY,
@@ -27,7 +28,13 @@ from rag_kb.utils.http_local import bypass_proxy, host_of  # noqa: E402
 bypass_proxy(host_of(LLM_BASE_URL), 'api.tavily.com')
 
 llm = ChatOpenAI(  # openai的
-    temperature=LLM_TEMPERATURE, model=LLM_MODEL, api_key=OPENAI_API_KEY, base_url=LLM_BASE_URL, extra_body=_EXTRA_BODY
+    temperature=LLM_TEMPERATURE,
+    model=LLM_MODEL,
+    # ChatOpenAI 的 api_key 只接受 SecretStr（或可调用对象），不能直接传裸 str；
+    # 未配置时保持 None，让 SDK 在调用时报出与之前一致的错误。
+    api_key=SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None,
+    base_url=LLM_BASE_URL,
+    extra_body=_EXTRA_BODY,
 )
 
 

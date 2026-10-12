@@ -100,7 +100,7 @@ def show_stats(rows):
     if tot:
         print("  单次耗时: 平均 %.2fs | 最快 %.2fs | 最慢 %.2fs" % (sum(tot) / len(tot), min(tot), max(tot)))
     # 路由分布
-    routes = defaultdict(int)
+    routes: dict[str, int] = defaultdict(int)
     for r in rows:
         d = next((s.get("decision") for s in r.get("steps", []) if s["node"] == "route_question"), None)
         if d:

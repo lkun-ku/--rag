@@ -36,7 +36,10 @@ class UTF8MarkdownLoader(UnstructuredMarkdownLoader):
         from unstructured.partition.md import partition_md
 
         # errors="strict"：读不出来就报错，不静默替换字符。
-        with open(self.file_path, encoding='utf-8') as f:
+        # file_path 在基类里的类型是 str | list[str] | Path | list[Path]，本加载器
+        # 实际只会收到单个路径，这里显式收敛，避免把 list 直接丢给 open()。
+        file_path = self.file_path[0] if isinstance(self.file_path, list) else self.file_path
+        with open(str(file_path), encoding='utf-8') as f:
             text = f.read()
 
         # partition_md 不接受 encoding 参数（它只透传给 partition_html），需剔除

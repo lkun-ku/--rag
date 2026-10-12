@@ -31,19 +31,26 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from rag_kb.utils.log_utils import log
 
 # 降级时的结构分块参数（与语义分块的平均块长量级相当）
 FALLBACK_CHUNK_SIZE = 800
 FALLBACK_CHUNK_OVERLAP = 100
 
-# import 探测（模块加载时一次性）
+# import 探测（模块加载时一次性）。
+#
+# 用 `Any` 显式声明而不是 `type: ignore`：CI 的静态检查环境不安装
+# langchain_experimental，此时 `ignore_missing_imports` 不会产生错误，
+# `type: ignore` 反而会因「未使用」被 warn_unused_ignores 判为失败。
+SemanticChunker: Any = None
+_SEMANTIC_IMPORT_ERROR: str | None = None
 try:
-    from langchain_experimental.text_splitter import SemanticChunker  # noqa: F401
+    from langchain_experimental.text_splitter import SemanticChunker as _SemanticChunker
 
-    _SEMANTIC_IMPORT_ERROR: str | None = None
+    SemanticChunker = _SemanticChunker
 except Exception as e:  # noqa: BLE001
-    SemanticChunker = None  # type: ignore[assignment]
     _SEMANTIC_IMPORT_ERROR = "%s: %s" % (type(e).__name__, str(e)[:120])
 
 SEMANTIC_AVAILABLE = SemanticChunker is not None

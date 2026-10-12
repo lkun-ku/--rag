@@ -26,7 +26,7 @@ from __future__ import annotations
 import hashlib
 import os
 import threading
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -211,13 +211,13 @@ class MultiCollectionRetriever(BaseRetriever):
     """
 
     # {collection_name: retriever}
-    retrievers: Dict[str, object] = {}
+    retrievers: Dict[str, BaseRetriever] = {}
     per_collection_k: int = PER_COLLECTION_K
     final_k: int = FINAL_K
     rrf_k: int = RRF_K
 
     def _get_relevant_documents(
-        self, query: str, *, run_manager: CallbackManagerForRetrieverRun = None
+        self, query: str, *, run_manager: Optional[CallbackManagerForRetrieverRun] = None
     ) -> List[Document]:  # noqa: D102
         ranked: List[tuple] = []  # (collection, rank, doc)
         errors = []
@@ -304,7 +304,7 @@ def _build_multi_retriever(
         # 「每集合取几块」实际由 search_kwargs 的 `k` 决定（as_retriever 消费），
         # 必须一并覆盖 —— 只改 `per_collection_k` 字段是不会生效的。
         kwargs["k"] = per_k
-    built: Dict[str, object] = {}
+    built: Dict[str, BaseRetriever] = {}
     for coll in _discover_collections():
         if existing is not None and coll not in existing:
             log.warning(f"集合 {coll} 尚不存在，跳过（入库后重启即可生效）")
@@ -312,7 +312,7 @@ def _build_multi_retriever(
         try:
             mv = MilvusVectorSave(collection_name=coll)
             mv.create_connection()
-            built[coll] = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
+            built[coll] = mv.store.as_retriever(search_type="similarity", search_kwargs=kwargs)
         except Exception as e:  # noqa: BLE001
             log.warning(f"集合 {coll} 检索器构造失败，跳过: {type(e).__name__}: {e}")
 
@@ -321,7 +321,7 @@ def _build_multi_retriever(
         log.warning("未构造出任何集合检索器，回退到默认集合 COLLECTION_NAME")
         mv = MilvusVectorSave()
         mv.create_connection()
-        built[mv.collection_name] = mv.vector_store_saved.as_retriever(search_type="similarity", search_kwargs=kwargs)
+        built[mv.collection_name] = mv.store.as_retriever(search_type="similarity", search_kwargs=kwargs)
 
     log.info(
         f"跨集合检索器已构造，覆盖集合: {list(built.keys())} "
@@ -333,6 +333,12 @@ def _build_multi_retriever(
         per_collection_k=per_k or PER_COLLECTION_K,
         final_k=final_k or FINAL_K,
     )
+
+
+if TYPE_CHECKING:
+    # 静态可见性：`retriever` 由模块级 `__getattr__` 在运行时提供，
+    # 这里的声明让 mypy/IDE 拿到真实类型（运行时不执行）。
+    retriever: MultiCollectionRetriever
 
 
 # [2026-11] 模块级构造改为**惰性单例**。

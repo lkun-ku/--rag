@@ -1,7 +1,7 @@
 import hashlib
 import os
 import pathlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, cast
 
 from dotenv import load_dotenv
 
@@ -205,7 +205,12 @@ LLM_TEMPERATURE = float(os.getenv('LLM_TEMPERATURE', '0'))
 # 'function_calling' 改成 'json_schema'，而 DeepSeek 官方 API 不支持 json_schema
 # （报 "This response_format type is unavailable now"），
 # 因此这里显式指定为 function_calling。换到支持 json_schema 的服务商可改这里。
-LLM_STRUCTURED_METHOD = os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
+LLMStructuredMethod = Literal['function_calling', 'json_mode', 'json_schema']
+# 用 cast 把字符串环境变量收敛到 Literal：调用方（with_structured_output）只接受
+# 这三个字面量，写在配置层比在每个调用点加 type: ignore 更集中。
+LLM_STRUCTURED_METHOD: LLMStructuredMethod = cast(
+    LLMStructuredMethod, os.getenv('LLM_STRUCTURED_METHOD', 'function_calling')
+)
 
 # 是否关闭 DeepSeek 的 thinking 模式。thinking 开启时不支持强制 tool_choice，
 # 而 function_calling 依赖 tool_choice，因此默认关闭。

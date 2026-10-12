@@ -1,6 +1,6 @@
 import os
 import threading
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from rag_kb.utils.env_utils import EMBEDDING_DIM, EMBEDDING_MODEL
 from rag_kb.utils.log_utils import log
@@ -150,6 +150,7 @@ def _build_embedding():
     if EMBEDDING_BACKEND == 'http':
         from rag_kb.llm_models.remote_embeddings import build_remote_embeddings
 
+        assert EMBEDDING_URL is not None  # 该分支下必已赋值（http 后端）
         log.info(
             f'embedding 后端: http（{EMBEDDING_URL}），本进程不加载模型；'
             f'model={EMBEDDING_MODEL} dim={EMBEDDING_DIM}'
@@ -170,6 +171,17 @@ def _build_embedding():
         model_kwargs={"device": info['device']},
         encode_kwargs={"normalize_embeddings": True, "batch_size": info['batch_size']},
     )
+
+
+if TYPE_CHECKING:
+    # 仅供静态分析：这些名字由下方 PEP 562 的 `__getattr__` 在运行时提供。
+    # 没有这段声明时，mypy/IDE 只能把它们当 Any，`from ... import bge_embedding`
+    # 的类型信息会丢失。运行时不执行本块。
+    from langchain_huggingface import HuggingFaceEmbeddings
+
+    bge_embedding: HuggingFaceEmbeddings
+    embedding: HuggingFaceEmbeddings
+    EMBEDDING_INFO: dict[str, Any]
 
 
 _EMBEDDING = None

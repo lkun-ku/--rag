@@ -45,8 +45,10 @@ def _pixmap_to_ndarray(pix):
     """
     import numpy as np
 
-    arr = np.frombuffer(pix.samples, dtype=np.uint8)
-    arr = arr.reshape(pix.height, pix.width, pix.n)
+    # 分两步：直接 `arr = np.frombuffer(...)` 再 reshape 会让 mypy 把 arr 固定为
+    # 1 维数组类型，后续三维切片/赋值全部报不兼容。
+    flat = np.frombuffer(pix.samples, dtype=np.uint8)
+    arr = flat.reshape(pix.height, pix.width, pix.n)
     if pix.n == 4:  # RGBA -> RGB
         arr = arr[:, :, :3]
     elif pix.n == 1:  # 灰度 -> RGB
@@ -128,7 +130,9 @@ class PDFParser:
 
         doc = pymupdf.open(file_path)
         try:
-            return len(''.join(p.get_text() for p in doc).strip())
+            # 用下标遍历而不是 `for p in doc`：pymupdf 的 Document 在运行时支持
+            # 迭代，但类型存根未声明 __iter__，下标访问是两者都成立的写法。
+            return len(''.join(doc[i].get_text() for i in range(len(doc))).strip())
         finally:
             doc.close()
 

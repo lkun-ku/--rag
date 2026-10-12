@@ -25,7 +25,7 @@ graph_react 的上下文由 `retriever_tool` 输出，到 `generate` 节点时�
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from langchain_core.documents import Document
 
@@ -82,7 +82,9 @@ def _numbers_in_docs(docs: Sequence[Document]) -> set:
     return out
 
 
-def validate_citations(answer: str, n_docs: int, start: int = 1, docs: Sequence[Document] = None) -> Dict:
+def validate_citations(
+    answer: str, n_docs: int, start: int = 1, docs: Optional[Sequence[Document]] = None
+) -> Dict:
     """校验引用编号是否落在实际上下文范围内。
 
     为什么必须校验：模型可能引用不存在的编号（幻觉的一种形式）。

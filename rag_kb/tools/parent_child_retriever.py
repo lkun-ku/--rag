@@ -184,7 +184,7 @@ def make_child_retriever(client, collection_name: str, embedding, top_k: int = 2
 
     mv = MilvusVectorSave(collection_name=collection_name)
     mv.create_connection()
-    return mv.vector_store_saved.as_retriever(
+    return mv.store.as_retriever(
         search_type="similarity",
         search_kwargs={"k": top_k, "expr": CHILD_FILTER},
     )

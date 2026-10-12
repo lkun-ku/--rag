@@ -1,4 +1,6 @@
 import os
+
+from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -110,13 +112,13 @@ def merge_table_slices(docs, max_chars: int = 20000):
         return docs
 
     # 按首次出现顺序分组
-    groups: dict[tuple, list[tuple[int, object]]] = {}
+    groups: dict[tuple, list[tuple[int, Document]]] = {}
     for i, d in enumerate(docs):
         md = getattr(d, "metadata", None) or {}
         key = (md.get("filename"), md.get("title"))
         groups.setdefault(key, []).append((i, d))
 
-    out: list[tuple[int, object]] = []
+    out: list[tuple[int, Document]] = []
     for _key, items in groups.items():
         # [FIX / 演示暴露] **容错**：只要求组内**至少 2 个表格块**，不再要求「每一块都是表格」。
         #
@@ -258,7 +260,8 @@ def _truncate_context(docs, budget: int = MAX_GENERATE_CONTEXT_CHARS):
     """
     if not isinstance(docs, list):
         return docs
-    out, used = [], 0
+    out: list[Document] = []
+    used = 0
     for d in docs:
         n = len(getattr(d, "page_content", "") or "")
         if out and used + n > budget:

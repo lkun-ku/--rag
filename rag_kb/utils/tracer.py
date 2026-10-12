@@ -63,7 +63,8 @@ class Tracer:
         self.t0 = time.time()
         self.steps: List[Dict[str, Any]] = []
         self.result: Optional[str] = None
-        self._usage = None
+        # None=未初始化 / 回调对象=可用 / False=导入失败（显式留痕，不静默）
+        self._usage: Any = None
 
     # ---- token 统计 ----
     @property

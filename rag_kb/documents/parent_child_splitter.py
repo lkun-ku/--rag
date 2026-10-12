@@ -165,7 +165,7 @@ def split_parent_child(
 
     # ---- 1. 按一级标题（#）分段：每段构成「一个父块候选」 ----
     sections: List[dict] = []
-    cur = {"heading_path": [], "blocks": []}
+    cur: dict = {"heading_path": [], "blocks": []}
     for b in blocks:
         if b["kind"] == "heading" and b["level"] == 1:
             if cur["blocks"]:
@@ -194,7 +194,7 @@ def split_parent_child(
         pid = make_parent_id(filename, hpath, seq)
 
         # 2a. 收集该父块内的「子块文本」（段落 / 表格，已按 child_max_chars 切）
-        child_texts: List[str] = []
+        child_texts: List[Tuple[str, List[str]]] = []
         sub_path: List[str] = list(hpath)
         for b in sec["blocks"]:
             if b["kind"] == "heading":

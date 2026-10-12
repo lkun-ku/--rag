@@ -197,8 +197,8 @@ def health() -> Dict[str, Any]:
     try:
         from rag_kb.llm_models.all_llm import llm
 
-        resp = llm.invoke("回复一个字：好")
-        out["checks"]["llm"] = {"ok": True, "reply": str(getattr(resp, "content", resp))[:20]}
+        llm_resp = llm.invoke("回复一个字：好")
+        out["checks"]["llm"] = {"ok": True, "reply": str(getattr(llm_resp, "content", llm_resp))[:20]}
     except Exception as e:  # noqa: BLE001
         # LLM 不可用时刻意保留 ok=False 但**不抛异常** —— 健康检查本身要能返回
         out["checks"]["llm"] = {"ok": False, "error": f"{type(e).__name__}: {str(e)[:160]}"}

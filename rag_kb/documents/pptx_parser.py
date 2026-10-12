@@ -378,7 +378,7 @@ class PPTParser:
             return set()
         from collections import Counter
 
-        cnt = Counter()
+        cnt: Counter[str] = Counter()
         for p in pages:
             for b in set(p['blocks']):
                 if len(b) < 30:

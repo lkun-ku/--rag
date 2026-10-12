@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List
+from typing import List, Optional
 
 from langchain_core.documents import Document
 from langchain_milvus import Milvus, BM25BuiltInFunction
@@ -40,7 +40,7 @@ class MilvusVectorSave:
     不传参时回落到配置默认值，因此原有 `MilvusVectorSave()` 调用方式不变。
     """
 
-    def __init__(self, collection_name: str = None, dim: int = None) -> None:
+    def __init__(self, collection_name: Optional[str] = None, dim: Optional[int] = None) -> None:
         """自定义 collection 的索引。
 
         Args:
@@ -56,7 +56,19 @@ class MilvusVectorSave:
         # 写错维度只会在写入时报错，且是「集合已建好才发现」——代价很高，故前置检查。
         if self.dim <= 0:
             raise ValueError(f"非法向量维度: {self.dim}")
-        self.vector_store_saved: Milvus = None
+        # None = 尚未建立连接（`connect()` / `create_connection()` 之后才有值）
+        self.vector_store_saved: Optional[Milvus] = None
+
+    @property
+    def store(self) -> Milvus:
+        """已建立的 Milvus 连接。
+
+        未连接时显式抛错，而不是让调用方在 None 上取属性得到
+        难以定位的 AttributeError。
+        """
+        if self.vector_store_saved is None:
+            raise RuntimeError("Milvus 连接尚未建立，请先调用 connect() / create_connection()")
+        return self.vector_store_saved
 
     # ---- 生命周期 ----------------------------------------------------------
     # 为什么提供 with：入库管线会在一个进程里「建集合 -> 写入 -> 收尾」多次执行，
@@ -240,7 +252,7 @@ class MilvusVectorSave:
         # 注意要覆盖**两处**：`default_search_params`（源头模板）和
         # `search_params`（构造期 _load() 已从模板拷贝出的实例参数）——
         # 只改前者无效，因为搜索用的是后者。
-        _vs = self.vector_store_saved
+        _vs = self.store
 
         def _bump_ef(obj) -> None:
             if isinstance(obj, dict):
@@ -253,7 +265,19 @@ class MilvusVectorSave:
                 for v in obj:
                     _bump_ef(v)
 
-        _vs.default_search_params["HNSW"]["params"]["ef"] = 128
+        # default_search_params 在类型存根里是 Collection[str]（只读视图），
+        # 运行时是嵌套 dict；用 getattr 取得 Any 再收窄，避免与存根类型冲突。
+        base_params = getattr(_vs, "default_search_params", None)
+        if isinstance(base_params, dict):
+            base_params["HNSW"]["params"]["ef"] = 128
+        else:
+            # 不静默：该模板决定**后续新建**集合的搜索参数，跳过会让新集合回到
+            # ef=10、检索被 pymilvus 拒绝（历史上正是这条静默路径导致的 0 召回）。
+            log.warning(
+                "default_search_params 结构不符合预期（%s），未能预置 ef=128；"
+                "新建集合的检索参数可能仍是 ef=10，请检查 langchain_milvus 版本",
+                type(base_params).__name__,
+            )
         _bump_ef(getattr(_vs, "search_params", None))
 
     def create_connection(self):
@@ -278,14 +302,14 @@ class MilvusVectorSave:
         if not datas:
             raise ValueError("add_documents 收到空列表：上游解析可能失败，请检查解析器日志")
 
-        self.vector_store_saved.add_documents(datas)
+        self.store.add_documents(datas)
         if flush:
             self.flush()
 
     def flush(self) -> None:
         """把 WAL 中的数据刷到可检索状态（真实 Milvus 实测约 7s/次，务必按批调用）。"""
         try:
-            self.vector_store_saved.client.flush(self.collection_name)
+            self.store.client.flush(self.collection_name)
             log.info(f"flush 完成，当前集合 {self.collection_name} 数据已可检索")
         except Exception as e:  # noqa: BLE001
             # flush 失败不应中断入库（数据仍在 WAL 中，会被自动 flush）
@@ -313,7 +337,7 @@ if __name__ == '__main__':
     mv.connect()
     mv.add_documents(docs)
 
-    client = mv.vector_store_saved.client
+    client = mv.store.client
     # 得到表结构
     desc_collection = client.describe_collection(collection_name=mv.collection_name)
     print('表结构是: ', desc_collection)
