@@ -52,9 +52,15 @@ def check(name, got, want):
 
 import json  # noqa: E402
 
+# 优先用人工校验过的 golden_dataset.jsonl；它未随仓库分发（可能只在本地存在），
+# 缺失时退回自动题集 golden_auto.jsonl（两者字段一致：q / source_blocks）。
+GOLD = HERE.parents[1] / "eval" / "golden_dataset.jsonl"
+if not GOLD.is_file():
+    GOLD = HERE.parents[1] / "eval" / "golden_auto.jsonl"
+
 cases = [
     json.loads(line)
-    for line in (HERE.parents[1] / "eval" / "golden_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+    for line in GOLD.read_text(encoding="utf-8").splitlines()
     if line.strip()
 ]
 case = next(c for c in cases if c.get("source_blocks"))  # 取第一道有 golden 的题

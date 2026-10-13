@@ -37,6 +37,14 @@ pip install -e .
 
 `pip install -e .` 是必需的：包内模块使用绝对导入（`from rag_kb.utils...`），装成可编辑包后才能在任意目录解析。
 
+安装后可用 `rag-kb <子命令>`，与 `python main.py <子命令>` 等价：
+
+```powershell
+rag-kb doctor
+rag-kb ingest --sources docs
+rag-kb serve
+```
+
 ### 2. 配置
 
 ```powershell
@@ -103,12 +111,10 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/ask `
 
 ```
 rag_kb/
-├── agent/          LangChain 1.x 标准 Agent
 ├── api/            FastAPI + SSE
-├── cli/            检索试验与轨迹查看
+├── cli/            命令行入口、检索试验与轨迹查看
 ├── documents/      解析与入库
 ├── graph_crag/     CRAG 主工作流（路由、判分、生成、降级）
-├── graph_react/    简化版 ReAct 工作流
 ├── llm_models/     LLM 与嵌入模型
 ├── tools/          检索器、历史向量库、精排
 └── utils/          配置、日志、引用校验、检查点
@@ -116,6 +122,7 @@ rag_kb/
 eval/               评测工具链：块导出、自动出题、指标与门禁
 tests/              回归测试，按流水线阶段分组
 scripts/            模型下载、Milvus 探测
+legacy/             已归档的旧编排（graph_react / agent），不参与主链路
 datas/              语料目录，每个子目录一个集合
 docs/               架构与运转逻辑
 ```
@@ -159,6 +166,18 @@ python eval\run_eval.py --with-generation --verbose   # 追加生成层指标，
 python tests\run_all_checks.py          # 23 项
 python tests\run_all_checks.py --full   # 追加 API/SSE 集成
 ```
+
+代码检查（CI 与本地一致）：
+
+```powershell
+pip install -r requirements-dev.txt
+python -m ruff check .
+python -m mypy
+python -m pytest                        # 纯逻辑单测（不依赖 Milvus / LLM）
+python -m pytest --cov=rag_kb           # 附带覆盖率
+```
+
+CI 只跑静态检查（`.github/workflows/ci.yml`）。业务回归依赖真实 LLM 与 Milvus，需本地或 self-hosted runner 执行。
 
 ## 配置项
 
