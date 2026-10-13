@@ -115,7 +115,8 @@ print()
 print("=" * 100)
 print("T5 write_milvus 分支")
 print("=" * 100)
-src = (ROOT / "rag_kb/documents/write_milvus.py").read_text(encoding="utf-8")
+# 解析器分派已从 write_milvus 拆到 parser_factory（本测试随源码位置更新）
+src = (ROOT / "rag_kb/documents/parser_factory.py").read_text(encoding="utf-8")
 check("T5 有 html 分支", "parser_type == 'html'" in src)
 check(
     "T5 text 分支不再抛 NotImplementedError",

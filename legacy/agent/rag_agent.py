@@ -29,7 +29,11 @@
 #
 # 业务逻辑保持不变：系统提示词原文、所用工具、会话标识 'zs123'、提问内容均未改动。
 # =============================================================================
+from typing import Any
+
 from langchain.agents import create_agent
+from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 
 from rag_kb.llm_models.all_llm import llm
 from rag_kb.tools.retriever_tools import retriever_tool
@@ -54,7 +58,7 @@ agent = create_agent(
 )
 
 # 1.x 的 config 用 thread_id 指定会话
-config = {'configurable': {'thread_id': SESSION_ID}}
+config: RunnableConfig = {'configurable': {'thread_id': SESSION_ID}}
 
 def get_user_info() -> str:
     """Look up information about the current user."""
@@ -63,10 +67,10 @@ def get_user_info() -> str:
 if __name__ == '__main__':
     # 单轮提问：与迁移前完全相同的问题"reportArgumentType": "none"    ← 删掉这行，reportArgumentType 的检查就回来了
 
-    resp = agent.invoke(
-        {'messages': [('user', '什么是EUV光刻机？')]},
-        config=config,
-    )
+    # 声明为 InputAgentState 期望的元素类型：list 不协变，传 list[HumanMessage]
+    # 或 list[AnyMessage] 都不满足 list[AnyMessage | dict[str, Any]]。
+    messages: list[AnyMessage | dict[str, Any]] = [HumanMessage(content='什么是EUV光刻机？')]
+    resp = agent.invoke({'messages': messages}, config=config)
 
     # 输出最终答案（最后一条消息）
     print(resp['messages'][-1].content)

@@ -44,7 +44,7 @@ print("=" * 96)
 print("增量入库的变更计划")
 print("=" * 96)
 
-from rag_kb.documents.write_milvus import file_fingerprint, plan_incremental  # noqa: E402
+from rag_kb.documents.manifest import file_fingerprint, plan_incremental  # noqa: E402
 
 tmp = pathlib.Path(tempfile.mkdtemp(prefix="inc_plan_"))
 a, b = tmp / "a.md", tmp / "b.md"

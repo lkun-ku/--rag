@@ -135,7 +135,7 @@ def collect(include_llm: bool = False) -> Dict[str, Any]:
 
     # ---- 增量清单 ----
     try:
-        from rag_kb.documents.write_milvus import MANIFEST_DIR
+        from rag_kb.documents.manifest import MANIFEST_DIR
 
         files = sorted(p.name for p in __import__('pathlib').Path(MANIFEST_DIR).glob('*.json'))
         checks['manifest'] = {'dir': MANIFEST_DIR, 'count': len(files), 'files': files[:10]}

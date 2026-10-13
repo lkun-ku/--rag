@@ -52,7 +52,8 @@ def grade_documents(state) -> Literal["generate", "rewrite"]:
 
     scored_result = chain.invoke({"question": question, "context": docs})
 
-    score = scored_result.binary_score
+    # with_structured_output 的返回类型在类型存根里是 dict | Any，这里显式收窄
+    score = scored_result.binary_score if isinstance(scored_result, Grade) else None
 
     if score == "yes":
         print("---输出：文档相关---")
@@ -120,7 +121,7 @@ def main():
         }
     }
 
-    _printed = set()  # set集合，避免重复打印
+    _printed: set[str] = set()  # set集合，避免重复打印
 
     # 执行工作流
     while True:

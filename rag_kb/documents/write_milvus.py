@@ -28,18 +28,22 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from rag_kb.documents.markdown_parser import MarkdownParser
+from rag_kb.documents.manifest import (
+    _delete_filenames,
+    _fmt_err,
+    file_fingerprint,
+    load_manifest,
+    plan_incremental,
+    save_manifest,
+)
 from rag_kb.documents.milvus_db import MilvusVectorSave
-from rag_kb.documents.office_parser import OfficeParser
-from rag_kb.documents.pdf_parser import PDFParser
-from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM, PKG_ROOT
+from rag_kb.documents.parser_factory import ParseFn, build_parser
+from rag_kb.utils.env_utils import DOC_SOURCES, EMBEDDING_DIM
 from rag_kb.utils.log_utils import log
 
 if TYPE_CHECKING:  # 仅类型标注
@@ -50,29 +54,13 @@ if TYPE_CHECKING:  # 仅类型标注
 # ---------------------------------------------------------------------------
 DEFAULT_BATCH_SIZE = 20  # 每批交给写入侧的块数
 DEFAULT_MAX_WRITE_FAILURES = 1  # 连续写失败多少次后熔断本源
-MANIFEST_DIR = os.path.join(PKG_ROOT, 'logs', 'ingest_manifest')
-MANIFEST_VERSION = 1
 
-ParseFn = Callable[[str], List['Document']]
 OnError = Callable[[str], None]
 
 
 # ---------------------------------------------------------------------------
-# 通用工具
+# 集合级互斥
 # ---------------------------------------------------------------------------
-def _env_flag(name: str, default: bool = False) -> bool:
-    """读取布尔环境变量；只认 1/true/yes/on（`off`、`no` 不会被误判为真）。"""
-    raw = (os.getenv(name) or '').strip().lower()
-    if not raw:
-        return default
-    return raw in ('1', 'true', 'yes', 'on')
-
-
-def _fmt_err(e: BaseException) -> str:
-    """异常压成一行短文本（汇总表要打印全部失败项，完整栈留在日志里）。"""
-    return f'{type(e).__name__}: {str(e)[:120]}'
-
-
 _COLLECTION_LOCKS: Dict[str, threading.Lock] = {}
 _COLLECTION_LOCKS_GUARD = threading.Lock()
 
@@ -87,141 +75,8 @@ def _collection_lock(collection: str) -> threading.Lock:
         return lock
 
 
-# ---------------------------------------------------------------------------
-# 增量判定（文件指纹 + 清单）
-# ---------------------------------------------------------------------------
-def file_fingerprint(path: str) -> str:
-    """文件内容 sha1（分块读）。不用 mtime：解压/拷贝会改时间但不改内容。"""
-    h = hashlib.sha1()
-    with open(path, 'rb') as f:
-        for chunk in iter(lambda: f.read(1 << 20), b''):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def plan_incremental(files: List[str], known: Dict[str, str]) -> Tuple[List[str], List[str], List[str]]:
-    """算出 ``(to_ingest, unchanged, removed)``：待重做的路径 / 未变的路径 / 已消失的 basename。"""
-    to_ingest: List[str] = []
-    unchanged: List[str] = []
-    present = set()
-    for path in files:
-        name = os.path.basename(path)
-        present.add(name)
-        (unchanged if known.get(name) == file_fingerprint(path) else to_ingest).append(path)
-    removed = sorted(name for name in known if name not in present)
-    return to_ingest, unchanged, removed
-
-
-def _manifest_path(collection: str) -> str:
-    return os.path.join(MANIFEST_DIR, f'{collection}.json')
-
-
-def load_manifest(collection: str) -> Dict[str, Any]:
-    """读清单；缺失/损坏/版本不符都返回空清单（按首次入库处理，不抛异常）。"""
-    path = _manifest_path(collection)
-    try:
-        with open(path, encoding='utf-8') as f:
-            data = json.load(f)
-        if data.get('version') == MANIFEST_VERSION and isinstance(data.get('files'), dict):
-            return data
-        log.warning(f'清单 {path} 版本不符，按首次入库处理（本次重做全部文件）')
-    except FileNotFoundError:
-        pass
-    except Exception as e:  # noqa: BLE001
-        log.warning(f'清单 {path} 读取失败，按首次入库处理：{_fmt_err(e)}')
-    return {'version': MANIFEST_VERSION, 'collection': collection, 'files': {}}
-
-
-def save_manifest(collection: str, files_map: Dict[str, str]) -> None:
-    """写清单：先写临时文件再 replace，避免崩溃留下半个 JSON。"""
-    os.makedirs(MANIFEST_DIR, exist_ok=True)
-    path = _manifest_path(collection)
-    tmp = path + '.tmp'
-    data = {'version': MANIFEST_VERSION, 'collection': collection, 'files': files_map}
-    with open(tmp, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=1, sort_keys=True)
-    os.replace(tmp, path)
-
-
-def _delete_filenames(mv: MilvusVectorSave, collection: str, names: List[str]) -> None:
-    """按 filename 删旧块。真实 Milvus 的删除异步可见，必须删完立即 flush。"""
-    if not names:
-        return
-    quoted = ','.join("'%s'" % n.replace("'", "\\'") for n in sorted(set(names)))
-    mv.vector_store_saved.client.delete(collection_name=collection, filter=f'filename in [{quoted}]')
-    mv.flush()
-
-
-# ---------------------------------------------------------------------------
-# 解析器分派
-# ---------------------------------------------------------------------------
-# 扩展名 -> parser 类型（parser='auto' 时按扩展名逐文件分派）
-_EXT_TO_PARSER = {
-    '.md': 'markdown',
-    '.markdown': 'markdown',
-    '.pdf': 'pdf',
-    '.docx': 'office',
-    '.xlsx': 'office',
-    '.pptx': 'office',
-    '.html': 'html',
-    '.htm': 'html',
-    '.txt': 'text',
-}
-
-# parser 实例缓存：auto 分派会逐文件查表，实例构造留在缓存里避免反复创建
-_PARSER_CACHE: Dict[str, Tuple[Any, ParseFn]] = {}
-
-
-class _AutoDispatcher:
-    """auto 模式的占位 parser：只用于让 `parser in known` 类检查通过。"""
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return 'AutoParser(按扩展名分派)'
-
-
-def _auto_parse(path: str) -> List[Any]:
-    """按扩展名选择解析器并解析单个文件。"""
-    ext = os.path.splitext(path)[1].lower()
-    parser_type = _EXT_TO_PARSER.get(ext)
-    if parser_type is None:
-        raise ValueError(f'不支持的文件类型: {ext}（{os.path.basename(path)}）')
-    if parser_type not in _PARSER_CACHE:
-        _PARSER_CACHE[parser_type] = build_parser(parser_type)
-    _, fn = _PARSER_CACHE[parser_type]
-    return fn(path)
-
-
-def build_parser(parser_type: str) -> Tuple[Any, ParseFn]:
-    """返回 (parser 实例, 单文件解析函数)；解析函数统一产出同构的 Document 块。"""
-    if parser_type == 'auto':
-        # [2026-11 通用化] 按扩展名逐文件分派解析器。
-        #
-        # 自动源（datas/ 下的主题目录）允许混放 md / pdf / office / html / txt，
-        # 同一目录不再绑定单一解析器。parser 实例按类型缓存，避免逐文件重复构造。
-        return _AutoDispatcher(), _auto_parse
-    if parser_type == 'markdown':
-        p = MarkdownParser()
-        return p, p.parse_markdown_to_documents
-    if parser_type == 'pdf':
-        # [FIX / P1-4] OCR 开关走环境变量（子进程时代无法传参；默认值与历史一致）
-        p = PDFParser(ocr_fallback=_env_flag('PDF_OCR_FALLBACK'), use_ocr=_env_flag('PDF_USE_OCR', True))
-        return p, p.parse_pdf_to_documents
-    if parser_type == 'office':
-        p = OfficeParser()
-        return p, p.parse_office_to_documents
-    if parser_type == 'text':
-        # [ROADMAP 1.3.3] TXT 先补文件名作一级标题，再复用 Markdown 的合并/切片
-        from rag_kb.documents.plain_converters import TextDocParser
-
-        p = TextDocParser()
-        return p, p.parse
-    if parser_type == 'html':
-        # [ROADMAP 4.50] HTML -> Markdown -> MarkdownParser（与 Office 同链路）
-        from rag_kb.documents.plain_converters import HTMLDocParser
-
-        p = HTMLDocParser()
-        return p, p.parse
-    raise ValueError(f'未知的 parser 类型: {parser_type!r}（可选: markdown / pdf / office / text / html）')
+# 增量判定、清单读写见 `rag_kb/documents/manifest.py`；
+# 解析器分派见 `rag_kb/documents/parser_factory.py`（本模块只保留入库编排）。
 
 
 # ---------------------------------------------------------------------------
@@ -472,7 +327,7 @@ def ingest_source(
                     # 评测时该集合 30 题全部 0 召回、每题检索 17s；手动 load 后立即恢复。
                     # 对已加载的集合重复 load 是幂等操作，无副作用。
                     try:
-                        mv.vector_store_saved.client.load_collection(collection)
+                        mv.store.client.load_collection(collection)
                     except Exception as le:  # noqa: BLE001
                         log.warning(f"load_collection 失败（可能已加载）: {type(le).__name__}: {le}")
 
