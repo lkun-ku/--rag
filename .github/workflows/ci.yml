@@ -1,0 +1,49 @@
+name: CI
+
+# 触发：所有分支的 push 与 PR。
+# 只跑「不需要外部服务」的静态检查；业务回归见文件末尾说明。
+on:
+  push:
+  pull_request:
+
+jobs:
+  static:
+    name: Lint & Types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 只装检查工具：mypy 配置了 ignore_missing_imports，
+      # 不安装 torch / langchain 也能完成类型检查，避免每次 PR 下载 GB 级依赖。
+      - name: Install checkers
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff==0.17.1 mypy==2.4.1
+
+      - name: Ruff
+        run: python -m ruff check .
+
+      - name: Mypy
+        run: python -m mypy
+
+# ============================================================================
+# 业务回归（23 项）为什么不在这个 workflow 里：
+#
+#   * `tests/run_all_checks.py --quick` 里有需要真实 LLM 的检查
+#     （完整工作流冒烟、判分埋点）和需要 Milvus 的检查（模块边界、
+#     历史向量检索），GitHub 托管 runner 上没有这些依赖；
+#   * 评测还依赖 models/ 下的 bge 模型（约 1.3GB，不进仓库）。
+#
+# 需要接入时，推荐两种方式（二选一）：
+#   1. self-hosted runner：在装有 Milvus + 模型的机器上注册 runner，
+#      增加一个 `runs-on: self-hosted` 的 job 执行
+#        python tests/run_all_checks.py --quick
+#   2. 容器化服务：用 services 起 Milvus，缓存 models/，并在仓库 Secrets
+#      配置 OPENAI_API_KEY / DEEPSEEK_API_KEY / TAVILY_API_KEY。
+#
+# 在这之前，回归由本地在提交前手动执行，命令见 README。
+# ============================================================================
